@@ -1,0 +1,147 @@
+:root,
+:root[data-theme='dark'] {
+  --fd-neutral-50: #f8fafc;
+  --fd-neutral-100: #f1f5f9;
+  --fd-neutral-200: #e2e8f0;
+  --fd-neutral-300: #cbd5e1;
+  --fd-neutral-400: #94a3b8;
+  --fd-neutral-500: #64748b;
+  --fd-neutral-600: #475569;
+  --fd-neutral-700: #334155;
+  --fd-neutral-800: #1e293b;
+  --fd-neutral-900: #0f172a;
+  --fd-neutral-950: #020617;
+
+  --fd-accent-50: #eef2ff;
+  --fd-accent-100: #e0e7ff;
+  --fd-accent-200: #c7d2fe;
+  --fd-accent-300: #a5b4fc;
+  --fd-accent-400: #818cf8;
+  --fd-accent-500: #6366f1;
+  --fd-accent-600: #4f46e5;
+  --fd-accent-700: #4338ca;
+  --fd-accent-800: #3730a3;
+  --fd-accent-900: #312e81;
+  --fd-accent-950: #1e1b4b;
+
+  --fd-bg: #0b0f17;
+  --fd-surface-1: #121822;
+  --fd-surface-2: #19212d;
+  --fd-surface-3: #222c3a;
+  --fd-border-subtle: #1e2733;
+  --fd-border: #2a3546;
+  --fd-border-strong: #3a4757;
+  --fd-text-primary: #e8edf4;
+  --fd-text-secondary: #a2aebf;
+  --fd-text-tertiary: #7c8ba0;
+  --fd-accent: #818cf8;
+  --fd-accent-hover: #a5b4fc;
+  --fd-accent-contrast: #0b0f17;
+  --fd-accent-subtle-bg: rgb(99 102 241 / 0.14);
+  --fd-focus-ring: #a5b4fc;
+
+  --fd-status-neutral: #94a3b8;
+  --fd-status-progress: #38bdf8;
+  --fd-status-waiting: #fbbf24;
+  --fd-status-review: #a78bfa;
+  --fd-status-done: #34d399;
+  --fd-status-confirmed: #2dd4bf;
+  --fd-status-muted: #64748b;
+  --fd-status-danger: #fb7185;
+
+  --fd-status-neutral-bg: rgb(148 163 184 / 0.14);
+  --fd-status-progress-bg: rgb(56 189 248 / 0.14);
+  --fd-status-waiting-bg: rgb(251 191 36 / 0.14);
+  --fd-status-review-bg: rgb(167 139 250 / 0.14);
+  --fd-status-done-bg: rgb(52 211 153 / 0.14);
+  --fd-status-confirmed-bg: rgb(45 212 191 / 0.14);
+  --fd-status-muted-bg: rgb(100 116 139 / 0.12);
+  --fd-status-danger-bg: rgb(251 113 133 / 0.14);
+
+  --fd-overlay: rgb(2 6 23 / 0.66);
+  --fd-shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.45);
+  --fd-skeleton: rgb(255 255 255 / 0.06);
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --fd-bg: #f7f8fa;
+  --fd-surface-1: #ffffff;
+  --fd-surface-2: #f1f4f8;
+  --fd-surface-3: #e7ecf2;
+  --fd-border-subtle: #edf0f4;
+  --fd-border: #dce2ea;
+  --fd-border-strong: #c3ccd8;
+  --fd-text-primary: #0f172a;
+  --fd-text-secondary: #475569;
+  --fd-text-tertiary: #5b6879;
+  --fd-accent: #4f46e5;
+  --fd-accent-hover: #4338ca;
+  --fd-accent-contrast: #ffffff;
+  --fd-accent-subtle-bg: #eef2ff;
+  --fd-focus-ring: #4f46e5;
+
+  --fd-status-neutral: #64748b;
+  --fd-status-progress: #0284c7;
+  --fd-status-waiting: #b45309;
+  --fd-status-review: #6d28d9;
+  --fd-status-done: #047857;
+  --fd-status-confirmed: #0f766e;
+  --fd-status-muted: #94a3b8;
+  --fd-status-danger: #be123c;
+
+  --fd-status-neutral-bg: rgb(100 116 139 / 0.1);
+  --fd-status-progress-bg: rgb(2 132 199 / 0.1);
+  --fd-status-waiting-bg: rgb(180 83 9 / 0.1);
+  --fd-status-review-bg: rgb(109 40 217 / 0.1);
+  --fd-status-done-bg: rgb(4 120 87 / 0.1);
+  --fd-status-confirmed-bg: rgb(15 118 110 / 0.1);
+  --fd-status-muted-bg: rgb(148 163 184 / 0.14);
+  --fd-status-danger-bg: rgb(190 18 60 / 0.1);
+
+  --fd-overlay: rgb(15 23 42 / 0.42);
+  --fd-shadow-overlay: 0 4px 16px rgb(15 23 42 / 0.1);
+  --fd-skeleton: rgb(15 23 42 / 0.06);
+
+  color-scheme: light;
+}
+
+:root {
+  --fd-row-staff: 40px;
+  --fd-row-portal: 52px;
+  --fd-sidebar-open: 240px;
+  --fd-sidebar-closed: 60px;
+  --fd-topbar: 56px;
+  --fd-content-table: 1440px;
+  --fd-content-form: 880px;
+  --fd-content-portal: 1080px;
+
+  --fd-duration-fast: 120ms;
+  --fd-duration-base: 180ms;
+  --fd-duration-slow: 240ms;
+  --fd-ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --fd-ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --fd-duration-fast: 0ms;
+    --fd-duration-base: 0ms;
+    --fd-duration-slow: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-fade],
+  [data-radix-popper-content-wrapper] > * {
+    transition-duration: 80ms !important;
+  }
+}

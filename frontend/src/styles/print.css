@@ -1,0 +1,116 @@
+@media print {
+  @page {
+    margin: 14mm 12mm;
+  }
+
+  :root,
+  :root[data-theme='dark'],
+  :root[data-theme='light'] {
+    --fd-bg: #ffffff;
+    --fd-surface-1: #ffffff;
+    --fd-surface-2: #ffffff;
+    --fd-surface-3: #ffffff;
+    --fd-border-subtle: #d0d0d0;
+    --fd-border: #999999;
+    --fd-border-strong: #666666;
+    --fd-text-primary: #000000;
+    --fd-text-secondary: #333333;
+    --fd-text-tertiary: #444444;
+    --fd-accent: #000000;
+    --fd-accent-subtle-bg: #ffffff;
+    --fd-skeleton: #ffffff;
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+  }
+
+  [data-print='hide'],
+  nav,
+  aside,
+  button,
+  [role='toolbar'],
+  [role='tablist'],
+  [data-slot='filter-bar'],
+  [data-slot='pagination'],
+  [data-slot='sidebar'],
+  [data-slot='topbar'],
+  [data-slot='portal-nav'],
+  [data-slot='skip-link'],
+  [data-slot='toast-viewport'],
+  [data-slot='command-palette'],
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  [data-print='show'] {
+    display: block !important;
+  }
+
+  main,
+  [data-print='sheet'] {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr,
+  li,
+  [data-print='row'] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  th,
+  td {
+    border: 1px solid #999999 !important;
+    padding: 4pt 6pt !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    text-align: left;
+  }
+
+  th {
+    font-weight: 600;
+    background: #f0f0f0 !important;
+  }
+
+  a {
+    color: #000000 !important;
+    text-decoration: none;
+  }
+
+  h1 {
+    font-size: 16pt;
+  }
+
+  h2 {
+    font-size: 13pt;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}

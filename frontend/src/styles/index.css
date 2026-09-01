@@ -1,0 +1,208 @@
+/*
+ * Verified against the installed tailwindcss@4.3.3 and @tailwindcss/vite@4.3.3 before this file
+ * was written, by compiling this exact shape through the package's own `compile()` API.
+ * 1. Tailwind v4 is CSS-first: there is no tailwind.config.js. `@import 'tailwindcss'` pulls in
+ *    preflight, theme and utilities; the Vite plugin is registered in vite.config.ts.
+ * 2. `@theme inline` emits `var(--fd-*)` into utilities instead of resolving the value at build
+ *    time, which is what lets one utility class follow the active `[data-theme]` block.
+ * 3. `@custom-variant dark (...)` binds the `dark:` variant to the `data-theme` attribute, so the
+ *    operating system's colour preference is never consulted.
+ * 4. Font sizes pair `--text-x` with `--text-x--line-height`, which is the v4 spelling.
+ */
+@import 'tailwindcss';
+@import './tokens.css';
+@import './print.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --color-neutral-50: var(--fd-neutral-50);
+  --color-neutral-100: var(--fd-neutral-100);
+  --color-neutral-200: var(--fd-neutral-200);
+  --color-neutral-300: var(--fd-neutral-300);
+  --color-neutral-400: var(--fd-neutral-400);
+  --color-neutral-500: var(--fd-neutral-500);
+  --color-neutral-600: var(--fd-neutral-600);
+  --color-neutral-700: var(--fd-neutral-700);
+  --color-neutral-800: var(--fd-neutral-800);
+  --color-neutral-900: var(--fd-neutral-900);
+  --color-neutral-950: var(--fd-neutral-950);
+
+  --color-bg: var(--fd-bg);
+  --color-surface-1: var(--fd-surface-1);
+  --color-surface-2: var(--fd-surface-2);
+  --color-surface-3: var(--fd-surface-3);
+  --color-border-subtle: var(--fd-border-subtle);
+  --color-border-base: var(--fd-border);
+  --color-border-strong: var(--fd-border-strong);
+  --color-text-primary: var(--fd-text-primary);
+  --color-text-secondary: var(--fd-text-secondary);
+  --color-text-tertiary: var(--fd-text-tertiary);
+  --color-accent: var(--fd-accent);
+  --color-accent-hover: var(--fd-accent-hover);
+  --color-accent-contrast: var(--fd-accent-contrast);
+  --color-accent-subtle: var(--fd-accent-subtle-bg);
+  --color-focus-ring: var(--fd-focus-ring);
+  --color-overlay: var(--fd-overlay);
+  --color-skeleton: var(--fd-skeleton);
+
+  --color-status-neutral: var(--fd-status-neutral);
+  --color-status-progress: var(--fd-status-progress);
+  --color-status-waiting: var(--fd-status-waiting);
+  --color-status-review: var(--fd-status-review);
+  --color-status-done: var(--fd-status-done);
+  --color-status-confirmed: var(--fd-status-confirmed);
+  --color-status-muted: var(--fd-status-muted);
+  --color-status-danger: var(--fd-status-danger);
+
+  --color-status-neutral-bg: var(--fd-status-neutral-bg);
+  --color-status-progress-bg: var(--fd-status-progress-bg);
+  --color-status-waiting-bg: var(--fd-status-waiting-bg);
+  --color-status-review-bg: var(--fd-status-review-bg);
+  --color-status-done-bg: var(--fd-status-done-bg);
+  --color-status-confirmed-bg: var(--fd-status-confirmed-bg);
+  --color-status-muted-bg: var(--fd-status-muted-bg);
+  --color-status-danger-bg: var(--fd-status-danger-bg);
+
+  --font-sans: 'InterVariable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-2xs: 11px;
+  --text-2xs--line-height: 16px;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 18px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-md: 15px;
+  --text-md--line-height: 22px;
+  --text-lg: 16px;
+  --text-lg--line-height: 24px;
+  --text-xl: 18px;
+  --text-xl--line-height: 26px;
+  --text-2xl: 20px;
+  --text-2xl--line-height: 28px;
+  --text-3xl: 24px;
+  --text-3xl--line-height: 32px;
+  --text-4xl: 30px;
+  --text-4xl--line-height: 38px;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --shadow-overlay: var(--fd-shadow-overlay);
+
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+@layer base {
+  * {
+    border-color: var(--fd-border);
+  }
+
+  html {
+    background-color: var(--fd-bg);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--fd-bg);
+    color: var(--fd-text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    color: var(--fd-text-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--fd-focus-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--fd-accent-subtle-bg);
+  }
+
+  time,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@utility numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+@utility surface-card {
+  background-color: var(--fd-surface-1);
+  border: 1px solid var(--fd-border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+@utility focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  &:focus-visible {
+    outline-color: var(--fd-focus-ring);
+  }
+}
+
+@keyframes fd-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes fd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fd-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

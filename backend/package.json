@@ -1,0 +1,60 @@
+{
+  "name": "firmdesk-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FirmDesk API and scheduler for a single Indian accounting practice.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "main": "dist/src/server.js",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "indexes": "tsx scripts/0001-create-indexes.ts",
+    "reencrypt": "tsx scripts/0002-reencrypt-fields.ts",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
+  },
+  "dependencies": {
+    "better-auth": "1.6.25",
+    "compression": "1.8.1",
+    "cors": "2.8.6",
+    "dotenv": "17.4.2",
+    "express": "5.2.1",
+    "express-rate-limit": "8.6.1",
+    "helmet": "8.3.0",
+    "mongodb": "7.5.0",
+    "mongoose": "9.8.1",
+    "node-cron": "4.6.0",
+    "nodemailer": "9.0.3",
+    "pino": "10.3.1",
+    "pino-http": "11.0.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/compression": "1.8.1",
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/node": "26.1.2",
+    "@types/nodemailer": "8.0.1",
+    "@types/supertest": "7.2.1",
+    "eslint": "10.8.0",
+    "globals": "17.8.0",
+    "mongodb-memory-server": "11.2.0",
+    "nodemon": "3.1.10",
+    "prettier": "3.9.6",
+    "supertest": "7.2.2",
+    "tsx": "4.23.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.65.0",
+    "vitest": "4.1.10"
+  }
+}
