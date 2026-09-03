@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { signInWithEmail, signInWithGoogle } from '@/api/authClient';
 import { AuthCard, GoogleMark } from '@/routes/auth/components/AuthCard';
@@ -27,9 +27,19 @@ export function SignIn() {
   usePageTitle('Sign in');
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { status, user, refresh } = useSession();
   const [formError, setFormError] = useState<string | null>(null);
   const [googleBusy, setGoogleBusy] = useState(false);
+
+  const urlError = searchParams.get('error');
+  const urlErrorMessage =
+    urlError === 'state_mismatch'
+      ? 'Google sign-in session expired or was blocked by browser shields. Please try again or sign in with your email and password below.'
+      : urlError
+        ? `Authentication notice: ${urlError}. Please sign in with your email and password below.`
+        : null;
+  const displayError = formError ?? urlErrorMessage;
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -86,7 +96,7 @@ export function SignIn() {
         className="space-y-4"
         noValidate
       >
-        {formError === null ? null : <InlineError message={formError} />}
+        {displayError === null ? null : <InlineError message={displayError} />}
 
         <FormField label="Email address" required error={form.formState.errors.email?.message}>
           {({ inputId, describedBy, invalid }) => (

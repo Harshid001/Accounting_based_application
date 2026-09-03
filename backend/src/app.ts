@@ -74,7 +74,18 @@ export const createApp = (): Express => {
   app.use(express.json({ limit: '1mb' }));
   app.use(resolveSession);
 
-  app.get('/', (_req, res) => {
+  app.get('/', (req, res) => {
+    const rawError = req.query.error;
+    if (typeof rawError === 'string' && rawError.length > 0) {
+      const errorMsg = encodeURIComponent(rawError);
+      res.redirect(`${env.APP_BASE_URL}/sign-in?error=${errorMsg}`);
+      return;
+    }
+    const accept = req.headers.accept ?? '';
+    if (accept.includes('text/html')) {
+      res.redirect(env.APP_BASE_URL);
+      return;
+    }
     res.status(200).json({ status: 'ok', service: 'FirmDesk API' });
   });
 

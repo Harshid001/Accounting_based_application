@@ -60,6 +60,27 @@ const passwordPolicyGate = createAuthMiddleware(async (ctx) => {
   await Promise.resolve();
 });
 
+const resolveCookieDomain = (): string | undefined => {
+  if (env.SESSION_COOKIE_DOMAIN) {
+    const raw = env.SESSION_COOKIE_DOMAIN.trim();
+    return raw.startsWith('.') ? raw : `.${raw}`;
+  }
+  if (isProduction) {
+    try {
+      const parsed = new URL(env.APP_BASE_URL);
+      const parts = parsed.hostname.split('.');
+      if (parts.length >= 2) {
+        return `.${parts.slice(-2).join('.')}`;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+};
+
+const resolvedCookieDomain = resolveCookieDomain();
+
 let instance: ReturnType<typeof buildAuth> | null = null;
 
 const buildAuth = () =>
@@ -150,12 +171,10 @@ const buildAuth = () =>
         sameSite: env.SESSION_COOKIE_SAMESITE,
         secure: isProduction || env.SESSION_COOKIE_SAMESITE === 'none',
         path: '/',
-        ...(env.SESSION_COOKIE_DOMAIN !== undefined
-          ? { domain: env.SESSION_COOKIE_DOMAIN }
-          : {}),
+        ...(resolvedCookieDomain !== undefined ? { domain: resolvedCookieDomain } : {}),
       },
-      ...(env.SESSION_COOKIE_DOMAIN !== undefined
-        ? { crossSubDomainCookies: { enabled: true, domain: env.SESSION_COOKIE_DOMAIN } }
+      ...(resolvedCookieDomain !== undefined
+        ? { crossSubDomainCookies: { enabled: true, domain: resolvedCookieDomain } }
         : {}),
     },
     hooks: { before: passwordPolicyGate },
