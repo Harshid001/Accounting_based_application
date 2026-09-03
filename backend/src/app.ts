@@ -73,6 +73,11 @@ export const createApp = (): Express => {
 
   app.use(express.json({ limit: '1mb' }));
   app.use(resolveSession);
+
+  app.get('/', (_req, res) => {
+    res.status(200).json({ status: 'ok', service: 'FirmDesk API' });
+  });
+
   app.use('/api/v1', apiRouter);
 
   app.use(notFoundHandler);
