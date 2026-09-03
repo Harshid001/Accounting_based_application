@@ -39,7 +39,7 @@ export function SignUp() {
       await signUpWithEmail({ name: values.name, email: values.email, password: values.password });
       await signInWithEmail({ email: values.email, password: values.password, rememberMe: true });
       await refresh();
-      navigate('/', { replace: true });
+      void navigate('/', { replace: true });
     } catch (error) {
       setFormError(normaliseError(error).message);
     }

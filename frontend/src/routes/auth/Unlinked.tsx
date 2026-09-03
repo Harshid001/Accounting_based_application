@@ -168,7 +168,7 @@ export function Unlinked() {
 
       if (fieldKeys.length > 0) {
         for (const [key, msg] of Object.entries(fieldErrors)) {
-          form.setError(key as any, { message: msg });
+          form.setError(key as Parameters<typeof form.setError>[0], { message: msg });
         }
 
         const step1Fields = ['displayName', 'legalName', 'clientType', 'entityType', 'incorporationDate', 'dateOfBirth'];

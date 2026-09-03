@@ -24,7 +24,7 @@ import { renderResetPassword } from '../email/templates/resetPassword.js';
 import { renderVerifyEmail } from '../email/templates/verifyEmail.js';
 import { sendMail } from '../email/send.js';
 import { User } from '../models/user.model.js';
-import { env, googleOAuthConfigured, isProduction } from './env.js';
+import { env, googleOAuthConfigured, isProduction, isTest } from './env.js';
 import { getDb } from './db.js';
 import { logger } from './logger.js';
 
@@ -76,7 +76,7 @@ const buildAuth = () =>
       requireEmailVerification: false,
       minPasswordLength: MIN_PASSWORD_LENGTH,
       maxPasswordLength: MAX_PASSWORD_LENGTH,
-      autoSignIn: true,
+      autoSignIn: false,
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 60 * 60,
       sendResetPassword: async ({ user, url }) => {
@@ -98,7 +98,7 @@ const buildAuth = () =>
       },
     },
     emailVerification: {
-      sendOnSignUp: false,
+      sendOnSignUp: isTest,
       sendOnSignIn: false,
       autoSignInAfterVerification: true,
       expiresIn: 60 * 60 * 24,
@@ -164,7 +164,14 @@ const buildAuth = () =>
         create: {
           before: async (user) => {
             await Promise.resolve();
-            return { data: { ...user, role: 'client', status: 'active', emailVerified: true } };
+            return {
+              data: {
+                ...user,
+                role: 'client',
+                status: 'active',
+                ...(isTest ? {} : { emailVerified: true }),
+              },
+            };
           },
         },
       },
