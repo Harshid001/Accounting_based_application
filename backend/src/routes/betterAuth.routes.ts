@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request as ExpressRequest, Response as ExpressResponse } from 'express';
 
 import { getAuth } from '../config/auth.js';
 import { env } from '../config/env.js';
@@ -16,9 +16,9 @@ const STRICT_PATHS = [
 
 const SESSION_PATHS = ['/get-session', '/sign-out', '/list-sessions'];
 
-const pathOf = (req: Request): string => (req.path === '' ? '/' : req.path);
+const pathOf = (req: ExpressRequest): string => (req.path === '' ? '/' : req.path);
 
-const readEmailFromRawBody = (req: Request, _res: Response, next: NextFunction): void => {
+const readEmailFromRawBody = (req: ExpressRequest, _res: ExpressResponse, next: NextFunction): void => {
   const raw: unknown = req.body;
   if (!Buffer.isBuffer(raw) || raw.length === 0) {
     next();
@@ -44,7 +44,7 @@ const readEmailFromRawBody = (req: Request, _res: Response, next: NextFunction):
   next();
 };
 
-const chooseLimiter = (req: Request, res: Response, next: NextFunction): void => {
+const chooseLimiter = (req: ExpressRequest, res: ExpressResponse, next: NextFunction): void => {
   const path = pathOf(req);
   if (STRICT_PATHS.some((candidate) => path.startsWith(candidate))) {
     authStrictLimiter(req, res, next);
@@ -57,18 +57,18 @@ const chooseLimiter = (req: Request, res: Response, next: NextFunction): void =>
   next();
 };
 
-const forwardToBetterAuth = (req: Request, res: Response, next: NextFunction): void => {
+const forwardToBetterAuth = (req: ExpressRequest, res: ExpressResponse, next: NextFunction): void => {
   void (async () => {
     try {
       const base = env.BETTER_AUTH_URL.replace(/\/+$/, '');
       const url = new URL(`${base}${req.originalUrl}`);
       const headers = new Headers();
       for (const [key, value] of Object.entries(req.headers)) {
-        if (value === undefined) continue;
+        if (value === undefined || value === null) continue;
         if (Array.isArray(value)) {
-          for (const entry of value) headers.append(key, entry);
+          for (const entry of value) headers.append(key, String(entry));
         } else {
-          headers.set(key, value);
+          headers.set(key, String(value));
         }
       }
 
@@ -77,7 +77,7 @@ const forwardToBetterAuth = (req: Request, res: Response, next: NextFunction): v
       const body = hasBody && Buffer.isBuffer(raw) && raw.length > 0 ? raw : undefined;
 
       const response = await getAuth().handler(
-        new Request(url, { method: req.method, headers, body }),
+        new globalThis.Request(url, { method: req.method, headers, body }),
       );
 
       res.status(response.status);
