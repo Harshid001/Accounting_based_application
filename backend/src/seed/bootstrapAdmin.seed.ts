@@ -9,14 +9,37 @@ export const bootstrapAdmin = async (): Promise<{ created: boolean }> => {
   const password = env.BOOTSTRAP_ADMIN_PASSWORD;
   const name = env.BOOTSTRAP_ADMIN_NAME;
 
-  if (email === undefined || email === '' || password === undefined || name === undefined) {
+  if (email === undefined || email === '') {
+    return { created: false };
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // If user already exists (e.g. signed up via Google OAuth), promote them to admin
+  const existingUser = await User.findOne({ email: normalizedEmail }).exec();
+  if (existingUser) {
+    if (existingUser.role !== 'admin') {
+      await User.updateOne(
+        { _id: existingUser._id },
+        { $set: { role: 'admin', status: 'active', emailVerified: true } },
+      ).exec();
+      logger.info(
+        { event: 'bootstrap.promoted', email: normalizedEmail },
+        'existing user promoted to administrator role',
+      );
+      return { created: true };
+    }
+    return { created: false };
+  }
+
+  if (password === undefined || name === undefined) {
     return { created: false };
   }
 
   const anyAdmin = await User.findOne({ role: 'admin' }).select('_id').lean().exec();
   if (anyAdmin) return { created: false };
 
-  const verdict = checkPassword(password, [email, name]);
+  const verdict = checkPassword(password, [normalizedEmail, name]);
   if (!verdict.ok) {
     logger.error(
       { event: 'bootstrap.rejected' },
