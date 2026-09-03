@@ -20,7 +20,7 @@ export function AuthLayout() {
         tabIndex={-1}
         className="flex flex-1 items-start justify-center px-4 pt-6 pb-16 outline-none sm:items-center sm:pt-0"
       >
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md has-[.fd-wide-auth]:max-w-4xl transition-[max-width] duration-200">
           <Suspense
             fallback={
               <div className="flex justify-center py-16">

@@ -89,7 +89,47 @@ const buildSmtpTransport = (): MailTransport => {
   };
 };
 
-export const mailTransport: MailTransport = isTest ? memoryTransport : buildSmtpTransport();
+const buildConsoleTransport = (): MailTransport => ({
+  send: async (mail) => {
+    logger.info(
+      {
+        event: 'mail.dev_preview',
+        to: mail.to,
+        category: mail.category,
+        subject: mail.subject,
+      },
+      `[DEV EMAIL] Outbound email to ${mail.to}: "${mail.subject}"`,
+    );
+    process.stdout.write(
+      [
+        '',
+        '==================== DEVELOPMENT EMAIL PREVIEW ====================',
+        `To: ${mail.to}`,
+        `Subject: ${mail.subject}`,
+        `Category: ${mail.category}`,
+        '-------------------------------------------------------------------',
+        mail.text,
+        '===================================================================',
+        '',
+      ].join('\n'),
+    );
+    await Promise.resolve();
+  },
+  verify: async () => {
+    logger.info(
+      { event: 'mail.ready' },
+      'development console mail transport active (emails printed to terminal)',
+    );
+    await Promise.resolve();
+    return true;
+  },
+});
+
+export const mailTransport: MailTransport = isTest
+  ? memoryTransport
+  : env.NODE_ENV === 'development' && env.SMTP_HOST.endsWith('.test')
+    ? buildConsoleTransport()
+    : buildSmtpTransport();
 
 export const verifyMailTransport = async (): Promise<void> => {
   try {

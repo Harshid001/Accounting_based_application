@@ -1,4 +1,4 @@
-import { apiGet, apiList, apiPatch } from '@/api/client';
+import { apiGet, apiList, apiPatch, apiPost } from '@/api/client';
 import type { Paged, QueryParams } from '@/types/api';
 import type {
   PortalActivityEntry,
@@ -6,6 +6,8 @@ import type {
   PortalClientProfile,
   PortalComplianceRow,
   PortalDocumentRequestView,
+  PortalOnboardingPayload,
+  PortalOnboardingResult,
   PortalOverview,
   PortalTaskRow,
 } from '@/types/models';
@@ -36,5 +38,11 @@ export const fetchPortalProfile = (): Promise<PortalClientProfile> =>
 export const updatePortalProfile = (body: unknown): Promise<PortalClientProfile> =>
   apiPatch<PortalClientProfile>('/portal/profile', body);
 
+export const submitPortalOnboarding = (
+  body: PortalOnboardingPayload,
+): Promise<PortalOnboardingResult> =>
+  apiPost<PortalOnboardingResult>('/portal/onboarding', body);
+
 export const revealOwnAadhaar = (): Promise<{ aadhaar: string }> =>
   apiGet<{ aadhaar: string }>('/portal/aadhaar');
+

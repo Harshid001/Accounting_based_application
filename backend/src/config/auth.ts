@@ -80,6 +80,12 @@ const buildAuth = () =>
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 60 * 60,
       sendResetPassword: async ({ user, url }) => {
+        if (env.NODE_ENV === 'development') {
+          logger.info(
+            { event: 'auth.reset_password_url', email: user.email, url },
+            `Password reset URL for ${user.email}: ${url}`,
+          );
+        }
         await sendMail({
           to: user.email,
           category: 'password_reset',
@@ -97,6 +103,12 @@ const buildAuth = () =>
       autoSignInAfterVerification: false,
       expiresIn: 60 * 60 * 24,
       sendVerificationEmail: async ({ user, url }) => {
+        if (env.NODE_ENV === 'development') {
+          logger.info(
+            { event: 'auth.verify_url', email: user.email, url },
+            `Email verification URL for ${user.email}: ${url}`,
+          );
+        }
         await sendMail({
           to: user.email,
           category: 'verification',

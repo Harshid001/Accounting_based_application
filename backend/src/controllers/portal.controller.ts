@@ -23,13 +23,15 @@ import {
 import { serialiseComplianceForPortal } from '../serializers/compliance.serializer.js';
 import { serialiseDocumentRequestForPortal } from '../serializers/documentRequest.serializer.js';
 import { serialiseTaskForPortal } from '../serializers/task.serializer.js';
-import { clientHasAadhaar, revealAadhaar, updateClient } from '../services/client.service.js';
+import { clientHasAadhaar, revealAadhaar, submitClientOnboarding, updateClient } from '../services/client.service.js';
 import type { Lean } from '../types/lean.js';
-import type { portalProfileBody } from '../validators/client.validators.js';
+import type { portalOnboardingBody, portalProfileBody } from '../validators/client.validators.js';
 import type { portalComplianceQuery } from '../validators/compliance.validators.js';
 
 type ComplianceQuery = z.infer<typeof portalComplianceQuery>;
 type ProfileBody = z.infer<typeof portalProfileBody>;
+type OnboardingBody = z.infer<typeof portalOnboardingBody>;
+
 
 export const listLinkedClients = async (_input: unknown, ctx: RouteContext): Promise<void> => {
   const clients = await Client.find({ _id: { $in: ctx.user.linkedClients } })
@@ -191,3 +193,15 @@ export const activity = async (
     buildPageMeta(total, page),
   );
 };
+
+export const submitOnboarding = async (
+  input: { body: OnboardingBody },
+  ctx: RouteContext,
+): Promise<void> => {
+  const result = await submitClientOnboarding(input.body, ctx.user, ctx.actor);
+  sendData(ctx.res, {
+    client: serialiseClientForPortal(result.client, Boolean(input.body.aadhaar)),
+    clientId: result.client._id.toString(),
+  });
+};
+

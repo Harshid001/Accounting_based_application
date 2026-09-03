@@ -160,6 +160,29 @@ export const portalProfileBody = z.object({
   address: z.union([addressSchema, z.null()]).optional(),
 });
 
+export const portalOnboardingBody = z
+  .object({
+    clientType: z.enum(CLIENT_TYPES),
+    displayName: trimmedString(2, 160),
+    legalName: nullableText(200),
+    entityType: z.union([z.enum(ENTITY_TYPES), z.null()]).optional(),
+    pan: identifiers.pan,
+    gstin: identifiers.gstin,
+    tan: identifiers.tan,
+    cin: identifiers.cin,
+    aadhaar: identifiers.aadhaar,
+    incorporationDate: nullableDateOnly,
+    dateOfBirth: nullableDateOnly,
+    primaryContact: contactSchema,
+    additionalContacts: z.array(contactSchema).max(10).optional(),
+    address: z.union([addressSchema, z.null()]).optional(),
+    requestedServices: z.array(z.string().trim().max(80)).max(20).optional(),
+    notes: nullableText(4000),
+  })
+  .superRefine(rejectCrossType);
+
 export type CreateClientBody = z.infer<typeof createClientBody>;
 export type UpdateClientBody = z.infer<typeof updateClientBody>;
 export type ClientListQueryInput = z.infer<typeof clientListQuery>;
+export type PortalOnboardingBody = z.infer<typeof portalOnboardingBody>;
+

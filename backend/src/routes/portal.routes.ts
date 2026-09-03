@@ -6,7 +6,7 @@ import { requireClientScope } from '../middleware/requireClientScope.js';
 import { requireCapability } from '../middleware/requireRole.js';
 import { handle } from '../middleware/validate.js';
 import { pageQuery } from '../validators/common.validators.js';
-import { portalProfileBody } from '../validators/client.validators.js';
+import { portalOnboardingBody, portalProfileBody } from '../validators/client.validators.js';
 import { portalComplianceQuery } from '../validators/compliance.validators.js';
 import { documentRequestListQuery } from '../validators/documentRequest.validators.js';
 
@@ -14,12 +14,20 @@ export const portalRouter: Router = Router();
 
 const activeClient = requireClientScope('header');
 
+portalRouter.post(
+  '/onboarding',
+  mutationLimiter,
+  requireCapability('portal:write', { allowUnlinked: true }),
+  handle({ body: portalOnboardingBody }, controller.submitOnboarding),
+);
+
 portalRouter.get(
   '/clients',
   readLimiter,
   requireCapability('portal:read'),
   handle({}, controller.listLinkedClients),
 );
+
 
 portalRouter.get(
   '/overview',

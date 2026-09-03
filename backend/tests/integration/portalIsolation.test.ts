@@ -212,3 +212,39 @@ describe('portal profile edits', () => {
     expect(refused.status).toBe(403);
   });
 });
+
+describe('portal onboarding', () => {
+  it('allows an unlinked client to submit business intake details and gain portal access', async () => {
+    const unlinkedClient = await createAccount({ role: 'client', name: 'New Client' });
+    const res = await request(app())
+      .post('/api/v1/portal/onboarding')
+      .set(auth(unlinkedClient))
+      .send({
+        clientType: 'business',
+        displayName: 'New Enterprises LLP',
+        legalName: 'New Enterprises LLP',
+        entityType: 'llp',
+        pan: 'ABCDE1234F',
+        gstin: '27ABCDE1234F1Z5',
+        primaryContact: {
+          name: 'Partner Sharma',
+          email: 'partner@example.com',
+          phone: '9876543210',
+          role: 'Managing Partner',
+        },
+        address: {
+          line1: '123 MG Road',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          pincode: '400001',
+        },
+        requestedServices: ['gst', 'income_tax'],
+        notes: 'Need quarterly GST returns and annual filing.',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.client.displayName).toBe('New Enterprises LLP');
+    expect(res.body.data.client.status).toBe('onboarding');
+  });
+});
+

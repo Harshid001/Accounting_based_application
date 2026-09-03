@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 import { CLIENT_STATUSES, CLIENT_TYPES, ENTITY_TYPES } from '@/types/enums';
+import type { PortalOnboardingPayload } from '@/types/models';
+
 
 export const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 export const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]{3}$/;
@@ -190,3 +192,79 @@ export const toClientPayload = (
 
   return payload;
 };
+
+export const onboardingSchema = z
+  .object({
+    clientType: z.enum(CLIENT_TYPES),
+    displayName: z
+      .string()
+      .trim()
+      .min(2, 'Enter the trade or business name.')
+      .max(160, 'Keep this under 160 characters.'),
+    legalName: optionalText(200),
+    entityType: z.union([z.enum(ENTITY_TYPES), z.literal('')]),
+    pan: optionalIdentifier(PAN_PATTERN, 'A PAN looks like ABCDE1234F.'),
+    gstin: optionalIdentifier(GSTIN_PATTERN, 'A GSTIN is 15 characters, such as 27ABCDE1234F1Z5.'),
+    tan: optionalIdentifier(TAN_PATTERN, 'A TAN looks like MUMA12345B.'),
+    cin: optionalIdentifier(CIN_PATTERN, 'A CIN is exactly 21 letters and digits.'),
+    aadhaar: z
+      .string()
+      .trim()
+      .transform((value) => value.replace(/[\s-]/g, ''))
+      .refine(
+        (value) => value.length === 0 || AADHAAR_PATTERN.test(value),
+        'An Aadhaar number is twelve digits.',
+      ),
+    incorporationDate: dateOnly,
+    dateOfBirth: dateOnly,
+    primaryContact: contactSchema,
+    address: addressSchema,
+    requestedServices: z.array(z.string()),
+    notes: optionalText(4000),
+  })
+  .superRefine((value, ctx) => {
+    if (value.clientType === 'individual' && value.gstin && value.gstin.length > 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['gstin'],
+        message: 'Switch to a business record to record a GSTIN.',
+      });
+    }
+  });
+
+export type OnboardingFormValues = z.infer<typeof onboardingSchema>;
+
+export const toOnboardingPayload = (
+  values: OnboardingFormValues,
+): PortalOnboardingPayload => {
+  const isIndividual = values.clientType === 'individual';
+  return {
+    clientType: values.clientType,
+    displayName: values.displayName,
+    legalName: blankToNull(values.legalName),
+    entityType: isIndividual || !values.entityType ? null : values.entityType,
+    pan: blankToNull(values.pan),
+    gstin: isIndividual ? null : blankToNull(values.gstin),
+    tan: isIndividual ? null : blankToNull(values.tan),
+    cin: isIndividual ? null : blankToNull(values.cin),
+    aadhaar: isIndividual ? blankToNull(values.aadhaar) : null,
+    incorporationDate: isIndividual ? null : blankToNull(values.incorporationDate),
+    dateOfBirth: isIndividual ? blankToNull(values.dateOfBirth) : null,
+    primaryContact: {
+      name: values.primaryContact.name,
+      role: blankToNull(values.primaryContact.role),
+      email: values.primaryContact.email,
+      phone: blankToNull(values.primaryContact.phone),
+    },
+    address: {
+      line1: blankToNull(values.address.line1),
+      line2: blankToNull(values.address.line2),
+      city: blankToNull(values.address.city),
+      state: blankToNull(values.address.state),
+      pincode: blankToNull(values.address.pincode),
+    },
+    requestedServices: values.requestedServices,
+    notes: blankToNull(values.notes),
+  };
+};
+

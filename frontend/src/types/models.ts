@@ -604,3 +604,28 @@ export interface AssignmentResult {
   client: ClientDetail;
   orphanedOpenItems: number;
 }
+
+export interface PortalOnboardingPayload {
+  clientType: ClientType;
+  displayName: string;
+  legalName?: string | null;
+  entityType?: EntityType | null;
+  pan?: string | null;
+  gstin?: string | null;
+  tan?: string | null;
+  cin?: string | null;
+  aadhaar?: string | null;
+  incorporationDate?: string | null;
+  dateOfBirth?: string | null;
+  primaryContact: Contact;
+  additionalContacts?: Contact[];
+  address?: Address | null;
+  requestedServices?: string[];
+  notes?: string | null;
+}
+
+export interface PortalOnboardingResult {
+  client: PortalClientProfile;
+  clientId: string;
+}
+

@@ -13,10 +13,13 @@ import { Client } from '../models/client.model.js';
 import { ComplianceItem } from '../models/complianceItem.model.js';
 import { DocumentRequest } from '../models/documentRequest.model.js';
 import { Message } from '../models/message.model.js';
+import { Notification } from '../models/notification.model.js';
 import { User } from '../models/user.model.js';
+import type { UserAttributes } from '../models/user.model.js';
 import type { AuthenticatedUser, RequestActor } from '../types/context.js';
 import type { Lean } from '../types/lean.js';
 import { buildDiff, recordAudit } from './audit.service.js';
+
 
 export const CLIENT_SORT_FIELDS = ['displayName', 'createdAt', 'status'] as const;
 
@@ -447,3 +450,83 @@ export const nextDueDateFor = async (clientId: Types.ObjectId): Promise<Date | n
     .exec();
   return row?.dueDate ?? null;
 };
+
+export interface ClientOnboardingPayload extends ClientWritePayload {
+  requestedServices?: string[];
+}
+
+export const submitClientOnboarding = async (
+  payload: ClientOnboardingPayload,
+  user: AuthenticatedUser,
+  actor: RequestActor,
+): Promise<{ client: Lean<ClientAttributes>; user: Lean<UserAttributes> }> => {
+  const clientDoc = new Client({
+    clientType: payload.clientType,
+    displayName: payload.displayName,
+    legalName: payload.legalName ?? null,
+    status: 'onboarding',
+    pan: payload.pan ?? null,
+    gstin: payload.gstin ?? null,
+    tan: payload.tan ?? null,
+    cin: payload.cin ?? null,
+    entityType: payload.entityType ?? null,
+    incorporationDate: payload.incorporationDate ?? null,
+    dateOfBirth: payload.dateOfBirth ?? null,
+    primaryContact: payload.primaryContact,
+    additionalContacts: payload.additionalContacts ?? [],
+    address: payload.address ?? null,
+    assignedStaff: [],
+    notes: payload.notes ?? null,
+    createdBy: actor.id,
+    updatedBy: actor.id,
+  });
+  applyAadhaar(clientDoc, payload.aadhaar);
+  await clientDoc.save();
+
+  const updatedUser = await User.findByIdAndUpdate(
+    user.id,
+    { $addToSet: { linkedClients: clientDoc._id } },
+    { returnDocument: 'after' },
+  )
+    .lean<Lean<UserAttributes>>()
+    .exec();
+
+  if (!updatedUser) throw notFound('user');
+
+  if (payload.notes && payload.notes.trim().length > 0) {
+    const initialMsg = new Message({
+      client: clientDoc._id,
+      author: user.id,
+      authorRole: 'client',
+      body: payload.notes.trim(),
+      readBy: [user.id],
+    });
+    await initialMsg.save();
+  }
+
+  const admins = await User.find({ role: 'admin', status: 'active' }).select('_id').lean().exec();
+  if (admins.length > 0) {
+    const notifications = admins.map((admin) => ({
+      recipient: admin._id,
+      type: 'new_message' as const,
+      title: `New client intake: ${clientDoc.displayName}`,
+      body: `${clientDoc.primaryContact.name} completed onboarding details for ${clientDoc.displayName}.`,
+      link: `/clients/${clientDoc._id.toString()}`,
+      entity: { kind: 'client', id: clientDoc._id },
+    }));
+    await Notification.insertMany(notifications);
+  }
+
+  await recordAudit({
+    actor,
+    action: 'create',
+    entityKind: 'client',
+    entityId: clientDoc._id,
+    client: clientDoc._id,
+    summary: `Client ${clientDoc.displayName} submitted self-onboarding details`,
+  });
+
+  const clientDetail = await getClientDetail(clientDoc._id);
+  return { client: clientDetail, user: updatedUser };
+};
+
