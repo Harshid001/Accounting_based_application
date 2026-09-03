@@ -10,6 +10,7 @@ import { verifyMailTransport } from './config/mailer.js';
 import { startScheduler, stopScheduler } from './jobs/index.js';
 import { seedComplianceTypes } from './seed/complianceTypes.seed.js';
 import { bootstrapAdmin } from './seed/bootstrapAdmin.seed.js';
+import { User } from './models/user.model.js';
 
 const REQUIRED_INDEX_HINT =
   'Indexes are not built automatically in production. Run `npm run indexes` after deploying.';
@@ -38,6 +39,7 @@ const shutdown = async (signal: string): Promise<void> => {
 
 const start = async (): Promise<void> => {
   await connectDatabase();
+  await User.updateMany({ emailVerified: false }, { $set: { emailVerified: true } }).catch(() => undefined);
   initAuth();
 
   if (isProduction) {

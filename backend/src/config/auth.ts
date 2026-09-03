@@ -76,7 +76,7 @@ const buildAuth = () =>
       requireEmailVerification: false,
       minPasswordLength: MIN_PASSWORD_LENGTH,
       maxPasswordLength: MAX_PASSWORD_LENGTH,
-      autoSignIn: false,
+      autoSignIn: true,
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 60 * 60,
       sendResetPassword: async ({ user, url }) => {
@@ -98,9 +98,9 @@ const buildAuth = () =>
       },
     },
     emailVerification: {
-      sendOnSignUp: true,
+      sendOnSignUp: false,
       sendOnSignIn: false,
-      autoSignInAfterVerification: false,
+      autoSignInAfterVerification: true,
       expiresIn: 60 * 60 * 24,
       sendVerificationEmail: async ({ user, url }) => {
         if (env.NODE_ENV === 'development') {
@@ -164,7 +164,7 @@ const buildAuth = () =>
         create: {
           before: async (user) => {
             await Promise.resolve();
-            return { data: { ...user, role: 'client', status: 'active' } };
+            return { data: { ...user, role: 'client', status: 'active', emailVerified: true } };
           },
         },
       },
