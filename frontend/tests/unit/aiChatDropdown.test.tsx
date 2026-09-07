@@ -58,7 +58,7 @@ describe('AiChatDropdown Component', () => {
     expect(screen.getByText(/I am your/i)).toBeInTheDocument();
 
     expect(screen.getByText(/Upcoming Tax Deadlines/i)).toBeInTheDocument();
-    expect(screen.getByText(/TDS Rates/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pending GST Filings/i)).toBeInTheDocument();
   });
 
   it('sends message to API and renders response with tool badges and action links', async () => {
@@ -68,7 +68,7 @@ describe('AiChatDropdown Component', () => {
     const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
     await user.click(triggerBtn);
 
-    const input = screen.getByPlaceholderText(/Ask about GST, TDS, ITR/i);
+    const input = screen.getByPlaceholderText(/Ask to create tasks/i);
     await user.type(input, 'What are the upcoming deadlines?{enter}');
 
     const header = await screen.findByText(/Test Header/i);
@@ -95,7 +95,7 @@ describe('AiChatDropdown Component', () => {
     const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
     await user.click(triggerBtn);
 
-    const promptBtn = screen.getByRole('button', { name: /TDS Rates/i });
+    const promptBtn = screen.getByRole('button', { name: /Pending GST Filings/i });
     await user.click(promptBtn);
 
     await waitFor(() => {
@@ -103,7 +103,7 @@ describe('AiChatDropdown Component', () => {
     });
     expect(sendAiChat).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining('194C'),
+        message: expect.stringContaining('GST filings'),
       }),
     );
   });
@@ -115,7 +115,7 @@ describe('AiChatDropdown Component', () => {
     const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
     await user.click(triggerBtn);
 
-    const input = screen.getByPlaceholderText(/Ask about GST, TDS, ITR/i);
+    const input = screen.getByPlaceholderText(/Ask to create tasks/i);
     await user.type(input, 'test markdown{enter}');
 
     await waitFor(() => {
@@ -134,7 +134,7 @@ describe('AiChatDropdown Component', () => {
     const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
     await user.click(triggerBtn);
 
-    const input = screen.getByPlaceholderText(/Ask about GST, TDS, ITR/i);
+    const input = screen.getByPlaceholderText(/Ask to create tasks/i);
     await user.type(input, 'test{enter}');
 
     await waitFor(() => {

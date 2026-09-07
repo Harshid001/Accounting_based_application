@@ -1408,8 +1408,8 @@ const TOOLS: readonly ToolSpec[] = [
       required: ['displayName'],
     },
     badge: (result) =>
-      isRecord(result) && result.created === true
-        ? `Created client ${String(result.displayName ?? '')}`
+      isRecord(result) && result.created === true && typeof result.displayName === 'string'
+        ? `Created client ${result.displayName}`
         : 'Attempted client creation',
     run: (context, args) => tool_createClient(context, args),
   },
@@ -1435,8 +1435,8 @@ const TOOLS: readonly ToolSpec[] = [
       required: ['clientId'],
     },
     badge: (result) =>
-      isRecord(result) && result.updated === true
-        ? `Updated client ${String(result.displayName ?? '')}`
+      isRecord(result) && result.updated === true && typeof result.displayName === 'string'
+        ? `Updated client ${result.displayName}`
         : 'Attempted client update',
     run: (context, args) => tool_updateClient(context, withRouteContext(context, TOOL_NAMES.updateClient, args)),
   },
@@ -1520,8 +1520,8 @@ const TOOLS: readonly ToolSpec[] = [
       required: ['filingId', 'status'],
     },
     badge: (result) =>
-      isRecord(result) && result.updated === true
-        ? `Updated filing status to ${String(result.status ?? '')}`
+      isRecord(result) && result.updated === true && typeof result.status === 'string'
+        ? `Updated filing status to ${result.status}`
         : 'Attempted filing status update',
     run: (context, args) => tool_updateFilingStatus(context, args),
   },
@@ -1557,8 +1557,8 @@ const TOOLS: readonly ToolSpec[] = [
       },
     },
     badge: (result) =>
-      isRecord(result) && result.success === true
-        ? `Generated ${String(result.created ?? 0)} filing(s)`
+      isRecord(result) && result.success === true && typeof result.created === 'number'
+        ? `Generated ${result.created} filing(s)`
         : 'Attempted bulk generation',
     run: (context, args) => tool_generateComplianceFilings(context, args),
   },
@@ -2081,7 +2081,7 @@ const runGeminiAgent = async (
     const responseParts: GeminiPart[] = [];
     for (const call of functionCalls) {
       const name = call.functionCall.name ?? '';
-      const args = (call.functionCall.args ?? {}) as Record<string, unknown>;
+      const args = call.functionCall.args ?? {};
       const result = await executeTool(context, name, args);
       const tool = toolByName(name);
       if (tool !== undefined) badges.push({ tool: tool.name, label: tool.badge(result) });
