@@ -1,4 +1,4 @@
-import * as RadixPopover from '@radix-ui/react-popover';
+import * as RadixDialog from '@radix-ui/react-dialog';
 import {
   ArrowRight,
   Bot,
@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { sendAiChat } from '@/api/ai.api';
 import { useSession } from '@/context/SessionContext';
+import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { cn } from '@/lib/cn';
 
 interface ChatMessage {
@@ -55,73 +56,76 @@ function formatCurrentTime(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-type MarkdownNode =
+type InlineNode =
   | { type: 'text'; value: string }
-  | { type: 'header'; level: number; children: MarkdownNode[] }
-  | { type: 'bold'; children: MarkdownNode[] }
-  | { type: 'italic'; children: MarkdownNode[] }
-  | { type: 'code'; value: string }
-  | { type: 'bullet'; children: MarkdownNode[] }
-  | { type: 'paragraph'; children: MarkdownNode[] };
+  | { type: 'bold'; children: InlineNode[] }
+  | { type: 'italic'; children: InlineNode[] }
+  | { type: 'code'; value: string };
 
-const parseMarkdown = (text: string): MarkdownNode[] => {
+type BlockNode =
+  | { type: 'header'; level: number; children: InlineNode[] }
+  | { type: 'bullet'; children: InlineNode[] }
+  | { type: 'paragraph'; children: InlineNode[] };
+
+const parseInline = (str: string): InlineNode[] => {
+  const result: InlineNode[] = [];
+  let i = 0;
+  let current = '';
+
+  while (i < str.length) {
+    const ch = str[i];
+    if (ch === '*' && i + 1 < str.length && str[i + 1] === '*') {
+      if (current) result.push({ type: 'text', value: current });
+      current = '';
+      i += 2;
+      let boldText = '';
+      while (i < str.length && !(str[i] === '*' && str[i + 1] === '*')) {
+        boldText += str[i];
+        i += 1;
+      }
+      result.push({ type: 'bold', children: [{ type: 'text', value: boldText }] });
+      i += 2;
+    } else if (ch === '`') {
+      if (current) result.push({ type: 'text', value: current });
+      current = '';
+      i += 1;
+      let codeText = '';
+      while (i < str.length && str[i] !== '`') {
+        codeText += str[i];
+        i += 1;
+      }
+      result.push({ type: 'code', value: codeText });
+      i += 1;
+    } else if (ch === '_' && i + 1 < str.length && str[i + 1] === '_') {
+      if (current) result.push({ type: 'text', value: current });
+      current = '';
+      i += 2;
+      let italicText = '';
+      while (i < str.length && !(str[i] === '_' && str[i + 1] === '_')) {
+        italicText += str[i];
+        i += 1;
+      }
+      result.push({ type: 'italic', children: [{ type: 'text', value: italicText }] });
+      i += 2;
+    } else {
+      current += ch;
+      i += 1;
+    }
+  }
+  if (current) result.push({ type: 'text', value: current });
+  return result;
+};
+
+const parseMarkdown = (text: string): BlockNode[] => {
   const lines = text.split('\n');
-  const nodes: MarkdownNode[] = [];
-  let currentParagraph: MarkdownNode[] = [];
+  const nodes: BlockNode[] = [];
+  let currentParagraph: InlineNode[] = [];
 
   const flushParagraph = () => {
     if (currentParagraph.length > 0) {
       nodes.push({ type: 'paragraph', children: currentParagraph });
       currentParagraph = [];
     }
-  };
-
-  const parseInline = (str: string): MarkdownNode[] => {
-    const result: MarkdownNode[] = [];
-    let i = 0;
-    let current = '';
-    while (i < str.length) {
-      const ch = str[i];
-      if (ch === '*' && i + 1 < str.length && str[i + 1] === '*') {
-        if (current) result.push({ type: 'text', value: current });
-        current = '';
-        i += 2;
-        let boldText = '';
-        while (i < str.length && !(str[i] === '*' && str[i + 1] === '*')) {
-          boldText += str[i];
-          i += 1;
-        }
-        result.push({ type: 'bold', children: [{ type: 'text', value: boldText }] });
-        i += 2;
-      } else if (ch === '`') {
-        if (current) result.push({ type: 'text', value: current });
-        current = '';
-        i += 1;
-        let codeText = '';
-        while (i < str.length && str[i] !== '`') {
-          codeText += str[i];
-          i += 1;
-        }
-        result.push({ type: 'code', value: codeText });
-        i += 1;
-      } else if (ch === '_' && i + 1 < str.length && str[i + 1] === '_') {
-        if (current) result.push({ type: 'text', value: current });
-        current = '';
-        i += 2;
-        let italicText = '';
-        while (i < str.length && !(str[i] === '_' && str[i + 1] === '_')) {
-          italicText += str[i];
-          i += 1;
-        }
-        result.push({ type: 'italic', children: [{ type: 'text', value: italicText }] });
-        i += 2;
-      } else {
-        current += ch;
-        i += 1;
-      }
-    }
-    if (current) result.push({ type: 'text', value: current });
-    return result;
   };
 
   for (let i = 0; i < lines.length; i++) {
@@ -140,10 +144,11 @@ const parseMarkdown = (text: string): MarkdownNode[] => {
       const boldEnd = trimmed.indexOf('**:');
       const boldText = trimmed.slice(2, boldEnd);
       const rest = trimmed.slice(boldEnd + 3);
-      nodes.push({ type: 'bold', children: [{ type: 'text', value: boldText }] });
+      const inlineList: InlineNode[] = [{ type: 'bold', children: [{ type: 'text', value: boldText }] }];
       if (rest.trim()) {
-        currentParagraph.push(...parseInline(rest.trim()));
+        inlineList.push(...parseInline(rest.trim()));
       }
+      nodes.push({ type: 'paragraph', children: inlineList });
     } else if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
       flushParagraph();
       nodes.push({ type: 'bullet', children: parseInline(trimmed.slice(2)) });
@@ -157,46 +162,56 @@ const parseMarkdown = (text: string): MarkdownNode[] => {
   return nodes;
 };
 
-const renderMarkdown = (nodes: MarkdownNode[]): React.ReactNode => (
-  <div className="space-y-1.5 font-sans leading-relaxed">
+const renderInlineNodes = (nodes: InlineNode[]): React.ReactNode =>
+  nodes.map((node, idx) => {
+    switch (node.type) {
+      case 'bold':
+        return <strong key={idx} className="font-semibold">{renderInlineNodes(node.children)}</strong>;
+      case 'italic':
+        return <em key={idx}>{renderInlineNodes(node.children)}</em>;
+      case 'code':
+        return (
+          <code
+            key={idx}
+            className="rounded bg-[var(--fd-surface-3)] px-1 py-0.5 text-[11px] font-mono text-indigo-600 dark:text-indigo-400"
+          >
+            {node.value}
+          </code>
+        );
+      case 'text':
+        return <span key={idx}>{node.value}</span>;
+    }
+  });
+
+const renderMarkdown = (nodes: BlockNode[]): React.ReactNode => (
+  <div className="space-y-2 font-sans leading-relaxed">
     {nodes.map((node, idx) => {
       switch (node.type) {
         case 'header':
           return (
             <h4 key={idx} className="font-semibold text-sm text-indigo-500 pt-1 pb-0.5">
-              {renderMarkdown(node.children)}
+              {renderInlineNodes(node.children)}
             </h4>
           );
         case 'paragraph':
-          return <p key={idx}>{renderMarkdown(node.children)}</p>;
-        case 'bullet':
           return (
-            <p key={idx} className="ml-4 flex gap-2">
-              <span className="text-indigo-500">•</span>
-              <span>{renderMarkdown(node.children)}</span>
+            <p key={idx} className="leading-relaxed">
+              {renderInlineNodes(node.children)}
             </p>
           );
-        case 'bold':
-          return <strong key={idx}>{renderMarkdown(node.children)}</strong>;
-        case 'italic':
-          return <em key={idx}>{renderMarkdown(node.children)}</em>;
-        case 'code':
+        case 'bullet':
           return (
-            <code
-              key={idx}
-              className="rounded bg-[var(--fd-surface-3)] px-1 py-0.5 text-xs font-mono text-indigo-600 dark:text-indigo-400"
-            >
-              {node.value}
-            </code>
+            <div key={idx} className="ml-3 flex items-start gap-2 leading-relaxed">
+              <span className="text-indigo-500 shrink-0 select-none">•</span>
+              <span>{renderInlineNodes(node.children)}</span>
+            </div>
           );
-        case 'text':
-          return <span key={idx}>{node.value}</span>;
       }
     })}
   </div>
 );
 
-export function AiChatDropdown() {
+export function AiChatSidebar() {
   const session = useSession();
   const userName = session.user?.name ?? 'there';
   const firstName = userName.split(' ')[0] ?? userName;
@@ -220,6 +235,8 @@ export function AiChatDropdown() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { onCloseAutoFocus } = useReturnFocus(isOpen);
 
   useEffect(() => {
     if (isOpen) {
@@ -296,8 +313,8 @@ export function AiChatDropdown() {
   };
 
   return (
-    <RadixPopover.Root open={isOpen} onOpenChange={setIsOpen}>
-      <RadixPopover.Trigger asChild>
+    <RadixDialog.Root open={isOpen} onOpenChange={setIsOpen}>
+      <RadixDialog.Trigger asChild>
         <button
           type="button"
           aria-label="FirmDesk AI Assistant Chat"
@@ -321,35 +338,36 @@ export function AiChatDropdown() {
             Copilot
           </span>
         </button>
-      </RadixPopover.Trigger>
+      </RadixDialog.Trigger>
 
-      <RadixPopover.Portal>
-        <RadixPopover.Content
-          align="end"
-          side="bottom"
-          sideOffset={8}
-          collisionPadding={12}
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay className="fixed inset-0 z-50 bg-[var(--fd-overlay)] backdrop-blur-xs transition-opacity animate-in fade-in duration-200" />
+        <RadixDialog.Content
+          onCloseAutoFocus={onCloseAutoFocus}
           className={cn(
-            'z-50 flex flex-col w-[92vw] sm:w-[500px] md:w-[540px] h-[600px] max-h-[85vh]',
-            'rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-2xl overflow-hidden outline-none',
-            'animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2',
+            'fixed inset-y-0 right-0 z-50 flex h-dvh w-full sm:w-[480px] md:w-[520px] lg:w-[560px] flex-col',
+            'border-l border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-2xl outline-none',
+            'animate-in slide-in-from-right duration-300 ease-out',
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] bg-gradient-to-r from-[var(--fd-surface-2)] via-[var(--fd-surface-1)] to-[var(--fd-surface-2)] px-4 py-3">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] bg-gradient-to-r from-[var(--fd-surface-2)] via-[var(--fd-surface-1)] to-[var(--fd-surface-2)] px-4 py-3 sm:px-5">
+            <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm">
                 <Bot className="h-5 w-5" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-sm font-semibold text-[var(--fd-text-primary)]">
+                  <RadixDialog.Title className="text-sm font-semibold text-[var(--fd-text-primary)]">
                     FirmDesk AI Copilot
-                  </h3>
+                  </RadixDialog.Title>
                   <span className="rounded bg-indigo-500/15 px-1.5 py-0.2 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                     CA Assistant
                   </span>
                 </div>
+                <RadixDialog.Description className="sr-only">
+                  CA practice assistant for Indian taxation, GST, TDS, compliance deadlines, and firm management.
+                </RadixDialog.Description>
                 <p className="text-[11px] text-[var(--fd-text-tertiary)] flex items-center gap-1.5">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Online • Live Firm Data • GST, TDS, Compliance
@@ -367,7 +385,7 @@ export function AiChatDropdown() {
               >
                 <RotateCcw className="h-4 w-4" />
               </button>
-              <RadixPopover.Close asChild>
+              <RadixDialog.Close asChild>
                 <button
                   type="button"
                   aria-label="Close AI Chat"
@@ -375,12 +393,12 @@ export function AiChatDropdown() {
                 >
                   <X className="h-4 w-4" />
                 </button>
-              </RadixPopover.Close>
+              </RadixDialog.Close>
             </div>
           </div>
 
-          {/* Quick Prompts Bar */}
-          <div className="flex items-center gap-1.5 overflow-x-auto border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/50 px-3 py-2 no-scrollbar">
+          {/* Quick Prompts Suggestions Bar */}
+          <div className="flex items-center gap-1.5 overflow-x-auto border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/50 px-3 py-2 sm:px-4 no-scrollbar">
             <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--fd-text-tertiary)] pl-1">
               Suggestions:
             </span>
@@ -397,7 +415,7 @@ export function AiChatDropdown() {
           </div>
 
           {/* Chat Messages Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
             {messages.map((msg) => {
               const isUser = msg.sender === 'user';
               return (
@@ -515,7 +533,7 @@ export function AiChatDropdown() {
           </div>
 
           {/* Footer Input Bar */}
-          <div className="border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 p-3">
+          <div className="border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 p-3 sm:p-4">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -529,7 +547,7 @@ export function AiChatDropdown() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about GST, TDS, ITR, tasks, or drafting..."
-                className="flex-1 rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-3.5 py-2 text-xs text-[var(--fd-text-primary)] placeholder-[var(--fd-text-tertiary)] shadow-2xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="flex-1 rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-3.5 py-2.5 text-xs text-[var(--fd-text-primary)] placeholder-[var(--fd-text-tertiary)] shadow-2xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
               <button
                 type="submit"
@@ -550,8 +568,11 @@ export function AiChatDropdown() {
               <span>FirmDesk Practice Copilot</span>
             </div>
           </div>
-        </RadixPopover.Content>
-      </RadixPopover.Portal>
-    </RadixPopover.Root>
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
   );
 }
+
+// Export alias for backward compatibility
+export const AiChatDropdown = AiChatSidebar;
