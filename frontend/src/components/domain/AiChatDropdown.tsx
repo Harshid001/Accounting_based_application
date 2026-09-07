@@ -30,24 +30,28 @@ interface ChatMessage {
 
 const QUICK_PROMPTS = [
   {
+    label: '⚡ What can you automate?',
+    query: 'What operations and workflows can you automate across the whole FirmDesk website?',
+  },
+  {
     label: '📅 Upcoming Tax Deadlines',
     query: 'What are the upcoming statutory tax deadlines for GST and TDS this month?',
   },
   {
-    label: '⚖️ TDS Rates (194C & 194J)',
-    query: 'What are the standard TDS deduction rates and thresholds under Section 194C and 194J?',
+    label: '📋 Pending GST Filings',
+    query: 'Show pending GST filings and tell me what actions you can take on them.',
   },
   {
-    label: '📝 Draft Document Reminder',
-    query: 'Draft a polite and urgent email reminder for a client to submit bank statements and GST data.',
+    label: '📝 Create Client Task',
+    query: 'Create a high priority task to review client GST challans by this Friday.',
   },
   {
-    label: '🏛️ GST Reverse Charge (RCM)',
-    query: 'Explain when Reverse Charge Mechanism (RCM) applies in GST and how it should be reported.',
+    label: '📊 Firm Workload Report',
+    query: 'Show me the team workload report and pending tasks breakdown.',
   },
   {
-    label: '⚡ How to Bulk Generate Filings?',
-    query: 'How do I bulk generate statutory filings for all my clients in FirmDesk?',
+    label: '🔄 Bulk Generate Filings',
+    query: 'How do I bulk generate statutory filings for all active clients for the current quarter?',
   },
 ];
 
@@ -227,7 +231,7 @@ export function AiChatSidebar() {
     {
       id: 'welcome-msg',
       sender: 'assistant',
-      content: `Hello ${firstName}! 👋 I am your **FirmDesk CA Copilot**.\n\nI can help you with Indian taxation (GST, TDS, Income Tax), compliance deadlines, drafting client communications, and navigating FirmDesk features. What would you like assistance with today?`,
+      content: `Hello ${firstName}! 👋 I am your **FirmDesk Autonomous Practice Copilot**.\n\nI can fully automate your practice workflows across the website: managing clients, tasks, statutory compliance filings (GST, TDS, ITR, MCA), bulk filing generation, document requests & reminders, client messaging, team workload, and firm reports.\n\nWhat would you like me to automate or help with today?`,
       timestamp: 'Just now',
     },
   ];
@@ -546,7 +550,7 @@ export function AiChatSidebar() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about GST, TDS, ITR, tasks, or drafting..."
+                placeholder="Ask to create tasks, update filings, search clients, or automate workflows..."
                 className="flex-1 rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-3.5 py-2.5 text-xs text-[var(--fd-text-primary)] placeholder-[var(--fd-text-tertiary)] shadow-2xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
               <button

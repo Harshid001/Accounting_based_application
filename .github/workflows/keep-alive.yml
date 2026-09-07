@@ -1,0 +1,50 @@
+name: Keep Render Backend Awake
+
+on:
+  schedule:
+    # Runs every 10 minutes to prevent Render's 15-minute idle sleep
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Optional URL to ping (overrides secret/default)'
+        required: false
+        type: string
+
+concurrency:
+  group: keep-alive-render
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping Render Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Backend
+        run: |
+          TARGET="${{ inputs.target_url || secrets.RENDER_API_URL || vars.RENDER_API_URL }}"
+          
+          if [ -z "$TARGET" ]; then
+            echo "::error::No backend URL configured. Please set RENDER_API_URL in GitHub Repository Secrets/Variables, or pass target_url in manual run."
+            exit 1
+          fi
+
+          # Ensure /api/v1/health is targeted if bare domain was provided
+          if [[ "$TARGET" != *"/api/v1/health"* && "$TARGET" != *"/health"* ]]; then
+            TARGET="${TARGET%/}/api/v1/health"
+          fi
+
+          echo "Pinging: $TARGET at $(date -u)"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" --connect-timeout 25 --max-time 60 "$TARGET")
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response: $BODY"
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "SUCCESS: Server is awake and responsive!"
+          else
+            echo "WARNING: Server returned HTTP status $HTTP_STATUS"
+          fi

@@ -67,6 +67,42 @@ describe('AI Agent API - Fallback Mode', () => {
     expect(response.body.data.content).toContain('task');
   });
 
+  it('handles task creation request in fallback mode without mistaking it for a filing search', async () => {
+    const response = await request(app())
+      .post('/api/v1/ai/chat')
+      .set(auth(admin))
+      .send({
+        message: 'can you add a task to do name of task is ITR-file for mayur bhai',
+        history: [],
+        currentRoute: '/settings/ai',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.mode).toBe('fallback');
+    expect(response.body.data.content).toContain('Task creation in reference mode');
+    expect(response.body.data.content).not.toContain('Pending INCOME TAX filings');
+    expect(response.body.data.actions.some((a: { route: string }) => a.route === '/tasks')).toBe(true);
+  });
+
+  it('answers queries about website automation capabilities in fallback mode', async () => {
+    const response = await request(app())
+      .post('/api/v1/ai/chat')
+      .set(auth(admin))
+      .send({
+        message: 'What can you automate across the website?',
+        history: [],
+        currentRoute: '/dashboard',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.mode).toBe('fallback');
+    expect(response.body.data.content).toContain('Full Website Automation Capabilities');
+    expect(response.body.data.content).toContain('Client Management');
+    expect(response.body.data.content).toContain('Task Automation');
+    expect(response.body.data.content).toContain('Statutory Compliance');
+    expect(response.body.data.actions.length).toBeGreaterThan(0);
+  });
+
   it('handles empty message with 400', async () => {
     const response = await request(app())
       .post('/api/v1/ai/chat')
@@ -318,6 +354,15 @@ describe('AI Copilot configuration API', () => {
       .send({ message: 'What deadlines are coming up?', history: [] });
     expect(chat.status).toBe(200);
     expect(['llm', 'fallback']).toContain(chat.body.data.mode);
+
+    // Verify provider failure is surfaced even if query contains keywords like ITR
+    const failWithItr = await request(app())
+      .post('/api/v1/ai/chat')
+      .set(auth(admin))
+      .send({ message: 'can you add a task to do name of task is ITR-file for mayur bhai', history: [] });
+    expect(failWithItr.status).toBe(200);
+    expect(failWithItr.body.data.content).toContain('reference mode');
+    expect(failWithItr.body.data.content).not.toContain('Pending INCOME TAX filings');
   });
 
   it('refuses enabling without a provider or key', async () => {

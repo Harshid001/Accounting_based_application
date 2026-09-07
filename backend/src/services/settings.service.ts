@@ -233,8 +233,12 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
     }
   }
 
-  // Fall back to environment variables.
-  if (env.GEMINI_API_KEY !== undefined) {
+  // Fall back to environment variables only if they have valid key prefixes.
+  if (
+    env.GEMINI_API_KEY !== undefined &&
+    env.GEMINI_API_KEY.startsWith('AIza') &&
+    env.GEMINI_API_KEY.length >= 20
+  ) {
     return {
       provider: 'gemini',
       apiKey: env.GEMINI_API_KEY,
@@ -242,7 +246,11 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
       source: 'env',
     };
   }
-  if (env.OPENAI_API_KEY !== undefined) {
+  if (
+    env.OPENAI_API_KEY !== undefined &&
+    env.OPENAI_API_KEY.startsWith('sk-') &&
+    env.OPENAI_API_KEY.length >= 20
+  ) {
     return {
       provider: 'openai',
       apiKey: env.OPENAI_API_KEY,
@@ -260,8 +268,22 @@ export const getProviderApiKey = async (provider: AiProviderName): Promise<strin
   const key = decryptSecret(secret);
   if (key !== null) return key;
 
-  if (provider === 'gemini' && env.GEMINI_API_KEY !== undefined) return env.GEMINI_API_KEY;
-  if (provider === 'openai' && env.OPENAI_API_KEY !== undefined) return env.OPENAI_API_KEY;
+  if (
+    provider === 'gemini' &&
+    env.GEMINI_API_KEY !== undefined &&
+    env.GEMINI_API_KEY.startsWith('AIza') &&
+    env.GEMINI_API_KEY.length >= 20
+  ) {
+    return env.GEMINI_API_KEY;
+  }
+  if (
+    provider === 'openai' &&
+    env.OPENAI_API_KEY !== undefined &&
+    env.OPENAI_API_KEY.startsWith('sk-') &&
+    env.OPENAI_API_KEY.length >= 20
+  ) {
+    return env.OPENAI_API_KEY;
+  }
 
   return null;
 };
