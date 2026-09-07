@@ -103,6 +103,23 @@ describe('AI Agent API - Fallback Mode', () => {
     expect(response.body.data.actions.length).toBeGreaterThan(0);
   });
 
+  it('executes autonomous practice automation for Option 1 query in fallback mode', async () => {
+    const response = await request(app())
+      .post('/api/v1/ai/chat')
+      .set(auth(admin))
+      .send({
+        message: 'go for option one',
+        history: [],
+        currentRoute: '/dashboard',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.mode).toBe('fallback');
+    expect(response.body.data.content).toContain('Comprehensive Practice Automation');
+    expect(response.body.data.toolCalls.some((t: { tool: string }) => t.tool === 'run_autonomous_practice_automation')).toBe(true);
+    expect(response.body.data.actions.some((a: { route: string }) => a.route === '/tasks')).toBe(true);
+  });
+
   it('handles empty message with 400', async () => {
     const response = await request(app())
       .post('/api/v1/ai/chat')

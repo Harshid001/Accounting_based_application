@@ -30,8 +30,16 @@ interface ChatMessage {
 
 const QUICK_PROMPTS = [
   {
+    label: '🚀 Run Practice Automation (Option 1)',
+    query: 'Run comprehensive practice automation (Option 1): check deadlines, bulk generate filings, and schedule urgent review tasks.',
+  },
+  {
     label: '⚡ What can you automate?',
     query: 'What operations and workflows can you automate across the whole FirmDesk website?',
+  },
+  {
+    label: '⚙️ Manage Client Services',
+    query: 'Show client statutory services and attach any missing GSTR-1, GSTR-3B, or TDS quarterly services.',
   },
   {
     label: '📅 Upcoming Tax Deadlines',
@@ -48,10 +56,6 @@ const QUICK_PROMPTS = [
   {
     label: '📊 Firm Workload Report',
     query: 'Show me the team workload report and pending tasks breakdown.',
-  },
-  {
-    label: '🔄 Bulk Generate Filings',
-    query: 'How do I bulk generate statutory filings for all active clients for the current quarter?',
   },
 ];
 

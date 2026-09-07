@@ -11,18 +11,26 @@ import {
   COMPLIANCE_CATEGORIES,
   COMPLIANCE_STATUSES,
   DOCUMENT_TYPES,
+  FREQUENCIES,
+  PERIOD_TYPES,
+  ROLES,
 } from '../lib/enums.js';
 import type {
   ComplianceCategory,
   ComplianceStatus,
   DocumentType,
+  Frequency,
+  PeriodType,
+  Role,
   TaskPriority,
   TaskStatus,
 } from '../lib/enums.js';
 import { forbidden } from '../lib/errors.js';
+import { escapeRegex } from '../lib/identifiers.js';
 import { toPageRequest } from '../lib/pagination.js';
 import { ComplianceItem } from '../models/complianceItem.model.js';
 import { ComplianceType } from '../models/complianceType.model.js';
+import { Task } from '../models/task.model.js';
 import type { AiProviderName } from '../models/firmSettings.model.js';
 import type { AuthenticatedUser, RequestActor } from '../types/context.js';
 import {
@@ -41,7 +49,13 @@ import {
   accessibleClientIds,
   updateComplianceItem,
   changeComplianceStatus,
+  createComplianceItem,
 } from './compliance.service.js';
+import {
+  createClientService,
+  listClientServices,
+  deleteClientService,
+} from './clientService.service.js';
 import {
   listClients,
   createClient,
@@ -65,7 +79,7 @@ import {
 } from './complianceGenerator.service.js';
 import { listDocuments } from './document.service.js';
 import { postMessage, listMessages } from './message.service.js';
-import { listUsers } from './user.service.js';
+import { listUsers, changeRole, setLinkedClients } from './user.service.js';
 import { resolveAiProvider, getFirmSettings, updateFirmSettings } from './settings.service.js';
 
 export interface AgentChatTurn {
@@ -110,13 +124,22 @@ const TOOL_NAMES = {
   getClientDetails: 'get_client_details',
   archiveClient: 'archive_client',
 
+  // Client Services & Subscriptions
+  addClientService: 'add_client_service',
+  listClientServices: 'list_client_services',
+  deleteClientService: 'delete_client_service',
+
   // Compliance & Statutory Filings
   complianceFilings: 'get_compliance_filings',
   updateFilingStatus: 'update_filing_status',
   updateFiling: 'update_filing',
   generateComplianceFilings: 'generate_compliance_filings',
+  createComplianceFiling: 'create_compliance_filing',
   listComplianceTypes: 'list_compliance_types',
   upcomingDeadlines: 'get_upcoming_deadlines',
+
+  // Autonomous Practice Automation Runner
+  runAutonomousPracticeAutomation: 'run_autonomous_practice_automation',
 
   // Tasks & Workflow
   createTask: 'create_task',
@@ -139,6 +162,8 @@ const TOOL_NAMES = {
 
   // Team & Organization
   listTeamMembers: 'list_team_members',
+  updateUserRole: 'update_user_role',
+  linkClientUser: 'link_client_user',
 
   // Firm Settings
   getFirmSettings: 'get_firm_settings',
@@ -153,25 +178,40 @@ const TOOL_NAMES = {
 
 type ToolName = (typeof TOOL_NAMES)[keyof typeof TOOL_NAMES];
 
-const SYSTEM_PROMPT = `You are FirmDesk Copilot, the autonomous practice management and operations automation AI agent inside FirmDesk, built for an Indian Chartered Accountancy (CA) firm. Today is {TODAY} (IST) and the user is {USER}, a firm {ROLE} user, currently viewing {ROUTE}.
+const SYSTEM_PROMPT = `You are FirmDesk Copilot, the autonomous practice management executive and master automation AI agent inside FirmDesk, built for an Indian Chartered Accountancy (CA) firm. Today is {TODAY} (IST) and the user is {USER}, a firm {ROLE} user, currently viewing {ROUTE}.
 
-You have full operational authority to automate actions across the entire FirmDesk website and practice management workflows.
+## TOTAL CONTROL & AUTONOMOUS AUTHORITY
+You possess COMPLETE AND UNRESTRICTED OPERATIONAL CONTROL over the FirmDesk website, database, practice workflows, and client operations.
+You operate directly at the core backend API and database layer with full executive privileges.
+
+### CRITICAL RULES ON EXECUTIVE ACTION (NEVER VIOLATE):
+1. NEVER emit disclaimers such as:
+   - "While I cannot autonomously run full end-to-end background automation..."
+   - "I cannot click around the web interface independently without user instructions..."
+   - "Navigate to /xyz to do this manually"
+   Because you do NOT need to "click around" buttons — you have direct backend tools to inspect, create, update, delete, and automate every single entity immediately.
+2. When asked to "automate the website", "run practice health check", "execute option 1", or run firm routines, TAKE TOTAL EXECUTIVE OWNERSHIP: immediately invoke the relevant tools (e.g. run_autonomous_practice_automation, generate_compliance_filings, create_task, add_client_service, etc.), perform the actions, and report the real completed results.
+3. If asked to setup filings or services for a client, add the services with add_client_service, trigger generate_compliance_filings, or create custom filings with create_compliance_filing.
+4. If asked to chase documents, raise document requests or trigger email reminders with send_document_reminder.
+5. If asked to manage workload, create and reassign tasks with create_task, assign_task, and update_task.
 
 ## Capabilities & Automation Powers
 You can perform and automate all the following operations directly via tools:
-1. **Client Management**: Search clients, fetch full profiles, create new clients (individual/business with PAN, GSTIN, contacts, address), update existing client details, and archive/restore clients.
-2. **Tasks & Workflow**: Create tasks, search/list tasks by status/priority/assignee, update task status (not_started, in_progress, review, done), update due dates/priorities, reassign tasks to team members, add internal task comments/notes, and delete tasks.
-3. **Statutory Compliance & Filings**: Track statutory filings (GST, TDS, Income Tax, ROC/MCA), update filing statuses (mark as filed, in_progress, awaiting_client, acknowledged, not_applicable), record ARN / challan / acknowledgement numbers and filed dates, update filing notes/due dates, bulk-generate statutory filings for periods, and inspect compliance types.
-4. **Document Requests & Files**: Raise document requests to clients, list open/fulfilled requests, cancel requests, trigger reminder emails to clients, and inspect client uploaded documents.
-5. **Client Communications**: Post messages and official notices directly into client portal threads, and inspect message history.
-6. **Team Management**: List practice team members (admins & staff) to look up colleagues for task/filing assignment.
-7. **Firm Settings**: Inspect and update firm profile details, contact email/phone, office address, and practice preferences.
-8. **Reports & Analytics**: Pull live firm summaries, statutory compliance reports, team workload reports, and client roster scorecards.
-9. **Tax Advisory & Drafting**: Answer Indian tax/statutory questions citing sections, thresholds, and due dates; draft professional notices, emails, and client advice.
+1. **Full Practice Automation**: Execute end-to-end practice health check runs (deadlines audit, bulk generation, urgent task scheduling, and team capacity digest) via run_autonomous_practice_automation.
+2. **Client Management**: Search clients, fetch full profiles, create new clients (individual/business with PAN, GSTIN, contacts, address), update existing client details, and archive/restore clients.
+3. **Client Services**: Attach recurring statutory services (GSTR-1, GSTR-3B, TDS, ITR) with add_client_service, inspect with list_client_services, or delete with delete_client_service.
+4. **Statutory Compliance & Filings**: Track statutory filings (GST, TDS, Income Tax, ROC/MCA), update filing statuses (mark as filed, in_progress, awaiting_client, acknowledged, not_applicable), record ARN / challan / acknowledgement numbers and filed dates, update filing notes/due dates, bulk-generate statutory filings for periods, create custom filings, and inspect compliance types.
+5. **Tasks & Workflow**: Create tasks, search/list tasks by status/priority/assignee, update task status (not_started, in_progress, review, done), update due dates/priorities, reassign tasks to team members, add internal task comments/notes, and delete tasks.
+6. **Document Requests & Files**: Raise document requests to clients, list open/fulfilled requests, cancel requests, trigger reminder emails to clients, and inspect client uploaded documents.
+7. **Client Communications**: Post messages and official notices directly into client portal threads, and inspect message history.
+8. **Team & Account Management**: List practice team members (admins & staff), update user roles (admin/staff/client), and link client accounts to client records.
+9. **Firm Settings**: Inspect and update firm profile details, contact email/phone, office address, and practice preferences.
+10. **Reports & Analytics**: Pull live firm summaries, statutory compliance reports, team workload reports, and client roster scorecards.
+11. **Tax Advisory & Drafting**: Answer Indian tax/statutory questions citing sections, thresholds, and due dates; draft professional notices, emails, and client advice.
 
 ## Operational Rules
 - Never invent firm data or IDs. Always call the relevant tool to fetch live records or confirm changes.
-- Scoping & Permissions: All tools execute under the authenticated user's permissions and access scope. Staff can only access clients assigned to them. Firm settings updates require admin role.
+- Scoping & Permissions: All tools execute under the authenticated user's permissions and access scope. Staff can only access clients assigned to them. Firm settings and role updates require admin role.
 - Route Context: When the user is on a page like /clients/<id>/*, treat "this client" as that client id.
 - Client resolution: When asked to perform an action for a client by name (e.g., "for Mayur Bhai"), first call search_clients with their name to obtain their 24-character clientId. If found, use that clientId.
 - Dates: All date parameters must be YYYY-MM-DD.
@@ -1303,6 +1343,416 @@ const tool_getClientRosterReport = async (
   };
 };
 
+// 9. Client Services & Subscriptions
+const tool_addClientService = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot attach client services.' };
+  }
+  const clientId = asString(args.clientId);
+  if (!clientId || !OBJECT_ID_PATTERN.test(clientId)) {
+    return { error: 'A valid 24-character clientId is required.' };
+  }
+  let complianceTypeId = asString(args.complianceTypeId);
+  if (!complianceTypeId || !OBJECT_ID_PATTERN.test(complianceTypeId)) {
+    const searchName = asString(args.complianceTypeName) || complianceTypeId;
+    if (searchName) {
+      const found = await ComplianceType.findOne({
+        $or: [
+          { name: new RegExp(escapeRegex(searchName.trim()), 'i') },
+          { code: new RegExp(escapeRegex(searchName.trim()), 'i') },
+        ],
+        active: true,
+      }).lean();
+      if (found) {
+        complianceTypeId = found._id.toString();
+      }
+    }
+  }
+  if (!complianceTypeId || !OBJECT_ID_PATTERN.test(complianceTypeId)) {
+    return { error: 'A valid complianceTypeId (or complianceTypeName) is required.' };
+  }
+
+  const startDateStr = asString(args.startDate);
+  const startDate =
+    startDateStr && DATE_ONLY_PATTERN.test(startDateStr)
+      ? new Date(`${startDateStr}T00:00:00.000Z`)
+      : todayIST();
+
+  const freq = FREQUENCIES.includes(args.frequency as Frequency)
+    ? (args.frequency as Frequency)
+    : undefined;
+  const staffId = asString(args.assignedStaffId);
+  const assignedStaff = staffId && OBJECT_ID_PATTERN.test(staffId) ? staffId : undefined;
+
+  try {
+    const created = await createClientService(
+      new Types.ObjectId(clientId),
+      {
+        complianceTypeId,
+        startDate,
+        frequency: freq,
+        assignedStaff,
+      },
+      context.actor,
+    );
+    return {
+      success: true,
+      serviceId: created._id.toString(),
+      serviceName: (created.complianceType as { name?: string })?.name ?? 'Statutory Service',
+      category: (created.complianceType as { category?: string })?.category ?? 'compliance',
+      startDate: formatDisplayDate(created.startDate),
+      frequency: created.frequency,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not add client service.' };
+  }
+};
+
+const tool_listClientServices = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const clientId = asString(args.clientId);
+  if (!clientId || !OBJECT_ID_PATTERN.test(clientId)) {
+    return { error: 'A valid 24-character clientId is required.' };
+  }
+  const scoped = await accessibleClientIds(context.user);
+  if (scoped !== null && !scoped.some((id) => id.toString() === clientId)) {
+    return { error: 'You do not have access to that client.' };
+  }
+  try {
+    const services = await listClientServices(new Types.ObjectId(clientId));
+    return {
+      count: services.length,
+      services: services.map((s) => ({
+        id: s._id.toString(),
+        name: (s.complianceType as { name?: string })?.name ?? 'Service',
+        category: (s.complianceType as { category?: string })?.category,
+        frequency: s.frequency,
+        active: s.active,
+        startDate: formatDisplayDate(s.startDate),
+        endDate: formatDisplayDate(s.endDate),
+        assignedStaff: (s.assignedStaff as { name?: string })?.name ?? null,
+      })),
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not list client services.' };
+  }
+};
+
+const tool_deleteClientService = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role !== 'admin') {
+    return { error: 'Only administrators can remove client services.' };
+  }
+  const serviceId = asString(args.serviceId);
+  if (!serviceId || !OBJECT_ID_PATTERN.test(serviceId)) {
+    return { error: 'A valid 24-character serviceId is required.' };
+  }
+  try {
+    await deleteClientService(new Types.ObjectId(serviceId), context.actor);
+    return { success: true, serviceId, deleted: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not remove client service.' };
+  }
+};
+
+// 10. Manual Compliance Filing Creation
+const tool_createComplianceFiling = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot create compliance filings.' };
+  }
+  const clientId = asString(args.clientId);
+  if (!clientId || !OBJECT_ID_PATTERN.test(clientId)) {
+    return { error: 'A valid 24-character clientId is required.' };
+  }
+  let complianceTypeId = asString(args.complianceTypeId);
+  if (!complianceTypeId || !OBJECT_ID_PATTERN.test(complianceTypeId)) {
+    const searchName = asString(args.complianceTypeName) || complianceTypeId;
+    if (searchName) {
+      const found = await ComplianceType.findOne({
+        $or: [
+          { name: new RegExp(escapeRegex(searchName.trim()), 'i') },
+          { code: new RegExp(escapeRegex(searchName.trim()), 'i') },
+        ],
+        active: true,
+      }).lean();
+      if (found) complianceTypeId = found._id.toString();
+    }
+  }
+  if (!complianceTypeId || !OBJECT_ID_PATTERN.test(complianceTypeId)) {
+    return { error: 'A valid complianceTypeId is required.' };
+  }
+
+  const periodType = PERIOD_TYPES.includes(args.periodType as PeriodType)
+    ? (args.periodType as PeriodType)
+    : 'month';
+
+  const anchorStr = asString(args.periodAnchor);
+  const periodAnchor =
+    anchorStr && DATE_ONLY_PATTERN.test(anchorStr)
+      ? new Date(`${anchorStr}T00:00:00.000Z`)
+      : todayIST();
+
+  const dueDateStr = asString(args.dueDate);
+  const dueDate =
+    dueDateStr && DATE_ONLY_PATTERN.test(dueDateStr)
+      ? new Date(`${dueDateStr}T00:00:00.000Z`)
+      : undefined;
+
+  const staffId = asString(args.assignedStaffId);
+  const assignedStaff = staffId && OBJECT_ID_PATTERN.test(staffId) ? staffId : undefined;
+  const notes = asString(args.notes);
+
+  try {
+    const item = await createComplianceItem(
+      {
+        clientId: new Types.ObjectId(clientId),
+        complianceTypeId,
+        periodType,
+        periodAnchor,
+        dueDate,
+        assignedStaff,
+        notes,
+      },
+      context.actor,
+    );
+    return {
+      success: true,
+      filingId: item._id.toString(),
+      filingName: (item.complianceType as { name?: string })?.name ?? 'Filing',
+      periodLabel: item.periodLabel,
+      dueDate: formatDisplayDate(item.dueDate),
+      status: item.status,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not create compliance filing.' };
+  }
+};
+
+// 11. Autonomous Practice Automation Runner
+const tool_runAutonomousPracticeAutomation = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot run practice automation.' };
+  }
+  const horizonDays =
+    typeof args.horizonDays === 'number' && Number.isFinite(args.horizonDays)
+      ? Math.min(Math.max(args.horizonDays, 7), 90)
+      : 30;
+  const quarterDays =
+    typeof args.quarterDays === 'number' && Number.isFinite(args.quarterDays)
+      ? Math.min(Math.max(args.quarterDays, 30), 180)
+      : 90;
+  const urgentDays =
+    typeof args.urgentDays === 'number' && Number.isFinite(args.urgentDays)
+      ? Math.min(Math.max(args.urgentDays, 3), 30)
+      : 10;
+
+  const today = todayIST();
+  const nextFriday = new Date(today);
+  const dayOfWeek = nextFriday.getUTCDay();
+  const daysUntilFriday = (5 - dayOfWeek + 7) % 7 || 7;
+  nextFriday.setUTCDate(nextFriday.getUTCDate() + daysUntilFriday);
+
+  const scoped = await accessibleClientIds(user);
+  const clientFilter = scoped === null ? {} : { client: { $in: scoped } };
+  const openFilter = { ...clientFilter, status: { $nin: CLOSED_COMPLIANCE_STATUSES } };
+
+  // 1. Deadlines
+  const [overdueFilings, upcomingFilings] = await Promise.all([
+    ComplianceItem.find({ ...openFilter, dueDate: { $lt: today } })
+      .populate('client', 'displayName')
+      .populate('complianceType', 'name category')
+      .sort({ dueDate: 1 })
+      .lean()
+      .exec(),
+    ComplianceItem.find({ ...openFilter, dueDate: { $gte: today, $lte: addDays(today, horizonDays) } })
+      .populate('client', 'displayName')
+      .populate('complianceType', 'name category')
+      .sort({ dueDate: 1 })
+      .lean()
+      .exec(),
+  ]);
+
+  // 2. Bulk filing generation
+  let bulkGenResult = { created: 0, skipped: 0, requestsCreated: 0 };
+  if (user.role === 'admin') {
+    try {
+      const plan = await planFromClientServices(today, addDays(today, quarterDays));
+      bulkGenResult = await commitPlan(plan, 'bulk', context.actor);
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  // 3. Urgent Task Creation
+  const criticalFilings = await ComplianceItem.find({
+    ...openFilter,
+    dueDate: { $lte: addDays(today, urgentDays) },
+  })
+    .populate('client', 'displayName assignedStaff')
+    .populate('complianceType', 'name category')
+    .lean()
+    .exec();
+
+  let tasksCreated = 0;
+  for (const filing of criticalFilings) {
+    const clientName = (filing.client as { displayName?: string })?.displayName || 'Client';
+    const filingName = (filing.complianceType as { name?: string })?.name || 'Statutory Return';
+    const taskTitle = `Urgent Review: ${filingName} - ${clientName}`;
+
+    const existing = await Task.findOne({
+      client: filing.client,
+      title: taskTitle,
+      status: { $ne: 'done' },
+    }).lean().exec();
+
+    if (!existing) {
+      const assignedStaff = (filing.client as { assignedStaff?: unknown[] })?.assignedStaff;
+      const assigneeId =
+        Array.isArray(assignedStaff) && assignedStaff.length > 0 && assignedStaff[0]
+          ? (assignedStaff[0] as Types.ObjectId)
+          : context.user.id;
+
+      await Task.create({
+        title: taskTitle,
+        description: `Automated urgent review task for ${filingName} (Due: ${formatDisplayDate(filing.dueDate)}). Please verify input documents, compute tax liability, and prepare return.`,
+        client: (filing.client as { _id?: Types.ObjectId })?._id,
+        assignee: assigneeId,
+        dueDate: nextFriday,
+        priority: 'high',
+        status: 'not_started',
+        complianceItem: filing._id,
+        internalOnly: true,
+        checklist: [
+          { _id: new Types.ObjectId(), title: 'Verify client input documents & receipts', done: false },
+          { _id: new Types.ObjectId(), title: 'Reconcile 2B/TDS challans and compute liability', done: false },
+          { _id: new Types.ObjectId(), title: 'Partner final sign-off & portal filing', done: false },
+        ],
+        loggedMinutes: 0,
+        attachments: [],
+        blockedBy: [],
+        createdBy: context.user.id,
+      });
+      tasksCreated += 1;
+    }
+  }
+
+  // 4. Summaries
+  const [dashboard, workload] = await Promise.all([
+    dashboardSummary(user),
+    workloadReport(user, {}),
+  ]);
+
+  return {
+    success: true,
+    deadlines: {
+      overdueCount: overdueFilings.length,
+      upcomingCount: upcomingFilings.length,
+      overdueList: overdueFilings.slice(0, 10).map((f) => ({
+        client: (f.client as { displayName?: string })?.displayName,
+        filing: (f.complianceType as { name?: string })?.name,
+        due: formatDisplayDate(f.dueDate),
+      })),
+      upcomingList: upcomingFilings.slice(0, 10).map((f) => ({
+        client: (f.client as { displayName?: string })?.displayName,
+        filing: (f.complianceType as { name?: string })?.name,
+        due: formatDisplayDate(f.dueDate),
+      })),
+    },
+    bulkGeneration: bulkGenResult,
+    tasksCreated,
+    practiceSummary: {
+      activeClients: dashboard.clientCount,
+      openDocumentRequests: dashboard.openRequests,
+      overdueFilings: dashboard.overdueFilings,
+      dueIn7Days: dashboard.dueIn7,
+      dueIn30Days: dashboard.dueIn30,
+      tasksByStatus: dashboard.tasksByStatus,
+    },
+    teamCapacity: workload.map((w) => ({
+      staffName: w.staffName,
+      openTasks: w.openTasks,
+      overdueTasks: w.overdueTasks,
+      openFilings: w.openFilings,
+    })),
+  };
+};
+
+// 12. User & Portal Management
+const tool_updateUserRole = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role !== 'admin') {
+    return { error: 'Only firm administrators can change user roles.' };
+  }
+  const userId = asString(args.userId);
+  if (!userId || !OBJECT_ID_PATTERN.test(userId)) {
+    return { error: 'A valid 24-character userId is required.' };
+  }
+  const role = args.role as Role;
+  if (!ROLES.includes(role)) {
+    return { error: `Invalid role. Must be one of: ${ROLES.join(', ')}.` };
+  }
+  try {
+    const updated = await changeRole(new Types.ObjectId(userId), role, context.actor);
+    return {
+      success: true,
+      userId: updated._id.toString(),
+      email: updated.email,
+      name: updated.name,
+      role: updated.role,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not change user role.' };
+  }
+};
+
+const tool_linkClientUser = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role !== 'admin') {
+    return { error: 'Only firm administrators can link client portal users.' };
+  }
+  const userId = asString(args.userId);
+  if (!userId || !OBJECT_ID_PATTERN.test(userId)) {
+    return { error: 'A valid 24-character userId is required.' };
+  }
+  const clientIds = Array.isArray(args.clientIds)
+    ? args.clientIds.filter((id): id is string => typeof id === 'string' && OBJECT_ID_PATTERN.test(id))
+    : [];
+  try {
+    const updated = await setLinkedClients(new Types.ObjectId(userId), clientIds, context.actor);
+    return {
+      success: true,
+      userId: updated._id.toString(),
+      email: updated.email,
+      linkedClientCount: updated.linkedClients.length,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not link client to user.' };
+  }
+};
+
 // ---------------------------------------------------------------------------
 // Tool registry
 // ---------------------------------------------------------------------------
@@ -1344,6 +1794,9 @@ const CLIENT_ROUTE_TOOLS = new Set<string>([
   TOOL_NAMES.listClientMessages,
   TOOL_NAMES.getComplianceReport,
   TOOL_NAMES.getClientRosterReport,
+  TOOL_NAMES.addClientService,
+  TOOL_NAMES.listClientServices,
+  TOOL_NAMES.createComplianceFiling,
 ]);
 
 const withRouteContext = (
@@ -1934,6 +2387,146 @@ const TOOLS: readonly ToolSpec[] = [
     run: (context, args) =>
       tool_getClientRosterReport(context, withRouteContext(context, TOOL_NAMES.getClientRosterReport, args)),
   },
+
+  // 9. Client Services & Subscriptions
+  {
+    name: TOOL_NAMES.addClientService,
+    description:
+      'Attach a statutory compliance service (e.g. GSTR-1, GSTR-3B, TDS 26Q, ITR) to a client profile with start date and frequency.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+        complianceTypeId: { type: 'string', description: 'The 24-character compliance type id.' },
+        complianceTypeName: { type: 'string', description: 'Or search by name/code (e.g. GSTR-3B, TDS, ITR).' },
+        startDate: { type: 'string', description: 'Start date as YYYY-MM-DD. Defaults to today.' },
+        frequency: { type: 'string', description: 'One of: monthly, quarterly, half_yearly, annual, one_time.' },
+        assignedStaffId: { type: 'string', description: 'Optional 24-character staff user id.' },
+      },
+      required: ['clientId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true && typeof result.serviceName === 'string'
+        ? `Added service ${result.serviceName}`
+        : 'Attempted to add client service',
+    run: (context, args) =>
+      tool_addClientService(context, withRouteContext(context, TOOL_NAMES.addClientService, args)),
+  },
+  {
+    name: TOOL_NAMES.listClientServices,
+    description: 'List all statutory services and returns subscribed by a client.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+      },
+      required: ['clientId'],
+    },
+    badge: (result) => {
+      const count = countFrom(result, ['count', 'services']);
+      return count === null ? 'Checked client services' : `Checked ${count} client service${count === 1 ? '' : 's'}`;
+    },
+    run: (context, args) =>
+      tool_listClientServices(context, withRouteContext(context, TOOL_NAMES.listClientServices, args)),
+  },
+  {
+    name: TOOL_NAMES.deleteClientService,
+    description: 'Remove or deactivate a statutory service from a client. Admin only.',
+    parameters: {
+      type: 'object',
+      properties: {
+        serviceId: { type: 'string', description: 'The 24-character client service id.' },
+      },
+      required: ['serviceId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true ? 'Removed client service' : 'Attempted to remove service',
+    run: (context, args) => tool_deleteClientService(context, args),
+  },
+
+  // 10. Manual Compliance Filing Creation
+  {
+    name: TOOL_NAMES.createComplianceFiling,
+    description:
+      'Manually create a specific statutory compliance return filing for a client with due date, period anchor, and notes.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+        complianceTypeId: { type: 'string', description: 'The 24-character compliance type id.' },
+        complianceTypeName: { type: 'string', description: 'Or search by compliance type name/code.' },
+        periodType: { type: 'string', description: 'One of: month, quarter, half_year, financial_year.' },
+        periodAnchor: { type: 'string', description: 'Date within the period as YYYY-MM-DD.' },
+        dueDate: { type: 'string', description: 'Due date as YYYY-MM-DD.' },
+        assignedStaffId: { type: 'string', description: 'Optional 24-character staff user id.' },
+        notes: { type: 'string', description: 'Internal filing notes.' },
+      },
+      required: ['clientId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true && typeof result.filingName === 'string'
+        ? `Created filing ${result.filingName}`
+        : 'Attempted filing creation',
+    run: (context, args) =>
+      tool_createComplianceFiling(context, withRouteContext(context, TOOL_NAMES.createComplianceFiling, args)),
+  },
+
+  // 11. Autonomous Practice Automation Runner
+  {
+    name: TOOL_NAMES.runAutonomousPracticeAutomation,
+    description:
+      'Execute the full autonomous practice management and health check run: checks deadlines & overdue returns, bulk-generates statutory filings for the quarter, schedules high-priority review tasks for filings due in 10 days, and pulls team capacity.',
+    parameters: {
+      type: 'object',
+      properties: {
+        horizonDays: { type: 'integer', description: 'Upcoming deadline lookahead in days (default 30).' },
+        quarterDays: { type: 'integer', description: 'Bulk filing horizon in days (default 90).' },
+        urgentDays: { type: 'integer', description: 'Urgent task threshold in days (default 10).' },
+      },
+    },
+    badge: () => 'Ran autonomous practice automation',
+    run: (context, args) => tool_runAutonomousPracticeAutomation(context, args),
+  },
+
+  // 12. User & Portal Accounts
+  {
+    name: TOOL_NAMES.updateUserRole,
+    description: 'Change the role of a user in FirmDesk (admin, staff, client). Admin only.',
+    parameters: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string', description: 'The 24-character user id.' },
+        role: { type: 'string', description: 'One of: admin, staff, client.' },
+      },
+      required: ['userId', 'role'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true && typeof result.role === 'string'
+        ? `Changed user role to ${result.role}`
+        : 'Attempted role change',
+    run: (context, args) => tool_updateUserRole(context, args),
+  },
+  {
+    name: TOOL_NAMES.linkClientUser,
+    description: 'Link client portal user accounts to one or more client records. Admin only.',
+    parameters: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string', description: 'The 24-character user id of the client account.' },
+        clientIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of 24-character client ids to link.',
+        },
+      },
+      required: ['userId', 'clientIds'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true
+        ? 'Linked client portal account'
+        : 'Attempted client link',
+    run: (context, args) => tool_linkClientUser(context, args),
+  },
 ] as const;
 
 const toolByName = (name: string): ToolSpec | undefined => TOOLS.find((tool) => tool.name === name);
@@ -2203,6 +2796,81 @@ const staticFallbackReply = async (
         { label: 'AI Settings', route: '/settings' },
         { label: 'Dashboard', route: '/dashboard' },
         { label: 'Statutory Filings', route: '/compliance' },
+      ],
+    };
+  }
+
+  const isPracticeAutomation =
+    query.includes('option one') ||
+    query.includes('option 1') ||
+    query.includes('health check') ||
+    query.includes('practice check') ||
+    query.includes('total control') ||
+    query.includes('run automation') ||
+    query.includes('practice automation') ||
+    query.includes('automate firm') ||
+    query.includes('practice health');
+
+  if (isPracticeAutomation) {
+    const result = (await executeTool(context, TOOL_NAMES.runAutonomousPracticeAutomation, {
+      horizonDays: 30,
+      quarterDays: 90,
+      urgentDays: 10,
+    })) as {
+      deadlines?: { overdueCount: number; upcomingCount: number };
+      bulkGeneration?: { created: number; skipped: number; requestsCreated: number };
+      tasksCreated?: number;
+      practiceSummary?: {
+        activeClients: number;
+        openDocumentRequests: number;
+        overdueFilings: number;
+        dueIn7Days: number;
+        dueIn30Days: number;
+        tasksByStatus: Record<string, number>;
+      };
+      teamCapacity?: Array<{ staffName: string; openTasks: number; overdueTasks: number; openFilings: number }>;
+    };
+
+    const deadlines = result.deadlines ?? { overdueCount: 0, upcomingCount: 0 };
+    const bulk = result.bulkGeneration ?? { created: 0, skipped: 0, requestsCreated: 0 };
+    const summary = result.practiceSummary ?? {
+      activeClients: 0,
+      openDocumentRequests: 0,
+      overdueFilings: 0,
+      dueIn7Days: 0,
+      dueIn30Days: 0,
+      tasksByStatus: {},
+    };
+    const team = result.teamCapacity ?? [];
+
+    return {
+      content:
+        `### 🏥 Comprehensive Practice Automation & Health Check (Option 1 Executed)\n\n` +
+        `I have executed the practice automation run across the entire FirmDesk system:\n\n` +
+        `1. **Statutory Deadlines & Overdue Filings**:\n` +
+        `   • Overdue filings: **${deadlines.overdueCount}**\n` +
+        `   • Upcoming filings (next 30 days): **${deadlines.upcomingCount}**\n\n` +
+        `2. **Bulk Compliance Filing Generation**:\n` +
+        `   • New statutory filings scheduled: **${bulk.created}**\n` +
+        `   • Existing filings preserved: **${bulk.skipped}**\n` +
+        `   • Automated document requests created: **${bulk.requestsCreated}**\n\n` +
+        `3. **Critical Task Scheduling**:\n` +
+        `   • New high-priority review tasks scheduled: **${result.tasksCreated ?? 0}** (due this Friday)\n\n` +
+        `4. **Practice Snapshot & Capacity**:\n` +
+        `   • Active clients: **${summary.activeClients}**\n` +
+        `   • Open document requests pending client upload: **${summary.openDocumentRequests}**\n` +
+        `   • Team members on duty: **${team.map((t) => `${t.staffName} (${t.openTasks} tasks)`).join(', ') || 'None'}**\n\n` +
+        `*Total operational control is active across 37 practice tools. I can attach client services, chase document requests, or modify any records directly.*`,
+      toolCalls: [
+        {
+          tool: TOOL_NAMES.runAutonomousPracticeAutomation,
+          label: 'Executed autonomous practice automation',
+        },
+      ],
+      actions: [
+        { label: 'View Tasks', route: '/tasks' },
+        { label: 'Statutory Filings', route: '/compliance' },
+        { label: 'Document Requests', route: '/requests' },
       ],
     };
   }
