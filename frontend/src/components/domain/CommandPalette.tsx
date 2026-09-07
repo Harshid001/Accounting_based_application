@@ -22,7 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAiChat, type AttachedImageData } from '@/context/AiChatContext';
@@ -77,19 +77,19 @@ export function CommandPalette({
   const { openGuide } = useFeatureGuide();
   const { openWithPrompt } = useAiChat();
   const [term, setTerm] = useState('');
-  const [attachedImage, setAttachedImage] = useState<AttachedImageData | null>(null);
+  const normalizedInitial = initialImage ?? null;
+  const [attachedImage, setAttachedImage] = useState<AttachedImageData | null>(normalizedInitial);
+  const [prevInitialImage, setPrevInitialImage] = useState<AttachedImageData | null>(normalizedInitial);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [active, setActive] = useState(0);
   const debounced = useDebounce(term, SEARCH_DEBOUNCE_MS);
   const { onCloseAutoFocus } = useReturnFocus(open);
   const isQueryMode = debounced.trim().length >= 2;
 
-  useEffect(() => {
-    if (initialImage) {
-      setAttachedImage(initialImage);
-      onClearInitialImage?.();
-    }
-  }, [initialImage, onClearInitialImage]);
+  if (normalizedInitial !== prevInitialImage) {
+    setPrevInitialImage(normalizedInitial);
+    setAttachedImage(normalizedInitial);
+  }
 
   const handleImageFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return;
@@ -502,7 +502,10 @@ export function CommandPalette({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAttachedImage(null)}
+                  onClick={() => {
+                    setAttachedImage(null);
+                    onClearInitialImage?.();
+                  }}
                   title="Remove image"
                   aria-label="Remove image"
                   className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"

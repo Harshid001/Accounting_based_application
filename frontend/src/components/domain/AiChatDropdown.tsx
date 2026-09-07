@@ -291,12 +291,21 @@ export function AiChatSidebar({ className }: { className?: string }) {
   } = useAiChat();
 
   const [input, setInput] = useState('');
+  const normalizedPendingImage = pendingImage ?? null;
   const [attachedImage, setAttachedImage] = useState<AttachedImageData | null>(null);
+  const [prevPendingImage, setPrevPendingImage] = useState<AttachedImageData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  if (normalizedPendingImage !== prevPendingImage) {
+    setPrevPendingImage(normalizedPendingImage);
+    if (normalizedPendingImage && !pendingPrompt) {
+      setAttachedImage(normalizedPendingImage);
+    }
+  }
 
   const msgIdRef = useRef(1);
 
@@ -444,7 +453,6 @@ export function AiChatSidebar({ className }: { className?: string }) {
         void handleSend(pendingPrompt);
         clearPendingPrompt();
       } else if (pendingImage) {
-        setAttachedImage(pendingImage);
         clearPendingImage();
       }
     }
