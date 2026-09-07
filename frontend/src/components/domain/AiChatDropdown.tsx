@@ -3,12 +3,14 @@ import {
   Bot,
   Check,
   Copy,
+  History,
   Image as ImageIcon,
   Maximize2,
   Minimize2,
-  RotateCcw,
+  Plus,
   Send,
   Sparkles,
+  Trash2,
   User,
   X,
   Zap,
@@ -268,6 +270,39 @@ export function AiChatTrigger({ className }: { className?: string }) {
   );
 }
 
+interface StoredSession {
+  id: string;
+  title: string;
+  date: string;
+  timestamp: number;
+  messages: ChatMessage[];
+}
+
+const CHAT_SESSIONS_STORAGE_KEY = 'fd_ai_chat_sessions_v1';
+const MAX_STORED_SESSIONS = 7;
+
+function loadStoredSessions(): StoredSession[] {
+  try {
+    const raw = window.localStorage.getItem(CHAT_SESSIONS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_STORED_SESSIONS) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredSessions(sessions: StoredSession[]) {
+  try {
+    window.localStorage.setItem(
+      CHAT_SESSIONS_STORAGE_KEY,
+      JSON.stringify(sessions.slice(0, MAX_STORED_SESSIONS)),
+    );
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Relative AI Agent Sidebar docked alongside the workspace
  */
@@ -322,6 +357,9 @@ export function AiChatSidebar({ className }: { className?: string }) {
   );
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => crypto.randomUUID());
+  const [showHistory, setShowHistory] = useState(false);
+  const [sessions, setSessions] = useState<StoredSession[]>(() => loadStoredSessions());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -419,11 +457,75 @@ export function AiChatSidebar({ className }: { className?: string }) {
     [attachedImage, input, isTyping, messages],
   );
 
-  const handleClear = useCallback(() => {
+  const handleNewChat = useCallback(() => {
     setMessages(initialMessages);
     setInput('');
     setAttachedImage(null);
+    setShowHistory(false);
+    setCurrentSessionId(crypto.randomUUID());
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
   }, [initialMessages]);
+
+  const handleClear = handleNewChat;
+
+  const handleDeleteSession = useCallback(
+    (sessionId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setSessions((prev) => {
+        const filtered = prev.filter((s) => s.id !== sessionId);
+        saveStoredSessions(filtered);
+        return filtered;
+      });
+      if (sessionId === currentSessionId) {
+        setMessages(initialMessages);
+        setCurrentSessionId(crypto.randomUUID());
+      }
+    },
+    [currentSessionId, initialMessages],
+  );
+
+  const handleClearAllHistory = useCallback(() => {
+    setSessions([]);
+    saveStoredSessions([]);
+    setMessages(initialMessages);
+    setCurrentSessionId(crypto.randomUUID());
+  }, [initialMessages]);
+
+  // Auto-save conversation to history whenever messages change
+  useEffect(() => {
+    const hasUserMsg = messages.some((m) => m.sender === 'user');
+    if (!hasUserMsg) return;
+
+    const firstUserMsg = messages.find((m) => m.sender === 'user');
+    const title = firstUserMsg
+      ? firstUserMsg.content.trim().slice(0, 42) + (firstUserMsg.content.trim().length > 42 ? '...' : '')
+      : 'New Chat';
+
+    const now = new Date();
+    const dateFormatted = `${now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${formatCurrentTime()}`;
+
+    setSessions((prev) => {
+      const existingIdx = prev.findIndex((s) => s.id === currentSessionId);
+      const updatedSession: StoredSession = {
+        id: currentSessionId,
+        title,
+        date: dateFormatted,
+        timestamp: Date.now(),
+        messages,
+      };
+
+      const updated = (
+        existingIdx >= 0
+          ? prev.map((s, idx) => (idx === existingIdx ? updatedSession : s))
+          : [updatedSession, ...prev]
+      ).slice(0, MAX_STORED_SESSIONS);
+
+      saveStoredSessions(updated);
+      return updated;
+    });
+  }, [messages, currentSessionId]);
 
   const copyToClipboard = useCallback((text: string, id: string) => {
     void navigator.clipboard.writeText(text);
@@ -553,48 +655,52 @@ export function AiChatSidebar({ className }: { className?: string }) {
 
         {/* Sidebar Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--fd-border-subtle)] bg-gradient-to-r from-[var(--fd-surface-2)] via-[var(--fd-surface-1)] to-[var(--fd-surface-2)] px-4 py-3 sm:px-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm">
+          <div className="flex items-center">
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm"
+              aria-label="FirmDesk AI Logo"
+            >
               <Bot className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-semibold text-[var(--fd-text-primary)]">
-                  FirmDesk AI Copilot
-                </span>
-                <span className="rounded bg-indigo-500/15 px-1.5 py-0.2 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                  CA Assistant
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--fd-text-tertiary)] flex items-center gap-1.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Online • Live Firm Data • GST, TDS, Compliance
-              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
             <button
               type="button"
+              onClick={() => setShowHistory((prev) => !prev)}
+              title={showHistory ? 'Return to active chat' : 'Chat history'}
+              aria-label="Chat history"
+              className={cn(
+                'inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
+                showHistory
+                  ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-semibold'
+                  : 'text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]',
+              )}
+            >
+              <History className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNewChat}
+              title="New chat"
+              aria-label="New chat"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               onClick={toggleExpanded}
-              title={isExpanded ? 'Collapse to standard width' : 'Expand to wide width'}
-              aria-label={isExpanded ? 'Collapse width' : 'Expand width'}
-              className="hidden md:inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
+              title={isExpanded ? 'Minimize' : 'Maximize'}
+              aria-label={isExpanded ? 'Minimize' : 'Maximize'}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
             >
               {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
             <button
               type="button"
-              onClick={handleClear}
-              title="Reset conversation"
-              aria-label="Reset conversation"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
               onClick={closeAiChat}
+              title="Close AI Chat"
               aria-label="Close AI Chat"
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
             >
@@ -603,7 +709,125 @@ export function AiChatSidebar({ className }: { className?: string }) {
           </div>
         </div>
 
-        {/* Quick Prompts Suggestions Bar */}
+        {showHistory ? (
+          <div className="flex-1 flex flex-col min-h-0 bg-[var(--fd-surface-1)]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/50">
+              <div className="flex items-center gap-2">
+                <History className="h-4 w-4 text-indigo-500" />
+                <span className="text-xs font-semibold text-[var(--fd-text-primary)]">Chat History</span>
+                <span className="rounded-full bg-[var(--fd-surface-3)] px-2 py-0.5 text-[10px] font-medium text-[var(--fd-text-secondary)]">
+                  {sessions.length} / {MAX_STORED_SESSIONS}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleNewChat}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 transition-colors cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>New Chat</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-0">
+              {sessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-center px-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-500 mb-3">
+                    <History className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs font-medium text-[var(--fd-text-primary)]">No saved chats yet</p>
+                  <p className="text-[11px] text-[var(--fd-text-tertiary)] mt-1 max-w-[220px]">
+                    Your conversations with AI Copilot will appear here automatically.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowHistory(false)}
+                    className="mt-4 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--fd-text-secondary)] hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                  >
+                    Return to active chat
+                  </button>
+                </div>
+              ) : (
+                sessions.map((sess) => {
+                  const isCurrent = sess.id === currentSessionId;
+                  return (
+                    <div
+                      key={sess.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setMessages(sess.messages);
+                        setCurrentSessionId(sess.id);
+                        setShowHistory(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setMessages(sess.messages);
+                          setCurrentSessionId(sess.id);
+                          setShowHistory(false);
+                        }
+                      }}
+                      className={cn(
+                        'group relative flex flex-col gap-1 rounded-xl border p-3 transition-all cursor-pointer text-left',
+                        isCurrent
+                          ? 'border-indigo-500/50 bg-indigo-500/10 ring-1 ring-indigo-500/20'
+                          : 'border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] hover:border-indigo-400 hover:bg-[var(--fd-surface-3)]',
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-medium text-[var(--fd-text-primary)] line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                          {sess.title}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteSession(sess.id, e)}
+                          title="Delete conversation"
+                          aria-label="Delete conversation"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-[var(--fd-text-tertiary)] hover:text-rose-600 rounded transition-opacity cursor-pointer shrink-0"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--fd-text-tertiary)]">
+                        <span>{sess.date}</span>
+                        <span>•</span>
+                        <span>{sess.messages.length} messages</span>
+                        {isCurrent && (
+                          <>
+                            <span>•</span>
+                            <span className="font-semibold text-indigo-500">Active</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {sessions.length > 0 && (
+              <div className="p-3 border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/30 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={handleClearAllHistory}
+                  className="text-[11px] text-rose-500 hover:text-rose-600 font-medium transition-colors cursor-pointer"
+                >
+                  Clear all history
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowHistory(false)}
+                  className="text-[11px] text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)] font-medium transition-colors cursor-pointer"
+                >
+                  Back to chat
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Quick Prompts Suggestions Bar */}
         <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/50 px-3 py-2 sm:px-4 no-scrollbar">
           <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--fd-text-tertiary)] pl-1">
             Suggestions:
@@ -853,6 +1077,8 @@ export function AiChatSidebar({ className }: { className?: string }) {
             <span>FirmDesk Practice Copilot</span>
           </div>
         </div>
+          </>
+        )}
       </aside>
     </>
   );

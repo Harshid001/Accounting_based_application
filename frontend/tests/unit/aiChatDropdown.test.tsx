@@ -53,8 +53,9 @@ describe('AiChatDropdown Component', () => {
     const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
     await user.click(triggerBtn);
 
-    expect(screen.getByText(/FirmDesk AI Copilot/i)).toBeInTheDocument();
-    expect(screen.getByText(/CA Assistant/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/FirmDesk AI Logo/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Chat history/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New chat/i })).toBeInTheDocument();
     expect(screen.getByText(/I am your/i)).toBeInTheDocument();
 
     expect(screen.getByText(/Upcoming Tax Deadlines/i)).toBeInTheDocument();
@@ -152,13 +153,13 @@ describe('AiChatDropdown Component', () => {
     const sidebar = screen.getByTestId('ai-chat-sidebar');
     expect(sidebar).toBeInTheDocument();
 
-    // Check expand button exists and works
-    const expandBtn = screen.getByRole('button', { name: /Expand width/i });
-    expect(expandBtn).toBeInTheDocument();
-    await user.click(expandBtn);
+    // Check single button for minimize and maximize exists and works
+    const maxBtn = screen.getByRole('button', { name: /Maximize/i });
+    expect(maxBtn).toBeInTheDocument();
+    await user.click(maxBtn);
 
-    const collapseBtn = screen.getByRole('button', { name: /Collapse width/i });
-    expect(collapseBtn).toBeInTheDocument();
+    const minBtn = screen.getByRole('button', { name: /Minimize/i });
+    expect(minBtn).toBeInTheDocument();
 
     // Check close button
     const closeBtn = screen.getByRole('button', { name: /Close AI Chat/i });
@@ -167,7 +168,7 @@ describe('AiChatDropdown Component', () => {
     expect(screen.queryByTestId('ai-chat-sidebar')).not.toBeInTheDocument();
   });
 
-  it('resets conversation when reset button is clicked', async () => {
+  it('resets conversation when new chat plus button is clicked', async () => {
     const user = userEvent.setup();
     renderDropdown();
 
@@ -179,11 +180,27 @@ describe('AiChatDropdown Component', () => {
 
     await screen.findByText(/Test Header/i);
 
-    const resetBtn = screen.getByRole('button', { name: /Reset conversation/i });
-    await user.click(resetBtn);
+    const newChatBtn = screen.getByRole('button', { name: /New chat/i });
+    await user.click(newChatBtn);
 
     expect(screen.queryByText(/Test Header/i)).not.toBeInTheDocument();
     expect(screen.getByText(/I am your/i)).toBeInTheDocument();
+  });
+
+  it('toggles chat history panel when history button is clicked', async () => {
+    const user = userEvent.setup();
+    renderDropdown();
+
+    const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
+    await user.click(triggerBtn);
+
+    const historyBtn = screen.getByRole('button', { name: /Chat history/i });
+    await user.click(historyBtn);
+
+    expect(screen.getByText(/Chat History/i)).toBeInTheDocument();
+
+    await user.click(historyBtn);
+    expect(screen.queryByText(/No saved chats yet/i)).not.toBeInTheDocument();
   });
 
   it('attaches pasted image, shows preview chip, and allows removing it', async () => {
