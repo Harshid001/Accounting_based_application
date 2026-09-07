@@ -11,6 +11,12 @@ const EXPANDED_WIDTH = 640;
 const MIN_WIDTH = 340;
 const MAX_WIDTH = 800;
 
+export interface AttachedImageData {
+  dataUrl: string;
+  name?: string;
+  mimeType?: string;
+}
+
 export interface AiChatContextValue {
   isAiChatOpen: boolean;
   openAiChat: () => void;
@@ -21,8 +27,10 @@ export interface AiChatContextValue {
   isExpanded: boolean;
   toggleExpanded: () => void;
   pendingPrompt: string | null;
-  openWithPrompt: (prompt: string) => void;
+  pendingImage: AttachedImageData | null;
+  openWithPrompt: (prompt: string, image?: AttachedImageData | null) => void;
   clearPendingPrompt: () => void;
+  clearPendingImage: () => void;
 }
 
 const readStoredWidth = (): number => {
@@ -46,8 +54,10 @@ export const defaultContext: AiChatContextValue = {
   isExpanded: false,
   toggleExpanded: () => undefined,
   pendingPrompt: null,
+  pendingImage: null,
   openWithPrompt: () => undefined,
   clearPendingPrompt: () => undefined,
+  clearPendingImage: () => undefined,
 };
 
 export const AiChatContext = createContext<AiChatContextValue | null>(null);
@@ -57,6 +67,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   const [width, setWidthState] = useState<number>(readStoredWidth);
   const [isExpanded, setIsExpanded] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<AttachedImageData | null>(null);
 
   const openAiChat = useCallback(() => {
     setIsOpen(true);
@@ -113,13 +124,23 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const openWithPrompt = useCallback((prompt: string) => {
-    setPendingPrompt(prompt);
-    setIsOpen(true);
-  }, []);
+  const openWithPrompt = useCallback(
+    (prompt: string, image?: AttachedImageData | null) => {
+      setPendingPrompt(prompt);
+      if (image !== undefined) {
+        setPendingImage(image);
+      }
+      setIsOpen(true);
+    },
+    [],
+  );
 
   const clearPendingPrompt = useCallback(() => {
     setPendingPrompt(null);
+  }, []);
+
+  const clearPendingImage = useCallback(() => {
+    setPendingImage(null);
   }, []);
 
   // Hotkey: Ctrl + J or Cmd + J to toggle AI sidebar
@@ -151,8 +172,10 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
       isExpanded,
       toggleExpanded,
       pendingPrompt,
+      pendingImage,
       openWithPrompt,
       clearPendingPrompt,
+      clearPendingImage,
     }),
     [
       isOpen,
@@ -164,8 +187,10 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
       isExpanded,
       toggleExpanded,
       pendingPrompt,
+      pendingImage,
       openWithPrompt,
       clearPendingPrompt,
+      clearPendingImage,
     ],
   );
 

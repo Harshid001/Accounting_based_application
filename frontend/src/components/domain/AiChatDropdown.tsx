@@ -3,6 +3,7 @@ import {
   Bot,
   Check,
   Copy,
+  Image as ImageIcon,
   Maximize2,
   Minimize2,
   RotateCcw,
@@ -17,6 +18,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { useNavigate } from 'react-router-dom';
 
 import { sendAiChat } from '@/api/ai.api';
+import type { AttachedImageData } from '@/context/AiChatContext';
 import { AiChatContext, AiChatProvider, useAiChat } from '@/context/AiChatContext';
 import { useSession } from '@/context/SessionContext';
 import { cn } from '@/lib/cn';
@@ -26,6 +28,7 @@ interface ChatMessage {
   sender: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  image?: AttachedImageData | null;
   toolCalls?: Array<{ tool: string; label: string }>;
   actions?: Array<{ label: string; route: string }>;
 }
@@ -283,9 +286,13 @@ export function AiChatSidebar({ className }: { className?: string }) {
     toggleExpanded,
     pendingPrompt,
     clearPendingPrompt,
+    pendingImage,
+    clearPendingImage,
   } = useAiChat();
 
   const [input, setInput] = useState('');
+  const [attachedImage, setAttachedImage] = useState<AttachedImageData | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -309,22 +316,59 @@ export function AiChatSidebar({ className }: { className?: string }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const handleImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setAttachedImage({
+          dataUrl: reader.result,
+          name: file.name || 'Pasted image',
+          mimeType: file.type,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            handleImageFile(file);
+            break;
+          }
+        }
+      }
+    },
+    [handleImageFile],
+  );
+
   const handleSend = useCallback(
-    async (textToSend?: string) => {
+    async (textToSend?: string, imageToSend?: AttachedImageData | null) => {
+      const currentImage = imageToSend !== undefined ? imageToSend : attachedImage;
       const text = (textToSend ?? input).trim();
-      if (!text || isTyping) return;
+      if ((!text && !currentImage) || isTyping) return;
 
       msgIdRef.current += 1;
       const currentId = msgIdRef.current;
       const userMsg: ChatMessage = {
         id: `user-${currentId}`,
         sender: 'user',
-        content: text,
+        content: text || 'Please analyze this attached document or image and identify relevant details.',
         timestamp: formatCurrentTime(),
+        image: currentImage,
       };
 
       setMessages((prev) => [...prev, userMsg]);
       setInput('');
+      setAttachedImage(null);
       setIsTyping(true);
 
       try {
@@ -332,7 +376,12 @@ export function AiChatSidebar({ className }: { className?: string }) {
           .filter((m) => m.sender === 'user' || m.sender === 'assistant')
           .map((m) => ({ role: m.sender, content: m.content }));
         const route = window.location.pathname;
-        const reply = await sendAiChat({ message: text, history, currentRoute: route });
+        const reply = await sendAiChat({
+          message: text || 'Please analyze this attached document or image and identify relevant details.',
+          history,
+          currentRoute: route,
+          image: currentImage ? { dataUrl: currentImage.dataUrl, mimeType: currentImage.mimeType } : null,
+        });
 
         msgIdRef.current += 1;
         const aiId = msgIdRef.current;
@@ -358,12 +407,13 @@ export function AiChatSidebar({ className }: { className?: string }) {
         setIsTyping(false);
       }
     },
-    [input, isTyping, messages],
+    [attachedImage, input, isTyping, messages],
   );
 
   const handleClear = useCallback(() => {
     setMessages(initialMessages);
     setInput('');
+    setAttachedImage(null);
   }, [initialMessages]);
 
   const copyToClipboard = useCallback((text: string, id: string) => {
@@ -383,13 +433,22 @@ export function AiChatSidebar({ className }: { className?: string }) {
     }
   }, [isAiChatOpen]);
 
-  // Handle incoming pending prompt
+  // Handle incoming pending prompt & image
   useEffect(() => {
-    if (pendingPrompt && isAiChatOpen) {
-      void handleSend(pendingPrompt);
-      clearPendingPrompt();
+    if ((pendingPrompt || pendingImage) && isAiChatOpen) {
+      if (pendingPrompt && pendingImage) {
+        void handleSend(pendingPrompt, pendingImage);
+        clearPendingPrompt();
+        clearPendingImage();
+      } else if (pendingPrompt) {
+        void handleSend(pendingPrompt);
+        clearPendingPrompt();
+      } else if (pendingImage) {
+        setAttachedImage(pendingImage);
+        clearPendingImage();
+      }
     }
-  }, [pendingPrompt, isAiChatOpen, handleSend, clearPendingPrompt]);
+  }, [pendingPrompt, pendingImage, isAiChatOpen, handleSend, clearPendingPrompt, clearPendingImage]);
 
   // Auto scroll on messages or typing changes
   useEffect(() => {
@@ -449,6 +508,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
       <aside
         data-testid="ai-chat-sidebar"
         aria-label="FirmDesk AI Assistant Panel"
+        onPaste={handlePaste}
         style={{ width: `${chatWidth}px` }}
         className={cn(
           'relative flex flex-col h-full shrink-0 border-l border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-xl z-20',
@@ -610,6 +670,21 @@ export function AiChatSidebar({ className }: { className?: string }) {
                     </button>
                   )}
 
+                  {/* Attached Image for User Message */}
+                  {msg.image && (
+                    <div className="mb-2.5 overflow-hidden rounded-xl border border-white/25 bg-black/20 p-1">
+                      <img
+                        src={msg.image.dataUrl}
+                        alt={msg.image.name || 'Attached document'}
+                        className="max-h-48 w-full rounded-lg object-contain"
+                      />
+                      <div className="px-1.5 pt-1 text-[10px] text-indigo-100 flex items-center justify-between font-mono">
+                        <span className="truncate max-w-[200px]">{msg.image.name || 'Pasted image'}</span>
+                        <span className="text-[9px] opacity-80">📷 Visual</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Message Content - Markdown rendered */}
                   {renderMarkdown(parseMarkdown(msg.content))}
 
@@ -683,6 +758,36 @@ export function AiChatSidebar({ className }: { className?: string }) {
 
         {/* Footer Input Bar */}
         <div className="shrink-0 border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 p-3 sm:p-4">
+          {/* Attached Image Preview Chip */}
+          {attachedImage && (
+            <div className="mb-2.5 flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src={attachedImage.dataUrl}
+                  alt={attachedImage.name || 'Attached image'}
+                  className="h-10 w-10 shrink-0 rounded-lg object-cover border border-indigo-500/30 shadow-xs"
+                />
+                <div className="min-w-0">
+                  <div className="truncate font-medium text-[var(--fd-text-primary)]">
+                    {attachedImage.name || 'Pasted Image'}
+                  </div>
+                  <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                    Ready to send to AI Copilot
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAttachedImage(null)}
+                title="Remove attached image"
+                aria-label="Remove image"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           <form
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
@@ -691,20 +796,43 @@ export function AiChatSidebar({ className }: { className?: string }) {
             className="flex items-center gap-2"
           >
             <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  handleImageFile(file);
+                }
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach an image or paste (Ctrl+V)"
+              aria-label="Attach image"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] text-[var(--fd-text-tertiary)] shadow-2xs transition-colors hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </button>
+            <input
               ref={inputRef}
               type="text"
               value={input}
+              onPaste={handlePaste}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask to create tasks, update filings, search clients, or automate workflows..."
+              placeholder="Ask to create tasks, update filings, search clients, or paste an image (Ctrl+V)..."
               className="flex-1 rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-3.5 py-2.5 text-xs text-[var(--fd-text-primary)] placeholder-[var(--fd-text-tertiary)] shadow-2xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
             <button
               type="submit"
-              disabled={!input.trim() || isTyping}
+              disabled={(!input.trim() && !attachedImage) || isTyping}
               aria-label="Send message"
               className={cn(
                 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-semibold shadow-xs transition-all cursor-pointer',
-                input.trim() && !isTyping
+                (input.trim() || attachedImage) && !isTyping
                   ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                   : 'bg-[var(--fd-surface-3)] text-[var(--fd-text-tertiary)] cursor-not-allowed opacity-60',
               )}
@@ -713,7 +841,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
             </button>
           </form>
           <div className="flex items-center justify-between pt-1.5 px-1 text-[10px] text-[var(--fd-text-tertiary)]">
-            <span>Press Enter ↵ to send</span>
+            <span>Press Enter ↵ to send • Paste images anytime</span>
             <span>FirmDesk Practice Copilot</span>
           </div>
         </div>

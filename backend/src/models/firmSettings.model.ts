@@ -13,7 +13,7 @@ export interface EncryptedSecretAttributes {
   keyVersion: number;
 }
 
-export type AiProviderName = 'gemini' | 'openai';
+export type AiProviderName = 'gemini' | 'openai' | 'custom';
 
 export interface AiConfigAttributes {
   provider: AiProviderName | null;
@@ -22,6 +22,9 @@ export interface AiConfigAttributes {
   geminiModel: string;
   openaiApiKey?: EncryptedSecretAttributes | null;
   openaiModel: string;
+  customApiKey?: EncryptedSecretAttributes | null;
+  customBaseUrl?: string;
+  customModel: string;
   configuredBy?: Types.ObjectId | null;
   configuredAt?: Date | null;
 }
@@ -73,14 +76,17 @@ const encryptedSecretSchema = new Schema<EncryptedSecretAttributes>(
   { _id: false },
 );
 
+export const DEFAULT_CUSTOM_AI_BASE_URL = 'https://api.xkiro.com/v1';
+
 export const DEFAULT_AI_MODELS: Record<AiProviderName, string> = {
   gemini: 'gemini-2.5-flash',
   openai: 'gpt-4o-mini',
+  custom: 'deepseek/deepseek-v4-pro',
 };
 
 const aiConfigSchema = new Schema<AiConfigAttributes>(
   {
-    provider: { type: String, default: null, enum: [null, 'gemini', 'openai'] },
+    provider: { type: String, default: null, enum: [null, 'gemini', 'openai', 'custom'] },
     enabled: { type: Boolean, default: false },
     geminiApiKey: { type: encryptedSecretSchema, default: null },
     geminiModel: {
@@ -93,6 +99,19 @@ const aiConfigSchema = new Schema<AiConfigAttributes>(
     openaiModel: {
       type: String,
       default: DEFAULT_AI_MODELS.openai,
+      trim: true,
+      maxlength: 100,
+    },
+    customApiKey: { type: encryptedSecretSchema, default: null },
+    customBaseUrl: {
+      type: String,
+      default: DEFAULT_CUSTOM_AI_BASE_URL,
+      trim: true,
+      maxlength: 500,
+    },
+    customModel: {
+      type: String,
+      default: DEFAULT_AI_MODELS.custom,
       trim: true,
       maxlength: 100,
     },

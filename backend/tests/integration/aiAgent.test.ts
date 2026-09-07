@@ -272,6 +272,38 @@ describe('AI Agent API - Validation', () => {
 
     expect(response.status).toBe(400);
   });
+
+  it('accepts chat request with pasted image and returns fallback reply in reference mode', async () => {
+    const dummyDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const response = await request(app())
+      .post('/api/v1/ai/chat')
+      .set(auth(admin))
+      .send({
+        message: '',
+        history: [],
+        currentRoute: '/dashboard',
+        image: {
+          dataUrl: dummyDataUrl,
+          mimeType: 'image/png',
+        },
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.content).toContain('Attached Document / Image Received');
+  });
+
+  it('rejects request when both message and image are empty', async () => {
+    const response = await request(app())
+      .post('/api/v1/ai/chat')
+      .set(auth(admin))
+      .send({
+        message: '   ',
+        history: [],
+        currentRoute: '/dashboard',
+      });
+
+    expect(response.status).toBe(400);
+  });
 });
 
 describe('AI Copilot configuration API', () => {
@@ -445,5 +477,50 @@ describe('AI Copilot configuration API', () => {
     expect(res.body.data.provider).toBe('openai');
     expect(Array.isArray(res.body.data.models)).toBe(true);
     expect(res.body.data.models.some((m: { id: string }) => m.id === 'gpt-4o-mini')).toBe(true);
+  });
+
+  it('saves an encrypted custom provider key, base URL, and model, and enables copilot', async () => {
+    const save = await patchConfig(admin, {
+      provider: 'custom',
+      customApiKey: 'xtrouter-test-key-1234567890',
+      customBaseUrl: 'https://api.xkiro.com/v1',
+      customModel: 'deepseek/deepseek-v4-pro',
+    });
+    expect(save.status).toBe(200);
+    expect(save.body.data.custom).toMatchObject({
+      keySet: true,
+      model: 'deepseek/deepseek-v4-pro',
+      baseUrl: 'https://api.xkiro.com/v1',
+    });
+    expect(save.body.data.provider).toBe('custom');
+    expect(JSON.stringify(save.body)).not.toContain('xtrouter-test-key');
+
+    const enable = await patchConfig(admin, { enabled: true });
+    expect(enable.status).toBe(200);
+    expect(enable.body.data.enabled).toBe(true);
+    expect(enable.body.data.activeModel).toBe('deepseek/deepseek-v4-pro');
+
+    const chat = await request(app())
+      .post('/api/v1/ai/chat')
+      .set(auth(admin))
+      .send({ message: 'What deadlines are coming up?', history: [] });
+    expect(chat.status).toBe(200);
+    expect(['llm', 'fallback']).toContain(chat.body.data.mode);
+
+    const cleared = await patchConfig(admin, { customApiKey: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.data.custom.keySet).toBe(false);
+  });
+
+  it('returns curated custom provider models (DeepSeek) when requested without key', async () => {
+    const res = await request(app())
+      .post('/api/v1/ai/models')
+      .set(auth(admin))
+      .send({ provider: 'custom' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.provider).toBe('custom');
+    expect(Array.isArray(res.body.data.models)).toBe(true);
+    expect(res.body.data.models.some((m: { id: string }) => m.id === 'deepseek/deepseek-v4-pro')).toBe(true);
   });
 });

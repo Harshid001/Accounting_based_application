@@ -185,4 +185,85 @@ describe('AiChatDropdown Component', () => {
     expect(screen.queryByText(/Test Header/i)).not.toBeInTheDocument();
     expect(screen.getByText(/I am your/i)).toBeInTheDocument();
   });
+
+  it('attaches pasted image, shows preview chip, and allows removing it', async () => {
+    const user = userEvent.setup();
+    renderDropdown();
+
+    const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
+    await user.click(triggerBtn);
+
+    const input = screen.getByPlaceholderText(/Ask to create tasks/i);
+    const dummyFile = new File(['fake-png-content'], 'test-invoice.png', { type: 'image/png' });
+
+    // Simulate paste event with image item
+    const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(pasteEvent, 'clipboardData', {
+      value: {
+        items: [
+          {
+            type: 'image/png',
+            getAsFile: () => dummyFile,
+          },
+        ],
+      },
+    });
+
+    input.dispatchEvent(pasteEvent);
+
+    // Verify preview chip appears
+    const previewText = await screen.findByText(/Ready to send to AI Copilot/i);
+    expect(previewText).toBeInTheDocument();
+    expect(screen.getByText(/test-invoice.png/i)).toBeInTheDocument();
+
+    // Remove the attached image
+    const removeBtn = screen.getByRole('button', { name: /Remove image/i });
+    await user.click(removeBtn);
+
+    expect(screen.queryByText(/Ready to send to AI Copilot/i)).not.toBeInTheDocument();
+  });
+
+  it('sends attached image to sendAiChat API and renders image thumbnail in user message', async () => {
+    const user = userEvent.setup();
+    renderDropdown();
+
+    const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
+    await user.click(triggerBtn);
+
+    const input = screen.getByPlaceholderText(/Ask to create tasks/i);
+    const dummyFile = new File(['fake-png-content'], 'sample-tax-notice.png', { type: 'image/png' });
+
+    const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(pasteEvent, 'clipboardData', {
+      value: {
+        items: [
+          {
+            type: 'image/png',
+            getAsFile: () => dummyFile,
+          },
+        ],
+      },
+    });
+
+    input.dispatchEvent(pasteEvent);
+    await screen.findByText(/Ready to send to AI Copilot/i);
+
+    // Send with user question
+    await user.type(input, 'What is the demand amount in this notice?{enter}');
+
+    await screen.findByText(/Test Header/i);
+
+    expect(sendAiChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'What is the demand amount in this notice?',
+        image: expect.objectContaining({
+          mimeType: 'image/png',
+          dataUrl: expect.stringMatching(/^data:image\/png;base64,/),
+        }),
+      }),
+    );
+
+    // User message bubble renders visual chip
+    expect(screen.getByText(/sample-tax-notice.png/i)).toBeInTheDocument();
+  });
 });

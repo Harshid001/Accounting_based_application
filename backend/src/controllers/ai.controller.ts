@@ -12,6 +12,7 @@ export const chat = async (input: { body: AiChatBody }, ctx: RouteContext): Prom
     message: input.body.message,
     history: input.body.history,
     currentRoute: input.body.currentRoute ?? null,
+    image: input.body.image ?? null,
   });
   sendData(ctx.res, reply);
 };
@@ -33,6 +34,6 @@ export const listModels = async (
   input: { body: AiModelsBody },
   ctx: RouteContext,
 ): Promise<void> => {
-  const result = await detectModels(input.body.provider, input.body.apiKey);
+  const result = await detectModels(input.body.provider, input.body.apiKey, input.body.baseUrl);
   sendData(ctx.res, result);
 };

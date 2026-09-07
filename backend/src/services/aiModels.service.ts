@@ -3,7 +3,7 @@ import { OpenAI } from 'openai';
 
 import { logger } from '../config/logger.js';
 import type { AiProviderName } from '../models/firmSettings.model.js';
-import { getProviderApiKey } from './settings.service.js';
+import { getCustomBaseUrl, getProviderApiKey } from './settings.service.js';
 
 export interface DetectedAiModel {
   id: string;
@@ -66,6 +66,34 @@ export const CURATED_MODELS: Record<AiProviderName, DetectedAiModel[]> = {
       description: 'Advanced reasoning and deep planning',
     },
   ],
+  custom: [
+    {
+      id: 'deepseek/deepseek-v4-pro',
+      name: 'DeepSeek v4 Pro (Recommended)',
+      description: 'Advanced reasoning, coding, and workflow intelligence via Xkiro/XTrouter',
+      recommended: true,
+    },
+    {
+      id: 'deepseek/deepseek-chat',
+      name: 'DeepSeek Chat (V3)',
+      description: 'High-speed general reasoning and conversational copilot',
+    },
+    {
+      id: 'deepseek/deepseek-reasoner',
+      name: 'DeepSeek Reasoner (R1)',
+      description: 'Deep mathematical and statutory reasoning with reasoning trace',
+    },
+    {
+      id: 'meta-llama/llama-3.3-70b-instruct',
+      name: 'Llama 3.3 70B Instruct',
+      description: 'Open-weight high performance foundation model',
+    },
+    {
+      id: 'qwen/qwen-2.5-72b-instruct',
+      name: 'Qwen 2.5 72B Instruct',
+      description: 'Powerful multilingual reasoning and structured extraction',
+    },
+  ],
 };
 
 const sortGeminiModels = (models: DetectedAiModel[]): DetectedAiModel[] => {
@@ -108,6 +136,7 @@ const sortOpenAiModels = (models: DetectedAiModel[]): DetectedAiModel[] => {
 export const detectModels = async (
   provider: AiProviderName,
   explicitApiKey?: string | null,
+  explicitBaseUrl?: string | null,
 ): Promise<ModelDetectionResponse> => {
   const apiKey =
     explicitApiKey && explicitApiKey.trim().length > 0
@@ -155,6 +184,36 @@ export const detectModels = async (
         provider,
         detected: true,
         models: sortGeminiModels(discovered),
+      };
+    }
+
+    if (provider === 'custom') {
+      const baseUrl = explicitBaseUrl?.trim() || (await getCustomBaseUrl());
+      const client = new OpenAI({ apiKey, baseURL: baseUrl });
+      const res = await client.models.list();
+      const discovered: DetectedAiModel[] = [];
+
+      for (const m of res.data) {
+        const id = m.id;
+        discovered.push({
+          id,
+          name: id,
+          recommended: id === 'deepseek/deepseek-v4-pro' || id.includes('deepseek-v4'),
+        });
+      }
+
+      if (discovered.length === 0) {
+        return {
+          provider,
+          detected: false,
+          models: CURATED_MODELS.custom,
+        };
+      }
+
+      return {
+        provider,
+        detected: true,
+        models: discovered,
       };
     }
 

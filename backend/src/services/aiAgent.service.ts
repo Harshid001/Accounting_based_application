@@ -109,6 +109,7 @@ interface AgentContext {
   actor: RequestActor;
   history: AgentChatTurn[];
   currentRoute: string | null;
+  image?: { dataUrl: string; mimeType?: string } | null;
 }
 
 const MAX_AGENT_ITERATIONS = 8;
@@ -2644,6 +2645,21 @@ const runGeminiAgent = async (
     contents.push({ role: 'user', parts: [{ text: userMessage }] });
   }
 
+  if (context.image?.dataUrl) {
+    const match = context.image.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (match && match[1] && match[2]) {
+      const lastUserContent = contents.filter((c) => c.role === 'user').pop();
+      if (lastUserContent) {
+        lastUserContent.parts.unshift({
+          inlineData: {
+            mimeType: match[1],
+            data: match[2],
+          },
+        });
+      }
+    }
+  }
+
   for (let iteration = 0; iteration < MAX_AGENT_ITERATIONS; iteration += 1) {
     const response = await client.models.generateContent({
       model,
@@ -2707,9 +2723,12 @@ const openaiTools = (): ChatCompletionTool[] =>
 const runOpenAIAgent = async (
   context: AgentContext,
   userMessage: string,
-  credentials: { apiKey: string; model: string },
+  credentials: { apiKey: string; model: string; baseURL?: string },
 ): Promise<{ text: string; badges: AgentToolBadge[] }> => {
-  const client = new OpenAI({ apiKey: credentials.apiKey });
+  const client = new OpenAI({
+    apiKey: credentials.apiKey,
+    baseURL: credentials.baseURL,
+  });
   const model = credentials.model;
   const badges: AgentToolBadge[] = [];
 
@@ -2720,15 +2739,50 @@ const runOpenAIAgent = async (
   for (const turn of historyTurns(context)) {
     messages.push({ role: turn.role, content: turn.text });
   }
-  messages.push({ role: 'user', content: userMessage });
-
-  for (let iteration = 0; iteration < MAX_AGENT_ITERATIONS; iteration += 1) {
-    const completion = await client.chat.completions.create({
-      model,
-      messages,
-      tools: openaiTools(),
-      tool_choice: 'auto',
+  if (context.image?.dataUrl) {
+    messages.push({
+      role: 'user',
+      content: [
+        { type: 'text', text: userMessage },
+        { type: 'image_url', image_url: { url: context.image.dataUrl } },
+      ],
     });
+  } else {
+    messages.push({ role: 'user', content: userMessage });
+  }
+
+  let supportsTools = true;
+  for (let iteration = 0; iteration < MAX_AGENT_ITERATIONS; iteration += 1) {
+    let completion;
+    try {
+      completion = await client.chat.completions.create({
+        model,
+        messages,
+        ...(supportsTools ? { tools: openaiTools(), tool_choice: 'auto' } : {}),
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (
+        supportsTools &&
+        (errMsg.toLowerCase().includes('tool') ||
+          errMsg.toLowerCase().includes('function') ||
+          errMsg.toLowerCase().includes('not supported') ||
+          errMsg.toLowerCase().includes('unrecognized parameter') ||
+          errMsg.toLowerCase().includes('unknown parameter'))
+      ) {
+        logger.info(
+          { event: 'ai.tools_unsupported_fallback', model, err: errMsg },
+          'Provider does not support tools; retrying completion without tools',
+        );
+        supportsTools = false;
+        completion = await client.chat.completions.create({
+          model,
+          messages,
+        });
+      } else {
+        throw err;
+      }
+    }
 
     const choice = completion.choices[0]?.message;
     if (choice === undefined) {
@@ -2780,8 +2834,30 @@ const staticFallbackReply = async (
   const query = message.toLowerCase();
   const name = context.user.name.split(' ')[0] ?? context.user.name;
 
+  if (context.image?.dataUrl) {
+    return {
+      content:
+        `### 📷 Attached Document / Image Received\n\n` +
+        `I received your pasted image. In **reference mode** without an active AI key, computer vision OCR cannot directly inspect raw image pixels.\n\n` +
+        `• **With Google Gemini**: Gemini's multimodal vision reads invoices, PAN cards, GST documents, and notices, and can automate client matching and filing actions.\n` +
+        `• **To activate**: An admin can configure a Gemini, OpenAI, or Custom provider key under **Settings → AI Copilot**.\n\n` +
+        (message ? `*Your query*: "${message}"` : ''),
+      toolCalls: [],
+      actions: [
+        { label: 'AI Settings', route: '/settings' },
+        { label: 'Documents', route: '/documents' },
+        { label: 'Dashboard', route: '/dashboard' },
+      ],
+    };
+  }
+
   if (providerFailure) {
-    const providerLabel = providerFailure.provider === 'gemini' ? 'Google Gemini' : 'OpenAI';
+    const providerLabel =
+      providerFailure.provider === 'gemini'
+        ? 'Google Gemini'
+        : providerFailure.provider === 'openai'
+          ? 'OpenAI'
+          : 'Custom Provider (Xkiro / DeepSeek)';
     const errorDetails =
       providerFailure.error instanceof Error ? providerFailure.error.message : '';
     return {
@@ -3053,9 +3129,16 @@ export const runAiAgent = async (input: {
   message: string;
   history: unknown;
   currentRoute: string | null;
+  image?: { dataUrl: string; mimeType?: string } | null;
 }): Promise<AgentReply> => {
-  const message = input.message.trim().slice(0, 4000);
-  if (message.length === 0) {
+  const trimmed = input.message.trim().slice(0, 4000);
+  const message =
+    trimmed.length > 0
+      ? trimmed
+      : input.image
+        ? 'Please analyze this attached document or image and identify the client, filing details, amounts, tax identifiers, or relevant action items.'
+        : '';
+  if (message.length === 0 && !input.image) {
     throw forbidden('Ask a question to get started.');
   }
   const context: AgentContext = {
@@ -3063,6 +3146,7 @@ export const runAiAgent = async (input: {
     actor: input.actor,
     history: sanitiseHistory(input.history),
     currentRoute: typeof input.currentRoute === 'string' ? input.currentRoute.slice(0, 200) : null,
+    image: input.image ?? null,
   };
 
   let providerFailure: { provider: AiProviderName; error: unknown } | null = null;
@@ -3078,6 +3162,7 @@ export const runAiAgent = async (input: {
           : await runOpenAIAgent(context, message, {
               apiKey: resolved.apiKey,
               model: resolved.model,
+              baseURL: resolved.baseURL,
             });
       const { content, actions } = splitActions(text);
       return { content, toolCalls: badges, actions, mode: 'llm' };

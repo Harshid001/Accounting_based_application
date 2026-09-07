@@ -25,7 +25,7 @@ import { useToast } from '@/context/ToastContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { normaliseError } from '@/lib/errors';
 
-type ProviderChoice = 'gemini' | 'openai' | 'none';
+type ProviderChoice = 'gemini' | 'openai' | 'custom' | 'none';
 
 const FALLBACK_GEMINI_MODELS: DetectedAiModel[] = [
   {
@@ -75,6 +75,35 @@ const FALLBACK_OPENAI_MODELS: DetectedAiModel[] = [
   },
 ];
 
+const FALLBACK_CUSTOM_MODELS: DetectedAiModel[] = [
+  {
+    id: 'deepseek/deepseek-v4-pro',
+    name: 'DeepSeek v4 Pro (Recommended)',
+    description: 'Advanced reasoning, coding, and workflow intelligence via Xkiro/XTrouter',
+    recommended: true,
+  },
+  {
+    id: 'deepseek/deepseek-chat',
+    name: 'DeepSeek Chat (V3)',
+    description: 'High-speed general reasoning and conversational copilot',
+  },
+  {
+    id: 'deepseek/deepseek-reasoner',
+    name: 'DeepSeek Reasoner (R1)',
+    description: 'Deep mathematical and statutory reasoning with reasoning trace',
+  },
+  {
+    id: 'meta-llama/llama-3.3-70b-instruct',
+    name: 'Llama 3.3 70B Instruct',
+    description: 'Open-weight high performance foundation model',
+  },
+  {
+    id: 'qwen/qwen-2.5-72b-instruct',
+    name: 'Qwen 2.5 72B Instruct',
+    description: 'Powerful multilingual reasoning and structured extraction',
+  },
+];
+
 export function AiSettings() {
   usePageTitle('AI copilot settings');
   const queryClient = useQueryClient();
@@ -89,16 +118,24 @@ export function AiSettings() {
   const [providerDraft, setProviderDraft] = useState<ProviderChoice | null>(null);
   const [geminiModelDraft, setGeminiModelDraft] = useState<string | null>(null);
   const [openaiModelDraft, setOpenaiModelDraft] = useState<string | null>(null);
+  const [customModelDraft, setCustomModelDraft] = useState<string | null>(null);
+  const [customBaseUrlDraft, setCustomBaseUrlDraft] = useState<string | null>(null);
   const [geminiCustomMode, setGeminiCustomMode] = useState(false);
   const [openaiCustomMode, setOpenaiCustomMode] = useState(false);
+  const [customCustomMode, setCustomCustomMode] = useState(false);
   const [geminiKey, setGeminiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
+  const [customKey, setCustomKey] = useState('');
 
   // Drafts override server values until the user edits them; server data stays
   // the source of truth otherwise, so no effect-based setState is needed.
   const provider: ProviderChoice = providerDraft ?? config?.provider ?? 'none';
   const geminiModel: string = geminiModelDraft ?? config?.gemini?.model ?? 'gemini-2.5-flash';
   const openaiModel: string = openaiModelDraft ?? config?.openai?.model ?? 'gpt-4o-mini';
+  const customModel: string =
+    customModelDraft ?? config?.custom?.model ?? 'deepseek/deepseek-v4-pro';
+  const customBaseUrl: string =
+    customBaseUrlDraft ?? config?.custom?.baseUrl ?? 'https://api.xkiro.com/v1';
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.settings.aiConfig });
@@ -118,16 +155,36 @@ export function AiSettings() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const customModelsQuery = useQuery({
+    queryKey: ['ai', 'models', 'custom', config?.custom?.keySet ? 'saved' : 'none', customBaseUrl],
+    queryFn: () => detectAiModels({ provider: 'custom', baseUrl: customBaseUrl }),
+    enabled: provider === 'custom',
+    staleTime: 5 * 60 * 1000,
+  });
+
   const detectMutation = useMutation({
-    mutationFn: (args: { provider: 'gemini' | 'openai'; apiKey?: string }) => detectAiModels(args),
+    mutationFn: (args: {
+      provider: 'gemini' | 'openai' | 'custom';
+      apiKey?: string;
+      baseUrl?: string;
+    }) => detectAiModels(args),
     onSuccess: (data) => {
       if (data.detected) {
         success(
           `Detected ${data.models.length} models from ${
-            data.provider === 'gemini' ? 'Google Gemini' : 'OpenAI'
+            data.provider === 'gemini'
+              ? 'Google Gemini'
+              : data.provider === 'openai'
+                ? 'OpenAI'
+                : 'Custom Provider'
           }`,
         );
-        const currentModel = data.provider === 'gemini' ? geminiModel : openaiModel;
+        const currentModel =
+          data.provider === 'gemini'
+            ? geminiModel
+            : data.provider === 'openai'
+              ? openaiModel
+              : customModel;
         const exists = data.models.some((m) => m.id === currentModel);
         if (!exists && data.models.length > 0) {
           const rec = data.models.find((m) => m.recommended) ?? data.models[0];
@@ -135,9 +192,12 @@ export function AiSettings() {
             if (data.provider === 'gemini') {
               setGeminiModelDraft(rec.id);
               setGeminiCustomMode(false);
-            } else {
+            } else if (data.provider === 'openai') {
               setOpenaiModelDraft(rec.id);
               setOpenaiCustomMode(false);
+            } else {
+              setCustomModelDraft(rec.id);
+              setCustomCustomMode(false);
             }
           }
         }
@@ -157,6 +217,10 @@ export function AiSettings() {
   const openaiDetection =
     detectMutation.data?.provider === 'openai' ? detectMutation.data : openaiModelsQuery.data;
   const openaiModelList = openaiDetection?.models ?? FALLBACK_OPENAI_MODELS;
+
+  const customDetection =
+    detectMutation.data?.provider === 'custom' ? detectMutation.data : customModelsQuery.data;
+  const customModelList = customDetection?.models ?? FALLBACK_CUSTOM_MODELS;
 
   const geminiSelectOptions = [
     ...geminiModelList.map((m) => ({
@@ -180,12 +244,25 @@ export function AiSettings() {
     { value: '__custom__', label: 'Custom model...' },
   ];
 
+  const customSelectOptions = [
+    ...customModelList.map((m) => ({
+      value: m.id,
+      label: m.name,
+    })),
+    ...(customModelList.some((m) => m.id === customModel) || customCustomMode
+      ? []
+      : [{ value: customModel, label: `${customModel} (custom)` }]),
+    { value: '__custom__', label: 'Custom model...' },
+  ];
+
   const saveMutation = useMutation({
     mutationFn: (body: AiConfigUpdate) => updateAiConfig(body),
     onSuccess: () => {
       setProviderDraft(null);
       setGeminiModelDraft(null);
       setOpenaiModelDraft(null);
+      setCustomModelDraft(null);
+      setCustomBaseUrlDraft(null);
       invalidate();
       success('AI copilot configuration saved');
     },
@@ -206,8 +283,14 @@ export function AiSettings() {
   });
 
   const clearKeyMutation = useMutation({
-    mutationFn: (which: 'gemini' | 'openai') =>
-      updateAiConfig(which === 'gemini' ? { geminiApiKey: null } : { openaiApiKey: null }),
+    mutationFn: (which: 'gemini' | 'openai' | 'custom') =>
+      updateAiConfig(
+        which === 'gemini'
+          ? { geminiApiKey: null }
+          : which === 'openai'
+            ? { openaiApiKey: null }
+            : { customApiKey: null },
+      ),
     onSuccess: () => {
       invalidate();
       success('API key removed');
@@ -233,9 +316,17 @@ export function AiSettings() {
       }
       body.openaiModel = openaiModel.trim() || 'gpt-4o-mini';
     }
+    if (provider === 'custom') {
+      if (customKey.trim().length > 0) {
+        body.customApiKey = customKey.trim();
+      }
+      body.customBaseUrl = customBaseUrl.trim() || 'https://api.xkiro.com/v1';
+      body.customModel = customModel.trim() || 'deepseek/deepseek-v4-pro';
+    }
     saveMutation.mutate(body);
     setGeminiKey('');
     setOpenaiKey('');
+    setCustomKey('');
   };
 
   const saveModelOnly = () => {
@@ -245,6 +336,12 @@ export function AiSettings() {
     }
     if (openaiModel.trim().length > 0 && openaiModel.trim() !== config?.openai.model) {
       body.openaiModel = openaiModel.trim();
+    }
+    if (customModel.trim().length > 0 && customModel.trim() !== config?.custom.model) {
+      body.customModel = customModel.trim();
+    }
+    if (customBaseUrl.trim().length > 0 && customBaseUrl.trim() !== config?.custom.baseUrl) {
+      body.customBaseUrl = customBaseUrl.trim();
     }
     if (Object.keys(body).length > 0) saveMutation.mutate(body);
   };
@@ -262,7 +359,9 @@ export function AiSettings() {
         ? (config.gemini?.keySet ?? false)
         : provider === 'openai'
           ? (config.openai?.keySet ?? false)
-          : false;
+          : provider === 'custom'
+            ? (config.custom?.keySet ?? false)
+            : false;
   const canEnable =
     config !== undefined && provider !== 'none' && (providerKeySet || config.source !== 'none');
 
@@ -302,7 +401,7 @@ export function AiSettings() {
           <Card>
             <CardHeader
               title="AI Copilot status"
-              description="Connect Gemini or OpenAI to power the FirmDesk assistant with live firm data."
+              description="Connect Gemini, OpenAI, or Custom (Xkiro / DeepSeek) to power the FirmDesk assistant with live firm data."
             />
             <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
               <span
@@ -312,7 +411,13 @@ export function AiSettings() {
               />
               <span className="text-sm text-[var(--fd-text-secondary)]">
                 {config?.enabled && config.hasKey
-                  ? `Active — ${config.provider === 'gemini' ? 'Gemini' : 'OpenAI'} (${config.activeModel ?? 'default model'})`
+                  ? `Active — ${
+                      config.provider === 'gemini'
+                        ? 'Gemini'
+                        : config.provider === 'openai'
+                          ? 'OpenAI'
+                          : 'Custom / Xkiro'
+                    } (${config.activeModel ?? 'default model'})`
                   : 'Inactive — reference mode only'}
               </span>
               <Badge tone={config?.source === 'db' ? 'accent' : 'neutral'}>
@@ -358,6 +463,7 @@ export function AiSettings() {
                       { value: 'none', label: 'Not configured' },
                       { value: 'gemini', label: 'Google Gemini (recommended)' },
                       { value: 'openai', label: 'OpenAI' },
+                      { value: 'custom', label: 'Custom / Xkiro / OpenAI-compatible' },
                     ]}
                   />
                 )}
@@ -584,6 +690,139 @@ export function AiSettings() {
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                       Remove saved OpenAI key
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {provider === 'custom' && (
+                <div className="space-y-4 pt-2">
+                  <FieldRow>
+                    <FormField
+                      label="Endpoint Base URL"
+                      helper="OpenAI-compatible base URL (e.g. https://api.xkiro.com/v1 for Xkiro / XTrouter)."
+                    >
+                      {({ inputId, describedBy }) => (
+                        <Input
+                          id={inputId}
+                          placeholder="https://api.xkiro.com/v1"
+                          value={customBaseUrl}
+                          aria-describedby={describedBy}
+                          onChange={(event) => {
+                            setCustomBaseUrlDraft(event.target.value);
+                          }}
+                        />
+                      )}
+                    </FormField>
+
+                    <FormField
+                      label="Custom API key"
+                      helper={
+                        config?.custom?.keySet
+                          ? 'A key is already saved. Enter a new one to replace it.'
+                          : 'Enter your XTrouter or gateway API key ($XTROUTER_API_KEY).'
+                      }
+                    >
+                      {({ inputId, describedBy, invalid }) => (
+                        <Input
+                          id={inputId}
+                          type="password"
+                          placeholder="Enter API key…"
+                          value={customKey}
+                          invalid={invalid}
+                          aria-describedby={describedBy}
+                          onChange={(event) => {
+                            setCustomKey(event.target.value);
+                          }}
+                        />
+                      )}
+                    </FormField>
+                  </FieldRow>
+
+                  <FieldRow>
+                    <FormField
+                      label="Model"
+                      helper={
+                        customDetection?.detected
+                          ? `Auto-detected ${customModelList.length} models for this endpoint.`
+                          : 'Pick a model or click Auto-detect to query live models.'
+                      }
+                    >
+                      {({ inputId, describedBy }) => (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1">
+                              <Select
+                                id={inputId}
+                                ariaDescribedBy={describedBy}
+                                value={customCustomMode ? '__custom__' : customModel}
+                                onValueChange={(val) => {
+                                  if (val === '__custom__') {
+                                    setCustomCustomMode(true);
+                                  } else {
+                                    setCustomCustomMode(false);
+                                    setCustomModelDraft(val);
+                                  }
+                                }}
+                                options={customSelectOptions}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              loading={
+                                detectMutation.isPending &&
+                                detectMutation.variables?.provider === 'custom'
+                              }
+                              onClick={() => {
+                                detectMutation.mutate({
+                                  provider: 'custom',
+                                  apiKey: customKey.trim() || undefined,
+                                  baseUrl: customBaseUrl.trim() || undefined,
+                                });
+                              }}
+                              title="Auto-detect accessible models using the API key and Base URL"
+                            >
+                              <Sparkles
+                                className="h-3.5 w-3.5 text-indigo-500"
+                                aria-hidden="true"
+                              />
+                              Auto-detect
+                            </Button>
+                          </div>
+
+                          {customCustomMode && (
+                            <Input
+                              placeholder="Enter custom model (e.g. deepseek/deepseek-v4-pro)"
+                              value={customModel}
+                              onChange={(e) => setCustomModelDraft(e.target.value)}
+                              aria-label="Custom AI model"
+                            />
+                          )}
+
+                          {customDetection?.detected && (
+                            <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              <span>Live models synced with custom provider</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </FormField>
+                  </FieldRow>
+
+                  {config?.custom?.keySet && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      loading={clearKeyMutation.isPending}
+                      onClick={() => {
+                        clearKeyMutation.mutate('custom');
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      Remove saved custom key
                     </Button>
                   )}
                 </div>

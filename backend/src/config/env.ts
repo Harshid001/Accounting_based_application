@@ -77,11 +77,15 @@ const schema = z.object({
   BOOTSTRAP_ADMIN_NAME: z.string().optional(),
   BOOTSTRAP_ADMIN_PASSWORD: z.string().optional(),
 
-  AI_PROVIDER: z.enum(['gemini', 'openai']).optional(),
+  AI_PROVIDER: z.enum(['gemini', 'openai', 'custom']).optional(),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().optional(),
+  XTROUTER_API_KEY: z.string().optional(),
+  CUSTOM_AI_API_KEY: z.string().optional(),
+  CUSTOM_AI_BASE_URL: z.string().optional(),
+  CUSTOM_AI_MODEL: z.string().optional(),
 
   R2_ACCOUNT_ID:
     process.env.NODE_ENV === 'test'

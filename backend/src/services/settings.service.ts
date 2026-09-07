@@ -11,11 +11,20 @@ import type {
 } from '../models/firmSettings.model.js';
 import {
   DEFAULT_AI_MODELS,
+  DEFAULT_CUSTOM_AI_BASE_URL,
   FIRM_SETTINGS_ID,
   FirmSettings,
 } from '../models/firmSettings.model.js';
 import type { RequestActor } from '../types/context.js';
 import { buildDiff, recordAudit } from './audit.service.js';
+
+export const cleanBaseUrl = (raw?: string | null): string => {
+  if (!raw || raw.trim().length === 0) return DEFAULT_CUSTOM_AI_BASE_URL;
+  let url = raw.trim();
+  url = url.replace(/\/chat\/completions\/?$/i, '');
+  url = url.replace(/\/+$/, '');
+  return url;
+};
 
 export const DEFAULT_AI_CONFIG: AiConfigAttributes = {
   provider: null,
@@ -24,6 +33,9 @@ export const DEFAULT_AI_CONFIG: AiConfigAttributes = {
   geminiModel: DEFAULT_AI_MODELS.gemini,
   openaiApiKey: null,
   openaiModel: DEFAULT_AI_MODELS.openai,
+  customApiKey: null,
+  customBaseUrl: DEFAULT_CUSTOM_AI_BASE_URL,
+  customModel: DEFAULT_AI_MODELS.custom,
   configuredBy: null,
   configuredAt: null,
 };
@@ -33,7 +45,10 @@ export const normaliseAiConfig = (
 ): AiConfigAttributes => {
   if (!raw) return { ...DEFAULT_AI_CONFIG };
   return {
-    provider: raw.provider === 'gemini' || raw.provider === 'openai' ? raw.provider : null,
+    provider:
+      raw.provider === 'gemini' || raw.provider === 'openai' || raw.provider === 'custom'
+        ? raw.provider
+        : null,
     enabled: Boolean(raw.enabled),
     geminiApiKey: raw.geminiApiKey ?? null,
     geminiModel:
@@ -45,6 +60,15 @@ export const normaliseAiConfig = (
       typeof raw.openaiModel === 'string' && raw.openaiModel.trim().length > 0
         ? raw.openaiModel.trim()
         : DEFAULT_AI_MODELS.openai,
+    customApiKey: raw.customApiKey ?? null,
+    customBaseUrl:
+      typeof raw.customBaseUrl === 'string' && raw.customBaseUrl.trim().length > 0
+        ? cleanBaseUrl(raw.customBaseUrl)
+        : DEFAULT_CUSTOM_AI_BASE_URL,
+    customModel:
+      typeof raw.customModel === 'string' && raw.customModel.trim().length > 0
+        ? raw.customModel.trim()
+        : DEFAULT_AI_MODELS.custom,
     configuredBy: raw.configuredBy ?? null,
     configuredAt: raw.configuredAt ? new Date(raw.configuredAt) : null,
   };
@@ -179,6 +203,9 @@ export interface AiConfigUpdate {
   geminiModel?: string;
   openaiApiKey?: string | null;
   openaiModel?: string;
+  customApiKey?: string | null;
+  customBaseUrl?: string;
+  customModel?: string;
 }
 
 export interface AiConfigView {
@@ -187,6 +214,7 @@ export interface AiConfigView {
   activeModel: string | null;
   gemini: { keySet: boolean; model: string };
   openai: { keySet: boolean; model: string };
+  custom: { keySet: boolean; model: string; baseUrl: string };
   hasKey: boolean;
   source: 'db' | 'env' | 'none';
   configuredAt: string | null;
@@ -208,6 +236,7 @@ export interface ResolvedAiProvider {
   provider: AiProviderName;
   apiKey: string;
   model: string;
+  baseURL?: string;
   source: 'db' | 'env';
 }
 
@@ -218,7 +247,11 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
   // Database-stored configuration takes priority.
   if (ai.provider !== null && ai.enabled) {
     const secret =
-      ai.provider === 'gemini' ? ai.geminiApiKey : ai.openaiApiKey;
+      ai.provider === 'gemini'
+        ? ai.geminiApiKey
+        : ai.provider === 'openai'
+          ? ai.openaiApiKey
+          : ai.customApiKey;
     const key = decryptSecret(secret);
     if (key !== null) {
       return {
@@ -227,13 +260,16 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
         model:
           ai.provider === 'gemini'
             ? ai.geminiModel
-            : ai.openaiModel,
+            : ai.provider === 'openai'
+              ? ai.openaiModel
+              : ai.customModel,
+        baseURL: ai.provider === 'custom' ? cleanBaseUrl(ai.customBaseUrl) : undefined,
         source: 'db',
       };
     }
   }
 
-  // Fall back to environment variables only if they have valid key prefixes.
+  // Fall back to environment variables only if they have valid keys.
   if (
     env.GEMINI_API_KEY !== undefined &&
     env.GEMINI_API_KEY.startsWith('AIza') &&
@@ -258,13 +294,28 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
       source: 'env',
     };
   }
+  const customEnvKey = env.XTROUTER_API_KEY ?? env.CUSTOM_AI_API_KEY;
+  if (customEnvKey && customEnvKey.length >= 10) {
+    return {
+      provider: 'custom',
+      apiKey: customEnvKey,
+      model: env.CUSTOM_AI_MODEL ?? DEFAULT_AI_MODELS.custom,
+      baseURL: cleanBaseUrl(env.CUSTOM_AI_BASE_URL),
+      source: 'env',
+    };
+  }
   return null;
 };
 
 export const getProviderApiKey = async (provider: AiProviderName): Promise<string | null> => {
   const settings = await getFirmSettings();
   const ai = normaliseAiConfig(settings.aiConfig);
-  const secret = provider === 'gemini' ? ai.geminiApiKey : ai.openaiApiKey;
+  const secret =
+    provider === 'gemini'
+      ? ai.geminiApiKey
+      : provider === 'openai'
+        ? ai.openaiApiKey
+        : ai.customApiKey;
   const key = decryptSecret(secret);
   if (key !== null) return key;
 
@@ -284,22 +335,41 @@ export const getProviderApiKey = async (provider: AiProviderName): Promise<strin
   ) {
     return env.OPENAI_API_KEY;
   }
+  if (provider === 'custom') {
+    const customKey = env.XTROUTER_API_KEY ?? env.CUSTOM_AI_API_KEY;
+    if (customKey && customKey.length >= 10) {
+      return customKey;
+    }
+  }
 
   return null;
+};
+
+export const getCustomBaseUrl = async (): Promise<string> => {
+  const settings = await getFirmSettings();
+  const ai = normaliseAiConfig(settings.aiConfig);
+  return cleanBaseUrl(ai.customBaseUrl ?? env.CUSTOM_AI_BASE_URL);
 };
 
 export const getAiConfigView = async (): Promise<AiConfigView> => {
   const settings = await getFirmSettings();
   const ai = normaliseAiConfig(settings.aiConfig);
   const dbKeyFor = (provider: AiProviderName): boolean =>
-    provider === 'gemini' ? secretSet(ai.geminiApiKey) : secretSet(ai.openaiApiKey);
+    provider === 'gemini'
+      ? secretSet(ai.geminiApiKey)
+      : provider === 'openai'
+        ? secretSet(ai.openaiApiKey)
+        : secretSet(ai.customApiKey);
 
   const resolved = await resolveAiProvider();
+  const customEnvKey = env.XTROUTER_API_KEY ?? env.CUSTOM_AI_API_KEY;
   const hasKey =
     dbKeyFor('gemini') ||
     dbKeyFor('openai') ||
+    dbKeyFor('custom') ||
     env.GEMINI_API_KEY !== undefined ||
-    env.OPENAI_API_KEY !== undefined;
+    env.OPENAI_API_KEY !== undefined ||
+    customEnvKey !== undefined;
 
   let configuredAtIso: string | null = null;
   if (ai.configuredAt) {
@@ -319,6 +389,11 @@ export const getAiConfigView = async (): Promise<AiConfigView> => {
     activeModel: resolved?.model ?? null,
     gemini: { keySet: dbKeyFor('gemini'), model: ai.geminiModel },
     openai: { keySet: dbKeyFor('openai'), model: ai.openaiModel },
+    custom: {
+      keySet: dbKeyFor('custom'),
+      model: ai.customModel,
+      baseUrl: cleanBaseUrl(ai.customBaseUrl),
+    },
     hasKey,
     source: resolved === null ? 'none' : resolved.source,
     configuredAt: configuredAtIso,
@@ -366,17 +441,43 @@ export const updateAiConfig = async (
     ai.openaiModel = update.openaiModel.trim();
     touched = true;
   }
+  if (update.customApiKey !== undefined) {
+    ai.customApiKey =
+      update.customApiKey === null ? null : encryptSecret(update.customApiKey);
+    touched = true;
+  }
+  if (update.customBaseUrl !== undefined && update.customBaseUrl.trim().length > 0) {
+    ai.customBaseUrl = cleanBaseUrl(update.customBaseUrl);
+    touched = true;
+  }
+  if (update.customModel !== undefined && update.customModel.trim().length > 0) {
+    ai.customModel = update.customModel.trim();
+    touched = true;
+  }
 
   // Enabling requires a usable key for the selected provider.
   if (ai.enabled) {
     if (ai.provider === null) {
-      throw conflict('Choose Gemini or OpenAI as the provider before enabling the copilot.');
+      throw conflict('Choose Gemini, OpenAI, or Custom as the provider before enabling the copilot.');
     }
-    const hasDbKey = ai.provider === 'gemini' ? secretSet(ai.geminiApiKey) : secretSet(ai.openaiApiKey);
+    const hasDbKey =
+      ai.provider === 'gemini'
+        ? secretSet(ai.geminiApiKey)
+        : ai.provider === 'openai'
+          ? secretSet(ai.openaiApiKey)
+          : secretSet(ai.customApiKey);
+    const customEnvKey = env.XTROUTER_API_KEY ?? env.CUSTOM_AI_API_KEY;
     const hasEnvKey =
-      ai.provider === 'gemini' ? env.GEMINI_API_KEY !== undefined : env.OPENAI_API_KEY !== undefined;
+      ai.provider === 'gemini'
+        ? env.GEMINI_API_KEY !== undefined
+        : ai.provider === 'openai'
+          ? env.OPENAI_API_KEY !== undefined
+          : customEnvKey !== undefined;
     if (!hasDbKey && !hasEnvKey) {
-      throw conflict('Save an API key for the selected provider before enabling the copilot.');
+      if (update.enabled === true) {
+        throw conflict('Save an API key for the selected provider before enabling the copilot.');
+      }
+      ai.enabled = false;
     }
   }
 

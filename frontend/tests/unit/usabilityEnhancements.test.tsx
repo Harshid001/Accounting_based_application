@@ -85,6 +85,22 @@ describe('Usability Enhancements Across Features', () => {
     expect(screen.getByText(/Document Vault/i)).toBeInTheDocument();
   });
 
+  it('renders CommandPalette with attached image and AI analysis action when image is provided', () => {
+    const dummyImage = {
+      dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      name: 'invoice-sample.png',
+      mimeType: 'image/png',
+    };
+
+    renderWithContext(
+      <CommandPalette open={true} onOpenChange={() => undefined} initialImage={dummyImage} />,
+    );
+
+    expect(screen.getByText(/invoice-sample.png/i)).toBeInTheDocument();
+    expect(screen.getByText(/Analyze Document with FirmDesk AI Copilot/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Analyze with AI/i })).toBeInTheDocument();
+  });
+
   it('renders feature guide content properly in FeatureGuideModal', async () => {
     const user = userEvent.setup();
 

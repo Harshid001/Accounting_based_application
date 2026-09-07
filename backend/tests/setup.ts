@@ -31,6 +31,11 @@ delete process.env.GOOGLE_CLIENT_SECRET;
 delete process.env.BOOTSTRAP_ADMIN_EMAIL;
 delete process.env.GEMINI_API_KEY;
 delete process.env.OPENAI_API_KEY;
+delete process.env.XTROUTER_API_KEY;
+delete process.env.CUSTOM_AI_API_KEY;
+delete process.env.CUSTOM_AI_BASE_URL;
+delete process.env.CUSTOM_AI_MODEL;
+delete process.env.AI_PROVIDER;
 
 const { connectDatabase, disconnectDatabase, mongoose } = await import('../src/config/db.js');
 const { initAuth, resetAuthForTests } = await import('../src/config/auth.js');

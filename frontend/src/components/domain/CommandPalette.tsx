@@ -3,11 +3,13 @@ import * as RadixDialog from '@radix-ui/react-dialog';
 import {
   ArrowRightLeft,
   Bell,
+  Bot,
   Building2,
   CalendarClock,
   CheckSquare,
   FileText,
   HelpCircle,
+  Image as ImageIcon,
   Inbox,
   LayoutDashboard,
   ListTodo,
@@ -17,10 +19,13 @@ import {
   Search,
   Settings,
   Sparkles,
+  X,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import { useAiChat, type AttachedImageData } from '@/context/AiChatContext';
 
 import { runSearch } from '@/api/search.api';
 import { queryKeys } from '@/api/queryKeys';
@@ -49,6 +54,8 @@ const GROUPS: Array<{ key: keyof SearchResults; label: string }> = [
 export interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialImage?: AttachedImageData | null;
+  onClearInitialImage?: () => void;
 }
 
 interface QuickItem {
@@ -60,19 +67,69 @@ interface QuickItem {
   onSelect: () => void;
 }
 
-export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+export function CommandPalette({
+  open,
+  onOpenChange,
+  initialImage,
+  onClearInitialImage,
+}: CommandPaletteProps) {
   const navigate = useNavigate();
   const { openGuide } = useFeatureGuide();
+  const { openWithPrompt } = useAiChat();
   const [term, setTerm] = useState('');
+  const [attachedImage, setAttachedImage] = useState<AttachedImageData | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [active, setActive] = useState(0);
   const debounced = useDebounce(term, SEARCH_DEBOUNCE_MS);
   const { onCloseAutoFocus } = useReturnFocus(open);
   const isQueryMode = debounced.trim().length >= 2;
 
+  useEffect(() => {
+    if (initialImage) {
+      setAttachedImage(initialImage);
+      onClearInitialImage?.();
+    }
+  }, [initialImage, onClearInitialImage]);
+
+  const handleImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setAttachedImage({
+          dataUrl: reader.result,
+          name: file.name || 'Pasted image',
+          mimeType: file.type,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            handleImageFile(file);
+            break;
+          }
+        }
+      }
+    },
+    [handleImageFile],
+  );
+
   const close = useCallback(
     (next: boolean): void => {
       if (!next) {
         setTerm('');
+        setAttachedImage(null);
         setActive(0);
       }
       onOpenChange(next);
@@ -81,7 +138,40 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   );
 
   const quickItems = useMemo<QuickItem[]>(() => {
-    const items: QuickItem[] = [
+    const items: QuickItem[] = [];
+
+    if (attachedImage) {
+      items.push(
+        {
+          id: 'act-ai-image',
+          title: 'Analyze Document with FirmDesk AI Copilot',
+          subtitle: 'Inspect this image, extract PAN/GSTIN/invoice details & automate actions',
+          group: 'Visual Search & AI',
+          icon: <Bot size={14} className="text-indigo-500" />,
+          onSelect: () => {
+            close(false);
+            openWithPrompt(
+              term.trim() ||
+                'Please analyze this attached document or invoice and identify the client, filing details, amounts, tax identifiers, or relevant action items.',
+              attachedImage,
+            );
+          },
+        },
+        {
+          id: 'act-search-docs-image',
+          title: 'Search Document Repository',
+          subtitle: 'Find and match stored records in firm client documents',
+          group: 'Visual Search & AI',
+          icon: <FileText size={14} className="text-emerald-500" />,
+          onSelect: () => {
+            close(false);
+            void navigate('/documents');
+          },
+        },
+      );
+    }
+
+    items.push(
       {
         id: 'act-guide',
         title: 'Feature Guide & Interactive Tour',
@@ -247,14 +337,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           void navigate('/settings/firm');
         },
       },
-    ];
+    );
 
     if (!term.trim()) return items;
     const lower = term.toLowerCase().trim();
     return items.filter(
       (item) => item.title.toLowerCase().includes(lower) || item.subtitle.toLowerCase().includes(lower),
     );
-  }, [term, openGuide, navigate, close]);
+  }, [attachedImage, term, openGuide, navigate, close, openWithPrompt]);
 
   const query = useQuery({
     queryKey: queryKeys.search(debounced.trim()),
@@ -311,6 +401,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <RadixDialog.Content
           data-slot="command-palette"
           onCloseAutoFocus={onCloseAutoFocus}
+          onPaste={handlePaste}
           className="fixed top-[10vh] left-1/2 z-50 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-2xl"
         >
           <RadixDialog.Title className="sr-only">Search FirmDesk</RadixDialog.Title>
@@ -323,8 +414,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <input
               type="text"
               value={term}
+              onPaste={handlePaste}
               aria-label="Search features, clients, filings, tasks and documents"
-              placeholder="Search features, clients, filings, tasks or type to filter..."
+              placeholder={
+                attachedImage
+                  ? 'Type search filter or select AI analysis below...'
+                  : 'Search features, clients, filings, tasks, or paste an image (Ctrl+V)...'
+              }
               className="h-12 w-full bg-transparent text-sm font-medium text-[var(--fd-text-primary)] outline-none placeholder:text-[var(--fd-text-tertiary)]"
               onChange={(event) => {
                 setTerm(event.target.value);
@@ -344,8 +440,78 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 }
               }}
             />
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageFile(file);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach or paste an image (Ctrl+V)"
+              aria-label="Attach image"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-3)] hover:text-indigo-500 cursor-pointer transition-colors"
+            >
+              <ImageIcon size={15} />
+            </button>
             {query.isFetching ? <Spinner size={14} label="Searching" /> : null}
           </div>
+
+          {/* Attached Image Banner in Command Palette */}
+          {attachedImage && (
+            <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] bg-indigo-500/10 px-3.5 py-2 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src={attachedImage.dataUrl}
+                  alt={attachedImage.name || 'Pasted image'}
+                  className="h-9 w-9 rounded-md object-cover border border-indigo-500/30 shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="truncate font-semibold text-[var(--fd-text-primary)] flex items-center gap-1.5">
+                    <span>📷 {attachedImage.name || 'Pasted Image'}</span>
+                    <span className="rounded bg-indigo-500/20 px-1.5 py-0.2 text-[9px] font-bold text-indigo-600 dark:text-indigo-400">
+                      Visual Input
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[var(--fd-text-secondary)] truncate">
+                    Ready to analyze with FirmDesk AI Copilot
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    close(false);
+                    openWithPrompt(
+                      term.trim() ||
+                        'Please analyze this attached document or invoice and identify the client, filing details, amounts, tax identifiers, or relevant action items.',
+                      attachedImage,
+                    );
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-2xs hover:bg-indigo-700 cursor-pointer"
+                >
+                  <Bot size={12} />
+                  <span>Analyze with AI</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAttachedImage(null)}
+                  title="Remove image"
+                  aria-label="Remove image"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="max-h-[60vh] overflow-y-auto p-2 space-y-3">
             {isQueryMode && query.isError ? (

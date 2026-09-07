@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { CommandPalette } from '@/components/domain/CommandPalette';
@@ -11,6 +11,7 @@ import { AiChatSidebar } from '@/components/domain/AiChatDropdown';
 import { SIDEBAR_STORAGE_KEY } from '@/lib/constants';
 import { useHotkey } from '@/hooks/useHotkey';
 import { useFeatureGuide } from '@/context/FeatureGuideContext';
+import type { AttachedImageData } from '@/context/AiChatContext';
 
 const readCollapsed = (): boolean => {
   try {
@@ -24,6 +25,7 @@ export function StaffLayout() {
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteInitialImage, setPaletteInitialImage] = useState<AttachedImageData | null>(null);
   const { openGuide, isGuideOpen, closeGuide } = useFeatureGuide();
 
   useHotkey({ key: 'k', meta: true, allowInInput: true }, () => {
@@ -37,6 +39,47 @@ export function StaffLayout() {
       openGuide();
     }
   });
+
+  // Global paste handler: if user pastes an image anywhere on screen while not typing in an input,
+  // automatically open the search command palette with the image attached
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const activeTag = document.activeElement?.tagName;
+      if (
+        activeTag === 'INPUT' ||
+        activeTag === 'TEXTAREA' ||
+        (document.activeElement as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === 'string') {
+                setPaletteInitialImage({
+                  dataUrl: reader.result,
+                  name: file.name || 'Pasted screenshot',
+                  mimeType: file.type,
+                });
+                setPaletteOpen(true);
+              }
+            };
+            reader.readAsDataURL(file);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, []);
 
   const toggleSidebar = (): void => {
     setCollapsed((current) => {
@@ -74,7 +117,8 @@ export function StaffLayout() {
           onOpenDrawer={() => {
             setDrawerOpen(true);
           }}
-          onOpenPalette={() => {
+          onOpenPalette={(img) => {
+            if (img) setPaletteInitialImage(img);
             setPaletteOpen(true);
           }}
         />
@@ -102,7 +146,15 @@ export function StaffLayout() {
         </div>
       </div>
 
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={(next) => {
+          setPaletteOpen(next);
+          if (!next) setPaletteInitialImage(null);
+        }}
+        initialImage={paletteInitialImage}
+        onClearInitialImage={() => setPaletteInitialImage(null)}
+      />
       <RouteAnnouncer />
     </div>
   );
