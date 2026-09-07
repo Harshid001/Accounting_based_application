@@ -255,7 +255,7 @@ describe('AI Copilot configuration API', () => {
   it('handles legacy firm settings document missing aiConfig without crashing', async () => {
     cache.invalidate('settings');
     await FirmSettings.collection.deleteOne({ _id: FIRM_SETTINGS_ID });
-    await FirmSettings.collection.insertOne({
+    const legacyDoc: Record<string, unknown> = {
       _id: FIRM_SETTINGS_ID,
       firmName: 'JV Tax Consultancy',
       defaultReminderOffsetsDays: [7, 3, 1],
@@ -263,7 +263,8 @@ describe('AI Copilot configuration API', () => {
       financialYearStartMonth: 4,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as unknown as any);
+    };
+    await FirmSettings.collection.insertOne(legacyDoc);
 
     const configResponse = await request(app()).get('/api/v1/ai/config').set(auth(admin));
     expect(configResponse.status).toBe(200);
