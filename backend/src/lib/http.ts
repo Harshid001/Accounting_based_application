@@ -36,3 +36,11 @@ export const sendCsv = (res: Response, filename: string, body: string): void => 
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.send(`\uFEFF${body}`);
 };
+
+export const sendJsonFile = (res: Response, filename: string, data: unknown): void => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.send(JSON.stringify(data, null, 2));
+};
+

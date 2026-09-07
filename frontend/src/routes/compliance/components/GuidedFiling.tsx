@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, Lock, Wand2 } from 'lucide-react';
+import { Download, ExternalLink, Lock, Wand2 } from 'lucide-react';
+import { useState } from 'react';
 
+import { updateComplianceItem } from '@/api/compliance.api';
 import {
+  downloadPreparationPayload,
   getFilingPreparation,
   lockFilingPreparation,
   prepareFilingReturn,
@@ -13,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ErrorState } from '@/components/ui/error-state';
+import { Input } from '@/components/ui/input';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/context/ToastContext';
@@ -21,6 +25,7 @@ import type { FilingPreparationView } from '@/types/models';
 export interface GuidedFilingProps {
   filingId: string;
   canEdit: boolean;
+  acknowledgementRef?: string | null;
 }
 
 const labelFor = (key: string): string =>
@@ -51,9 +56,12 @@ const statusLabel = (status: FilingPreparationView['status']): string => {
 const summaryEntries = (summary: Record<string, unknown>): Array<[string, unknown]> =>
   Object.entries(summary).filter(([, value]) => typeof value === 'number' || typeof value === 'string');
 
-export function GuidedFiling({ filingId, canEdit }: GuidedFilingProps) {
+export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFilingProps) {
   const queryClient = useQueryClient();
   const { success, errorToast } = useToast();
+  const [downloading, setDownloading] = useState(false);
+  const [customArn, setCustomArn] = useState<string | null>(null);
+  const arn = customArn ?? acknowledgementRef ?? '';
 
   const preparation = useQuery({
     queryKey: queryKeys.filingPreparations.detail(filingId),
@@ -104,10 +112,40 @@ export function GuidedFiling({ filingId, canEdit }: GuidedFilingProps) {
     },
   });
 
+  const saveArn = useMutation({
+    mutationFn: (newRef: string) =>
+      updateComplianceItem(filingId, {
+        acknowledgementRef: newRef.trim().length === 0 ? null : newRef.trim(),
+      }),
+    onSuccess: () => {
+      setCustomArn(null);
+      invalidate();
+      success('Acknowledgement saved', 'The ARN has been recorded on this filing.');
+    },
+    onError: (error: unknown) => {
+      errorToast(error, 'Could not save the acknowledgement reference');
+    },
+  });
+
   const data = preparation.data;
   const stepsDone = data?.guideSteps.filter((step) => step.done).length ?? 0;
   const stepsTotal = data?.guideSteps.length ?? 0;
   const locked = data?.status === 'locked';
+
+  const handleDownload = async (): Promise<void> => {
+    if (!data) return;
+    setDownloading(true);
+    try {
+      const sanitizedPeriod = data.periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `${data.formCode}_${sanitizedPeriod}.json`;
+      await downloadPreparationPayload(filingId, filename);
+      success('Return payload downloaded', filename);
+    } catch (err: unknown) {
+      errorToast(err, 'Could not download return file');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <Card>
@@ -115,19 +153,35 @@ export function GuidedFiling({ filingId, canEdit }: GuidedFilingProps) {
         title="Autonomous filing"
         description="The copilot prepares the return from the documents on file, then walks you through the government portal."
         actions={
-          <Button
-            variant="primary"
-            size="sm"
-            iconLeft={<Wand2 size={14} aria-hidden="true" />}
-            loading={prepare.isPending}
-            loadingLabel="Preparing"
-            disabled={!canEdit}
-            onClick={() => {
-              prepare.mutate();
-            }}
-          >
-            {data === undefined ? 'Prepare return' : 'Recompute'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {data !== undefined ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<Download size={14} aria-hidden="true" />}
+                loading={downloading}
+                loadingLabel="Downloading"
+                onClick={() => {
+                  void handleDownload();
+                }}
+              >
+                Download file
+              </Button>
+            ) : null}
+            <Button
+              variant="primary"
+              size="sm"
+              iconLeft={<Wand2 size={14} aria-hidden="true" />}
+              loading={prepare.isPending}
+              loadingLabel="Preparing"
+              disabled={!canEdit}
+              onClick={() => {
+                prepare.mutate();
+              }}
+            >
+              {data === undefined ? 'Prepare return' : 'Recompute'}
+            </Button>
+          </div>
         }
       />
 
@@ -255,20 +309,76 @@ export function GuidedFiling({ filingId, canEdit }: GuidedFilingProps) {
             </ol>
           </div>
 
-          {data.status === 'ready' && canEdit ? (
+          <div className="rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--fd-text-secondary)]">
+                Filing Acknowledgement (ARN)
+              </span>
+              {acknowledgementRef ? (
+                <Badge tone="done">Recorded: {acknowledgementRef}</Badge>
+              ) : (
+                <Badge tone="neutral">Not recorded</Badge>
+              )}
+            </div>
+            <p className="text-xs text-[var(--fd-text-tertiary)]">
+              Paste the Application Reference Number (ARN), token, or challan number from the portal receipt to record it on this filing.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                id="filing-arn-input"
+                aria-label="Acknowledgement reference (ARN)"
+                value={arn}
+                disabled={!canEdit || saveArn.isPending}
+                placeholder="e.g. AA2707240123456 or 20262712345678"
+                onChange={(e) => {
+                  setCustomArn(e.target.value);
+                }}
+                className="h-8 text-sm"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={!canEdit || saveArn.isPending || arn.trim() === (acknowledgementRef ?? '').trim()}
+                loading={saveArn.isPending}
+                loadingLabel="Saving"
+                onClick={() => {
+                  saveArn.mutate(arn);
+                }}
+              >
+                Save ARN
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {data.status === 'ready' && canEdit ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<Lock size={14} aria-hidden="true" />}
+                loading={lock.isPending}
+                loadingLabel="Locking"
+                onClick={() => {
+                  lock.mutate();
+                }}
+              >
+                Lock figures
+              </Button>
+            ) : null}
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
-              iconLeft={<Lock size={14} aria-hidden="true" />}
-              loading={lock.isPending}
-              loadingLabel="Locking"
+              iconLeft={<Download size={14} aria-hidden="true" />}
+              loading={downloading}
+              loadingLabel="Downloading"
               onClick={() => {
-                lock.mutate();
+                void handleDownload();
               }}
             >
-              Lock figures
+              Download portal JSON
             </Button>
-          ) : null}
+          </div>
         </div>
       )}
     </Card>

@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
-import { sendData } from '../lib/http.js';
+import { sendData, sendJsonFile } from '../lib/http.js';
 import type { RouteContext } from '../middleware/validate.js';
 import {
   getPreparation,
@@ -46,3 +46,14 @@ export const lock = async (
   const prepared = await lockPreparation(ctx.user, new Types.ObjectId(input.params.id), ctx.actor);
   sendData(ctx.res, prepared);
 };
+
+export const downloadPayload = async (
+  input: { params: { id: string } },
+  ctx: RouteContext,
+): Promise<void> => {
+  const prepared = await getPreparation(ctx.user, new Types.ObjectId(input.params.id));
+  const sanitizedPeriod = prepared.periodLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `${prepared.formCode}_${sanitizedPeriod}.json`;
+  sendJsonFile(ctx.res, filename, prepared.portalPayload ?? prepared.computed);
+};
+

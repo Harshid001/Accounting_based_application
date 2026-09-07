@@ -280,7 +280,11 @@ export function ComplianceDetail() {
 
         <div className="space-y-4">
           {isPreparable ? (
-            <GuidedFiling filingId={complianceId} canEdit={canEdit} />
+            <GuidedFiling
+              filingId={complianceId}
+              canEdit={canEdit}
+              acknowledgementRef={item.acknowledgementRef}
+            />
           ) : null}
 
           <StatusTransition

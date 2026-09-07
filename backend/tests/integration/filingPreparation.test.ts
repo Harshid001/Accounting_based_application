@@ -200,4 +200,22 @@ describe('filing preparation', () => {
     const stored = await FilingPreparation.findOne({ complianceItem: filingId }).lean();
     expect(stored?.status).toBe('locked');
   });
+
+  it('downloads the prepared return payload as a json file attachment', async () => {
+    await request(app())
+      .post(`/api/v1/filing-preparations/${filingId.toString()}/prepare`)
+      .set(auth(assignedStaff))
+      .send();
+
+    const response = await request(app())
+      .get(`/api/v1/filing-preparations/${filingId.toString()}/download`)
+      .set(auth(assignedStaff))
+      .send();
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('application/json');
+    expect(response.headers['content-disposition']).toMatch(/attachment;\s*filename="GSTR3B_.*\.json"/);
+    expect(response.body).toHaveProperty('form', 'GSTR3B');
+  });
 });
+

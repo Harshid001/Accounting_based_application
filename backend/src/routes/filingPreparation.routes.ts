@@ -29,6 +29,14 @@ filingPreparationRouter.get(
   handle({ params: idParam }, controller.detail),
 );
 
+filingPreparationRouter.get(
+  '/:id/download',
+  readLimiter,
+  requireCapability('compliance:read'),
+  scopeViaItem,
+  handle({ params: idParam }, controller.downloadPayload),
+);
+
 filingPreparationRouter.post(
   '/:id/guide-step',
   mutationLimiter,
