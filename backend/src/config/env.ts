@@ -159,9 +159,18 @@ export const isTest = env.NODE_ENV === 'test';
 export const googleOAuthConfigured =
   env.GOOGLE_CLIENT_ID !== undefined && env.GOOGLE_CLIENT_SECRET !== undefined;
 
-export const aiProvider: 'gemini' | 'openai' | null =
+export const aiProvider: 'gemini' | 'openai' | 'custom' | null =
   env.AI_PROVIDER ??
-  (env.GEMINI_API_KEY !== undefined ? 'gemini' : env.OPENAI_API_KEY !== undefined ? 'openai' : null);
+  (env.GEMINI_API_KEY !== undefined
+    ? 'gemini'
+    : env.OPENAI_API_KEY !== undefined
+      ? 'openai'
+      : env.XTROUTER_API_KEY !== undefined || env.CUSTOM_AI_API_KEY !== undefined
+        ? 'custom'
+        : null);
 export const aiConfigured = aiProvider !== null;
 export const geminiConfigured = aiProvider === 'gemini' && env.GEMINI_API_KEY !== undefined;
 export const openaiConfigured = aiProvider === 'openai' && env.OPENAI_API_KEY !== undefined;
+export const customAiConfigured =
+  aiProvider === 'custom' &&
+  (env.XTROUTER_API_KEY !== undefined || env.CUSTOM_AI_API_KEY !== undefined);
