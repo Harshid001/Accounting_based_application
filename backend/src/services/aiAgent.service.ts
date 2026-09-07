@@ -57,6 +57,10 @@ import {
   updateGuideStep,
 } from './filingPreparation.service.js';
 import {
+  requestFilingOtp,
+  submitReturnWithOtp,
+} from './governmentGateway.service.js';
+import {
   createClientService,
   listClientServices,
   deleteClientService,
@@ -146,6 +150,8 @@ const TOOL_NAMES = {
   prepareFilingReturn: 'prepare_filing_return',
   getFilingGuide: 'get_filing_guide',
   updateFilingGuideStep: 'update_filing_guide_step',
+  requestPortalOtp: 'request_portal_otp',
+  submitReturnToGovernmentPortal: 'submit_return_to_government_portal',
 
   // Autonomous Practice Automation Runner
   runAutonomousPracticeAutomation: 'run_autonomous_practice_automation',
@@ -858,6 +864,73 @@ const tool_updateFilingGuideStep = async (
     };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Could not update the guide step.' };
+  }
+};
+
+const tool_requestPortalOtp = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot request government filing OTPs.' };
+  }
+  const filingId = asString(args.filingId);
+  if (!filingId || !OBJECT_ID_PATTERN.test(filingId)) {
+    return { error: 'A valid 24-character filingId is required.' };
+  }
+  try {
+    const challenge = await requestFilingOtp(user, new Types.ObjectId(filingId), context.actor);
+    return {
+      success: true,
+      filingId,
+      portal: challenge.portal,
+      transactionId: challenge.transactionId,
+      maskedContact: challenge.maskedTarget,
+      mode: challenge.mode,
+      expiresInMinutes: Math.round(challenge.expiresInSeconds / 60),
+      message: `A 6-digit filing OTP was sent by ${challenge.portal ?? 'the Government Portal'} to ${challenge.maskedTarget}. Ask the client for the OTP, then provide it to submit the return.`,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not request portal filing OTP.' };
+  }
+};
+
+const tool_submitReturnToGovernmentPortal = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot submit returns to government portals.' };
+  }
+  const filingId = asString(args.filingId);
+  const otp = asString(args.otp)?.trim();
+  const transactionId = asString(args.transactionId)?.trim();
+  if (!filingId || !OBJECT_ID_PATTERN.test(filingId) || !otp || !/^\d{6}$/.test(otp)) {
+    return { error: 'A valid 24-character filingId and 6-digit otp are required.' };
+  }
+  try {
+    const result = await submitReturnWithOtp(
+      user,
+      new Types.ObjectId(filingId),
+      { otp, ...(transactionId ? { transactionId } : {}) },
+      context.actor,
+    );
+    return {
+      success: true,
+      filingId,
+      arn: result.arn,
+      form: result.form,
+      period: result.period,
+      portal: result.portal,
+      status: result.status,
+      filedAt: result.filedAt,
+      mode: result.mode,
+      message: result.message,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not submit return to government portal.' };
   }
 };
 
@@ -1920,6 +1993,8 @@ const CLIENT_ROUTE_TOOLS = new Set<string>([
   TOOL_NAMES.prepareFilingReturn,
   TOOL_NAMES.getFilingGuide,
   TOOL_NAMES.updateFilingGuideStep,
+  TOOL_NAMES.requestPortalOtp,
+  TOOL_NAMES.submitReturnToGovernmentPortal,
 ]);
 
 const withRouteContext = (
@@ -2225,6 +2300,42 @@ const TOOLS: readonly ToolSpec[] = [
         ? `Updated guide step ${result.stepNumber}`
         : 'Attempted guide step update',
     run: (context, args) => tool_updateFilingGuideStep(context, args),
+  },
+  {
+    name: TOOL_NAMES.requestPortalOtp,
+    description:
+      'Initiate a direct government portal filing session for a prepared return by requesting an authentication OTP sent to the taxpayer registered mobile or email on the GST Portal or Income Tax Department. Returns transaction reference and masked contact details.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filingId: { type: 'string', description: 'The 24-character compliance filing id.' },
+      },
+      required: ['filingId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true
+        ? 'Requested filing OTP from government portal'
+        : 'Attempted government portal OTP request',
+    run: (context, args) => tool_requestPortalOtp(context, args),
+  },
+  {
+    name: TOOL_NAMES.submitReturnToGovernmentPortal,
+    description:
+      'Submit a prepared return directly to the government portal (GSTN / Income Tax Department) using the 6-digit OTP received from the taxpayer. Automatically authenticates the filing session, transmits the return payload, captures the official government Application Reference Number (ARN), marks the filing as filed, and locks the preparation.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filingId: { type: 'string', description: 'The 24-character compliance filing id.' },
+        otp: { type: 'string', description: 'The 6-digit OTP received from the government portal.' },
+        transactionId: { type: 'string', description: 'Optional transaction ID from request_portal_otp.' },
+      },
+      required: ['filingId', 'otp'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true && typeof result.arn === 'string'
+        ? `Filed return on portal (ARN: ${result.arn})`
+        : 'Attempted government portal return submission',
+    run: (context, args) => tool_submitReturnToGovernmentPortal(context, args),
   },
 
   // 3. Tasks & Workflow

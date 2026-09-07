@@ -38,3 +38,35 @@ export const downloadPreparationPayload = async (
   }, 2000);
 };
 
+export interface GatewayOtpResponse {
+  transactionId: string;
+  maskedTarget: string;
+  expiresInSeconds: number;
+  portal: string | null;
+  mode: 'sandbox' | 'live';
+  challengeOtp?: string;
+  message: string;
+}
+
+export interface GatewaySubmitResponse {
+  success: boolean;
+  arn: string;
+  portal: string | null;
+  form: string;
+  period: string;
+  filedAt: string;
+  status: 'filed';
+  mode: 'sandbox' | 'live';
+  message: string;
+}
+
+export const requestGatewayOtp = (filingId: string): Promise<GatewayOtpResponse> =>
+  apiPost<GatewayOtpResponse>(`/filing-preparations/${filingId}/gateway/request-otp`, {});
+
+export const submitGatewayReturn = (
+  filingId: string,
+  body: { otp: string; transactionId?: string },
+): Promise<GatewaySubmitResponse> =>
+  apiPost<GatewaySubmitResponse>(`/filing-preparations/${filingId}/gateway/submit`, body);
+
+

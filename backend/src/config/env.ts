@@ -87,6 +87,9 @@ const schema = z.object({
   CUSTOM_AI_BASE_URL: z.string().optional(),
   CUSTOM_AI_MODEL: z.string().optional(),
 
+  GSP_BASE_URL: z.string().optional(),
+  GSP_CLIENT_ID: z.string().optional(),
+
   R2_ACCOUNT_ID:
     process.env.NODE_ENV === 'test'
       ? z.string().min(1).default('test-account-id')

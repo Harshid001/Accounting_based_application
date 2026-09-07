@@ -7,7 +7,10 @@ import { requireCapability } from '../middleware/requireRole.js';
 import { handle } from '../middleware/validate.js';
 import { clientIdOfItem } from '../services/compliance.service.js';
 import { idParam } from '../validators/common.validators.js';
-import { guideStepBody } from '../validators/filingPreparation.validators.js';
+import {
+  gatewaySubmitBody,
+  guideStepBody,
+} from '../validators/filingPreparation.validators.js';
 
 export const filingPreparationRouter: Router = Router();
 
@@ -52,3 +55,20 @@ filingPreparationRouter.post(
   scopeViaItem,
   handle({ params: idParam }, controller.lock),
 );
+
+filingPreparationRouter.post(
+  '/:id/gateway/request-otp',
+  mutationLimiter,
+  requireCapability('compliance:update'),
+  scopeViaItem,
+  handle({ params: idParam }, controller.requestGatewayOtp),
+);
+
+filingPreparationRouter.post(
+  '/:id/gateway/submit',
+  mutationLimiter,
+  requireCapability('compliance:update'),
+  scopeViaItem,
+  handle({ params: idParam, body: gatewaySubmitBody }, controller.submitGatewayReturn),
+);
+

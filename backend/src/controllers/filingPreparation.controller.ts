@@ -8,7 +8,14 @@ import {
   prepareFiling,
   updateGuideStep,
 } from '../services/filingPreparation.service.js';
-import type { GuideStepBody } from '../validators/filingPreparation.validators.js';
+import {
+  requestFilingOtp,
+  submitReturnWithOtp,
+} from '../services/governmentGateway.service.js';
+import type {
+  GatewaySubmitBody,
+  GuideStepBody,
+} from '../validators/filingPreparation.validators.js';
 
 export const prepare = async (
   input: { params: { id: string } },
@@ -56,4 +63,26 @@ export const downloadPayload = async (
   const filename = `${prepared.formCode}_${sanitizedPeriod}.json`;
   sendJsonFile(ctx.res, filename, prepared.portalPayload ?? prepared.computed);
 };
+
+export const requestGatewayOtp = async (
+  input: { params: { id: string } },
+  ctx: RouteContext,
+): Promise<void> => {
+  const challenge = await requestFilingOtp(ctx.user, new Types.ObjectId(input.params.id), ctx.actor);
+  sendData(ctx.res, challenge);
+};
+
+export const submitGatewayReturn = async (
+  input: { params: { id: string }; body: GatewaySubmitBody },
+  ctx: RouteContext,
+): Promise<void> => {
+  const result = await submitReturnWithOtp(
+    ctx.user,
+    new Types.ObjectId(input.params.id),
+    input.body,
+    ctx.actor,
+  );
+  sendData(ctx.res, result);
+};
+
 

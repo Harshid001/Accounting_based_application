@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, ExternalLink, Lock, Wand2 } from 'lucide-react';
+import { Download, ExternalLink, Lock, Send, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { updateComplianceItem } from '@/api/compliance.api';
@@ -8,8 +8,11 @@ import {
   getFilingPreparation,
   lockFilingPreparation,
   prepareFilingReturn,
+  requestGatewayOtp,
+  submitGatewayReturn,
   updateGuideStep,
 } from '@/api/filingPreparation.api';
+import type { GatewayOtpResponse } from '@/api/filingPreparation.api';
 import { queryKeys } from '@/api/queryKeys';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,6 +64,8 @@ export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFi
   const { success, errorToast } = useToast();
   const [downloading, setDownloading] = useState(false);
   const [customArn, setCustomArn] = useState<string | null>(null);
+  const [otpValue, setOtpValue] = useState('');
+  const [gatewayChallenge, setGatewayChallenge] = useState<GatewayOtpResponse | null>(null);
   const arn = customArn ?? acknowledgementRef ?? '';
 
   const preparation = useQuery({
@@ -124,6 +129,40 @@ export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFi
     },
     onError: (error: unknown) => {
       errorToast(error, 'Could not save the acknowledgement reference');
+    },
+  });
+
+  const requestOtpMutation = useMutation({
+    mutationFn: () => requestGatewayOtp(filingId),
+    onSuccess: (res) => {
+      setGatewayChallenge(res);
+      success(
+        res.mode === 'sandbox' ? 'Portal OTP Generated (Sandbox)' : 'Portal OTP Dispatched',
+        res.message,
+      );
+    },
+    onError: (err: unknown) => {
+      errorToast(err, 'Failed to request portal OTP');
+    },
+  });
+
+  const submitGatewayMutation = useMutation({
+    mutationFn: () =>
+      submitGatewayReturn(filingId, {
+        otp: otpValue.trim(),
+        transactionId: gatewayChallenge?.transactionId,
+      }),
+    onSuccess: (res) => {
+      invalidate();
+      setGatewayChallenge(null);
+      setOtpValue('');
+      success(
+        'Return Filed Successfully!',
+        `Official Acknowledgement Ref: ${res.arn}. Status marked as filed.`,
+      );
+    },
+    onError: (err: unknown) => {
+      errorToast(err, 'Portal filing submission failed');
     },
   });
 
@@ -307,6 +346,97 @@ export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFi
                 </li>
               ))}
             </ol>
+          </div>
+
+          <div className="rounded-lg border border-[var(--fd-accent)]/30 bg-[var(--fd-surface-2)] p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--fd-accent)] flex items-center gap-1.5">
+                <Send size={13} aria-hidden="true" />
+                Direct Government Portal Filing (API Gateway)
+              </span>
+              <Badge tone="accent">Official Gateway</Badge>
+            </div>
+            <p className="text-xs text-[var(--fd-text-secondary)]">
+              Submit your return directly to {data.portalName || 'the government portal'} using an authenticated GSP / GSTN / Income Tax API gateway without manual data entry.
+            </p>
+
+            {gatewayChallenge ? (
+              <div className="space-y-2.5 rounded-md border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[var(--fd-text-secondary)]">
+                    OTP sent to registered contact:{' '}
+                    <strong className="text-[var(--fd-text-primary)]">
+                      {gatewayChallenge.maskedTarget}
+                    </strong>
+                  </span>
+                  <Badge tone={gatewayChallenge.mode === 'sandbox' ? 'neutral' : 'done'}>
+                    {gatewayChallenge.mode === 'sandbox' ? 'Sandbox Mode' : 'Live Gateway'}
+                  </Badge>
+                </div>
+                {gatewayChallenge.mode === 'sandbox' ? (
+                  <p className="rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                    💡 <strong>Test environment:</strong> Use challenge OTP{' '}
+                    <code className="font-mono font-semibold">
+                      {gatewayChallenge.challengeOtp || '123456'}
+                    </code>{' '}
+                    or enter <code className="font-mono font-semibold">123456</code>.
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    id="gateway-otp-input"
+                    aria-label="Portal filing OTP"
+                    value={otpValue}
+                    placeholder="Enter 6-digit portal OTP"
+                    maxLength={10}
+                    disabled={submitGatewayMutation.isPending}
+                    onChange={(e) => {
+                      setOtpValue(e.target.value);
+                    }}
+                    className="h-8 text-sm max-w-[200px]"
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    loading={submitGatewayMutation.isPending}
+                    loadingLabel="Submitting return"
+                    disabled={otpValue.trim().length < 4 || submitGatewayMutation.isPending}
+                    onClick={() => {
+                      submitGatewayMutation.mutate();
+                    }}
+                  >
+                    Submit & File Return
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={requestOtpMutation.isPending || submitGatewayMutation.isPending}
+                    onClick={() => {
+                      requestOtpMutation.mutate();
+                    }}
+                  >
+                    Resend OTP
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                iconLeft={<Send size={13} aria-hidden="true" />}
+                loading={requestOtpMutation.isPending}
+                loadingLabel="Requesting Portal OTP"
+                disabled={!canEdit || data.missingInputs.length > 0 || !!acknowledgementRef}
+                onClick={() => {
+                  requestOtpMutation.mutate();
+                }}
+              >
+                {acknowledgementRef ? 'Already Filed with ARN' : 'Request Portal OTP & File Directly'}
+              </Button>
+            )}
           </div>
 
           <div className="rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] p-3 space-y-2">
