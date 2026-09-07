@@ -1,5 +1,5 @@
 import { Suspense, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 import { RouteAnnouncer, SkipLink } from '@/components/domain/SkipLink';
 import { ErrorState } from '@/components/ui/error-state';
@@ -9,6 +9,7 @@ import { PortalLinks, PortalNav } from '@/layouts/components/PortalNav';
 import { useActiveClient } from '@/context/ActiveClientContext';
 
 export function PortalLayout() {
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { activeClientId, loading, error, retry } = useActiveClient();
 
@@ -50,7 +51,9 @@ export function PortalLayout() {
               </div>
             }
           >
-            <Outlet />
+            <div key={location.pathname} className="page-transition">
+              <Outlet />
+            </div>
           </Suspense>
         )}
       </main>

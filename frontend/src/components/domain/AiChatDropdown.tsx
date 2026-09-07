@@ -637,7 +637,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
         onPaste={handlePaste}
         style={{ width: `${chatWidth}px` }}
         className={cn(
-          'relative flex flex-col h-full shrink-0 border-l border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-xl z-20',
+          'relative flex flex-col h-full shrink-0 border-l border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-xl z-20 drawer-right-in',
           isDragging ? 'transition-none select-none' : 'transition-[width] duration-300 ease-in-out',
           // Mobile responsive: converts to fixed drawer on mobile so narrow screens are not crushed
           'max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-50 max-md:w-full max-md:sm:w-[480px]',
@@ -673,10 +673,13 @@ export function AiChatSidebar({ className }: { className?: string }) {
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--fd-border-subtle)] bg-gradient-to-r from-[var(--fd-surface-2)] via-[var(--fd-surface-1)] to-[var(--fd-surface-2)] px-4 py-3 sm:px-5">
           <div className="flex items-center">
             <div
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm"
+              className={cn(
+                'flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm transition-all duration-300',
+                isTyping && 'ai-logo-processing ring-2 ring-indigo-400/50',
+              )}
               aria-label="FirmDesk AI Logo"
             >
-              <Bot className="h-5 w-5" />
+              <Bot className={cn('h-5 w-5 transition-transform duration-300', isTyping && 'ai-bot-thinking text-purple-100')} />
             </div>
           </div>
 
@@ -983,27 +986,29 @@ export function AiChatSidebar({ className }: { className?: string }) {
             );
           })}
 
-          {/* Typing Indicator */}
+          {/* Typing Indicator / Processing Reply Box */}
           {isTyping && (
-            <div className="flex gap-3 text-xs justify-start items-center">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs">
-                <Sparkles className="h-3.5 w-3.5" />
+            <div className="flex gap-3 text-xs justify-start items-center animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-xs ai-logo-processing">
+                <Sparkles className="h-3.5 w-3.5 animate-spin [animation-duration:3s]" />
               </div>
-              <div className="rounded-2xl rounded-tl-xs border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-4 py-2.5 text-[var(--fd-text-secondary)] flex items-center gap-1.5">
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce"
-                  style={{ animationDelay: '0ms' }}
-                />
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce"
-                  style={{ animationDelay: '150ms' }}
-                />
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce"
-                  style={{ animationDelay: '300ms' }}
-                />
-                <span className="text-[11px] pl-1.5 text-[var(--fd-text-tertiary)] font-medium">
-                  Copilot is thinking...
+              <div className="rounded-2xl rounded-tl-xs border border-indigo-500/30 bg-[var(--fd-surface-2)] ai-reply-processing px-4 py-2.5 text-[var(--fd-text-secondary)] flex items-center gap-2 shadow-xs transition-all duration-300">
+                <div className="flex items-center gap-1">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce"
+                    style={{ animationDelay: '0ms' }}
+                  />
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-purple-500 animate-bounce"
+                    style={{ animationDelay: '150ms' }}
+                  />
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-bounce"
+                    style={{ animationDelay: '300ms' }}
+                  />
+                </div>
+                <span className="text-[11px] pl-1 font-medium text-indigo-600 dark:text-indigo-400 animate-pulse">
+                  FirmDesk Copilot is analyzing & drafting...
                 </span>
               </div>
             </div>

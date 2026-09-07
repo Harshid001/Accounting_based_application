@@ -26,7 +26,7 @@ export function Landing() {
   const userHome = isAuthenticated ? homePathFor(user.role) : '/dashboard';
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[var(--fd-bg)] text-[var(--fd-text-primary)]">
+    <div className="flex min-h-dvh flex-col bg-[var(--fd-bg)] text-[var(--fd-text-primary)] page-transition">
       <SkipLink />
 
       {/* Authenticated Fast Banner */}

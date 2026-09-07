@@ -16,10 +16,10 @@ export function MobileDrawer({ open, onOpenChange, title, children }: MobileDraw
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-[var(--fd-overlay)] backdrop-blur-xs transition-opacity" />
+        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-[var(--fd-overlay)] backdrop-blur-xs overlay-fade-in" />
         <RadixDialog.Content
           onCloseAutoFocus={onCloseAutoFocus}
-          className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] overflow-y-auto border-r border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-[var(--fd-shadow-overlay)] outline-none touch-momentum safe-bottom"
+          className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] overflow-y-auto border-r border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-[var(--fd-shadow-overlay)] outline-none touch-momentum safe-bottom drawer-left-in"
         >
           <RadixDialog.Title className="sr-only">{title}</RadixDialog.Title>
           <RadixDialog.Description className="sr-only">

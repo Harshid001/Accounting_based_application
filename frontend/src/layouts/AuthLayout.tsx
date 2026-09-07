@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 import { RouteAnnouncer, SkipLink } from '@/components/domain/SkipLink';
 import { ThemeToggle } from '@/components/domain/ThemeToggle';
@@ -7,6 +7,8 @@ import { Spinner } from '@/components/ui/skeleton';
 import { JVLogo } from '@/components/brand/JVLogo';
 
 export function AuthLayout() {
+  const location = useLocation();
+
   return (
     <div className="flex min-h-dvh flex-col bg-[var(--fd-bg)]">
       <SkipLink />
@@ -32,7 +34,9 @@ export function AuthLayout() {
               </div>
             }
           >
-            <Outlet />
+            <div key={location.pathname} className="page-transition">
+              <Outlet />
+            </div>
           </Suspense>
         </div>
       </main>

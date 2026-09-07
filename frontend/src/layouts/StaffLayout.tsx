@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 import { CommandPalette } from '@/components/domain/CommandPalette';
 import { RouteAnnouncer, SkipLink } from '@/components/domain/SkipLink';
@@ -22,6 +22,7 @@ const readCollapsed = (): boolean => {
 };
 
 export function StaffLayout() {
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -137,7 +138,9 @@ export function StaffLayout() {
                   </div>
                 }
               >
-                <Outlet />
+                <div key={location.pathname} className="page-transition">
+                  <Outlet />
+                </div>
               </Suspense>
             </div>
           </main>

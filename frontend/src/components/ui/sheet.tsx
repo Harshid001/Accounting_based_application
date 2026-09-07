@@ -32,16 +32,16 @@ export function Sheet({
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-[var(--fd-overlay)]" />
+        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-[var(--fd-overlay)] overlay-fade-in" />
         <RadixDialog.Content
           onCloseAutoFocus={onCloseAutoFocus}
           className={cn(
             'fixed z-50 flex flex-col border-[var(--fd-border)] bg-[var(--fd-surface-1)]',
-            'shadow-[var(--fd-shadow-overlay)]',
+            'shadow-[var(--fd-shadow-overlay)] drawer-bottom-in',
             'inset-x-0 bottom-0 max-h-[85dvh] rounded-t-xl border-t',
             side === 'right'
-              ? 'sm:inset-y-0 sm:right-0 sm:left-auto sm:w-full sm:max-w-md sm:rounded-none sm:rounded-l-xl sm:border-t-0 sm:border-l'
-              : 'sm:inset-y-0 sm:right-auto sm:left-0 sm:w-full sm:max-w-md sm:rounded-none sm:rounded-r-xl sm:border-t-0 sm:border-r',
+              ? 'sm:inset-y-0 sm:right-0 sm:left-auto sm:w-full sm:max-w-md sm:rounded-none sm:rounded-l-xl sm:border-t-0 sm:border-l sm:drawer-right-in'
+              : 'sm:inset-y-0 sm:right-auto sm:left-0 sm:w-full sm:max-w-md sm:rounded-none sm:rounded-r-xl sm:border-t-0 sm:border-r sm:drawer-left-in',
             className,
           )}
         >

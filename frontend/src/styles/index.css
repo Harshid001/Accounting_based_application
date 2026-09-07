@@ -226,3 +226,140 @@
     transform: translateY(0);
   }
 }
+
+/* Page transitions */
+@keyframes fd-page-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility page-transition {
+  animation: fd-page-enter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Slide drawers animations */
+@keyframes fd-drawer-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fd-drawer-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fd-drawer-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@utility drawer-left-in {
+  animation: fd-drawer-in-left 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility drawer-right-in {
+  animation: fd-drawer-in-right 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility drawer-bottom-in {
+  animation: fd-drawer-in-bottom 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* AI Processing animations */
+@keyframes fd-ai-processing-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5), 0 0 12px rgba(168, 85, 247, 0.3);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.25), 0 0 22px rgba(168, 85, 247, 0.65);
+  }
+}
+
+@keyframes fd-ai-bot-thinking {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-2px) rotate(-5deg);
+  }
+  75% {
+    transform: translateY(-2px) rotate(5deg);
+  }
+}
+
+@keyframes fd-shimmer-reply {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@utility ai-logo-processing {
+  animation: fd-ai-processing-glow 1.8s ease-in-out infinite;
+}
+
+@utility ai-bot-thinking {
+  animation: fd-ai-bot-thinking 1.4s ease-in-out infinite;
+}
+
+@utility ai-reply-processing {
+  background: linear-gradient(
+    90deg,
+    var(--fd-surface-2) 0%,
+    rgba(99, 102, 241, 0.12) 50%,
+    var(--fd-surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: fd-shimmer-reply 2.2s infinite linear;
+}
+
+@keyframes fd-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@utility overlay-fade-in {
+  animation: fd-fade-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  .drawer-left-in,
+  .drawer-right-in,
+  .drawer-bottom-in,
+  .overlay-fade-in,
+  .ai-logo-processing,
+  .ai-bot-thinking,
+  .ai-reply-processing {
+    animation: none !important;
+    transition: none !important;
+  }
+}
