@@ -196,6 +196,7 @@ export interface ComplianceTypeView {
 export interface ComplianceTypeRef {
   id: string;
   name: string;
+  code: string;
   category: ComplianceCategory;
 }
 
@@ -273,6 +274,45 @@ export interface GenerateResult {
   created: number;
   skipped: number;
   requestsCreated: number;
+}
+
+export interface FilingGuideStepView {
+  title: string;
+  detail: string | null;
+  portalUrl: string | null;
+  done: boolean;
+}
+
+export interface FilingPreparationView {
+  preparationId: string;
+  complianceItemId: string;
+  formCode: string;
+  formName: string;
+  status: 'draft' | 'ready' | 'locked';
+  periodLabel: string;
+  summary: Record<string, unknown>;
+  computed: Record<string, unknown>;
+  portalPayload: Record<string, unknown> | null;
+  portalName: string | null;
+  portalUrl: string | null;
+  guideSteps: FilingGuideStepView[];
+  missingInputs: string[];
+  inputCounts: {
+    salesInvoiceCount: number;
+    purchaseInvoiceCount: number;
+    taxDocumentCount: number;
+    bankStatementCount: number;
+    incomeProofCount: number;
+    expenseDocumentCount: number;
+    auditDocumentCount: number;
+    otherDocumentCount: number;
+    openDocumentRequests: number;
+    receivedDocumentRequests: number;
+    totalDocumentRequests: number;
+  };
+  lockedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface TaskListRow {

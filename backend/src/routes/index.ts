@@ -7,6 +7,7 @@ import { complianceRouter } from './compliance.routes.js';
 import { complianceTypeRouter } from './complianceType.routes.js';
 import { documentRequestRouter } from './documentRequest.routes.js';
 import { documentRouter } from './document.routes.js';
+import { filingPreparationRouter } from './filingPreparation.routes.js';
 import {
   auditRouter,
   jobRouter,
@@ -37,6 +38,7 @@ apiRouter.use('/clients', clientRouter);
 apiRouter.use('/client-services', clientServiceRouter);
 apiRouter.use('/compliance-types', complianceTypeRouter);
 apiRouter.use('/compliance', complianceRouter);
+apiRouter.use('/filing-preparations', filingPreparationRouter);
 apiRouter.use('/tasks', taskRouter);
 apiRouter.use('/task-comments', taskCommentRouter);
 apiRouter.use('/my-work', myWorkRouter);

@@ -52,6 +52,11 @@ import {
   createComplianceItem,
 } from './compliance.service.js';
 import {
+  getPreparation,
+  prepareFiling,
+  updateGuideStep,
+} from './filingPreparation.service.js';
+import {
   createClientService,
   listClientServices,
   deleteClientService,
@@ -138,6 +143,9 @@ const TOOL_NAMES = {
   createComplianceFiling: 'create_compliance_filing',
   listComplianceTypes: 'list_compliance_types',
   upcomingDeadlines: 'get_upcoming_deadlines',
+  prepareFilingReturn: 'prepare_filing_return',
+  getFilingGuide: 'get_filing_guide',
+  updateFilingGuideStep: 'update_filing_guide_step',
 
   // Autonomous Practice Automation Runner
   runAutonomousPracticeAutomation: 'run_autonomous_practice_automation',
@@ -202,6 +210,7 @@ You can perform and automate all the following operations directly via tools:
 2. **Client Management**: Search clients, fetch full profiles, create new clients (individual/business with PAN, GSTIN, contacts, address), update existing client details, and archive/restore clients.
 3. **Client Services**: Attach recurring statutory services (GSTR-1, GSTR-3B, TDS, ITR) with add_client_service, inspect with list_client_services, or delete with delete_client_service.
 4. **Statutory Compliance & Filings**: Track statutory filings (GST, TDS, Income Tax, ROC/MCA), update filing statuses (mark as filed, in_progress, awaiting_client, acknowledged, not_applicable), record ARN / challan / acknowledgement numbers and filed dates, update filing notes/due dates, bulk-generate statutory filings for periods, create custom filings, and inspect compliance types.
+   **Return preparation & filing (accountant work)**: Prepare returns end-to-end with prepare_filing_return — it aggregates the documents uploaded against the filing, computes the tax liability (output tax/ITC for GST, slab tax for ITR, TDS for 24Q/26Q), and lists any missing inputs. Then guide the filing on the actual government portal with get_filing_guide (exact portal login, data entry, payment and ARN steps for the GST Portal, Income Tax Portal, TRACES and MCA V3) and track progress with update_filing_guide_step. When asked to "file GSTR-3B for a client", first find the filing with get_compliance_filings, prepare it, raise document requests for anything missing, then walk the user through the portal steps and record the ARN with update_filing_status.
 5. **Tasks & Workflow**: Create tasks, search/list tasks by status/priority/assignee, update task status (not_started, in_progress, review, done), update due dates/priorities, reassign tasks to team members, add internal task comments/notes, and delete tasks.
 6. **Document Requests & Files**: Raise document requests to clients, list open/fulfilled requests, cancel requests, trigger reminder emails to clients, and inspect client uploaded documents.
 7. **Client Communications**: Post messages and official notices directly into client portal threads, and inspect message history.
@@ -740,6 +749,116 @@ const tool_getUpcomingDeadlines = async (
     upcoming: filingsProjection(upcoming),
     overdue: filingsProjection(overdue),
   };
+};
+
+// 2b. Return preparation & guided filing (the accountant work)
+const tool_prepareFilingReturn = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot prepare returns.' };
+  }
+  const filingId = asString(args.filingId);
+  if (!filingId || !OBJECT_ID_PATTERN.test(filingId)) {
+    return { error: 'A valid 24-character filingId is required.' };
+  }
+  try {
+    const prepared = await prepareFiling(user, new Types.ObjectId(filingId), context.actor);
+    return {
+      success: true,
+      preparationId: prepared.preparationId,
+      filingId: prepared.complianceItemId,
+      form: prepared.formName,
+      period: prepared.periodLabel,
+      status: prepared.status,
+      netTaxPayable: prepared.summary['netTaxPayable'] ?? null,
+      totalTaxLiability: prepared.summary['totalTaxLiability'] ?? null,
+      advanceTaxPayable: prepared.summary['advanceTaxPayable'] ?? null,
+      tdsDeducted: prepared.summary['tdsDeducted'] ?? null,
+      inputCounts: {
+        salesInvoices: prepared.inputCounts.salesInvoiceCount,
+        purchaseInvoices: prepared.inputCounts.purchaseInvoiceCount,
+        bankStatements: prepared.inputCounts.bankStatementCount,
+        taxDocuments: prepared.inputCounts.taxDocumentCount,
+        incomeProofs: prepared.inputCounts.incomeProofCount,
+      },
+      missingInputs: prepared.missingInputs,
+      portal: prepared.portalName,
+      nextStep:
+        prepared.missingInputs.length > 0
+          ? 'Raise document requests for the missing inputs, then prepare again.'
+          : 'Open the guided filing steps to file it on the government portal.',
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not prepare the return.' };
+  }
+};
+
+const tool_getFilingGuide = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const filingId = asString(args.filingId);
+  if (!filingId || !OBJECT_ID_PATTERN.test(filingId)) {
+    return { error: 'A valid 24-character filingId is required.' };
+  }
+  try {
+    const prepared = await getPreparation(context.user, new Types.ObjectId(filingId));
+    return {
+      form: prepared.formName,
+      period: prepared.periodLabel,
+      portal: prepared.portalName,
+      portalUrl: prepared.portalUrl,
+      status: prepared.status,
+      steps: prepared.guideSteps.map((step, index) => ({
+        number: index + 1,
+        title: step.title,
+        detail: step.detail,
+        url: step.portalUrl,
+        done: step.done,
+      })),
+      summary: prepared.summary,
+      missingInputs: prepared.missingInputs,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not load the filing guide.' };
+  }
+};
+
+const tool_updateFilingGuideStep = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot update guide steps.' };
+  }
+  const filingId = asString(args.filingId);
+  const stepNumber = typeof args.stepNumber === 'number' ? Math.trunc(args.stepNumber) : NaN;
+  if (!filingId || !OBJECT_ID_PATTERN.test(filingId) || !Number.isFinite(stepNumber)) {
+    return { error: 'A valid filingId and stepNumber are required.' };
+  }
+  const done = args.done !== false;
+  try {
+    const prepared = await updateGuideStep(
+      user,
+      new Types.ObjectId(filingId),
+      { stepIndex: stepNumber - 1, done },
+      context.actor,
+    );
+    return {
+      success: true,
+      filingId,
+      stepNumber,
+      done,
+      completedSteps: prepared.guideSteps.filter((s) => s.done).length,
+      totalSteps: prepared.guideSteps.length,
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not update the guide step.' };
+  }
 };
 
 // 3. Tasks & Workflow
@@ -1798,6 +1917,9 @@ const CLIENT_ROUTE_TOOLS = new Set<string>([
   TOOL_NAMES.addClientService,
   TOOL_NAMES.listClientServices,
   TOOL_NAMES.createComplianceFiling,
+  TOOL_NAMES.prepareFilingReturn,
+  TOOL_NAMES.getFilingGuide,
+  TOOL_NAMES.updateFilingGuideStep,
 ]);
 
 const withRouteContext = (
@@ -2050,6 +2172,59 @@ const TOOLS: readonly ToolSpec[] = [
         : `Checked ${count} upcoming deadline${count === 1 ? '' : 's'}`;
     },
     run: (context, args) => tool_getUpcomingDeadlines(context.user, args),
+  },
+  {
+    name: TOOL_NAMES.prepareFilingReturn,
+    description:
+      'Autonomously prepare a statutory return (GSTR-1, GSTR-3B, GSTR-9, CMP-08, ITR, Advance Tax, TDS 24Q/26Q, ROC AOC-4/MGT-7) from the documents already uploaded against the filing. Computes the tax liability, builds the portal-ready payload, and generates the step-by-step government portal filing guide. If required inputs are missing it lists exactly what is needed so document requests can be raised.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filingId: { type: 'string', description: 'The 24-character compliance filing id.' },
+      },
+      required: ['filingId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true && typeof result.form === 'string'
+        ? `Prepared ${result.form} return`
+        : 'Attempted return preparation',
+    run: (context, args) => tool_prepareFilingReturn(context, args),
+  },
+  {
+    name: TOOL_NAMES.getFilingGuide,
+    description:
+      'Fetch the guided, step-by-step instructions for filing a prepared return on its government portal (GST Portal, Income Tax Portal, TRACES or MCA V3), including which figures to enter where, how to pay tax, and where to note the ARN/acknowledgement. Requires the return to have been prepared first.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filingId: { type: 'string', description: 'The 24-character compliance filing id.' },
+      },
+      required: ['filingId'],
+    },
+    badge: (result) =>
+      isRecord(result) && typeof result.form === 'string'
+        ? `Loaded ${result.form} filing guide`
+        : 'Attempted to load filing guide',
+    run: (context, args) => tool_getFilingGuide(context, args),
+  },
+  {
+    name: TOOL_NAMES.updateFilingGuideStep,
+    description:
+      'Mark a guided filing step as done or not done (e.g. after logging into the portal or making the payment) to track portal filing progress.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filingId: { type: 'string', description: 'The 24-character compliance filing id.' },
+        stepNumber: { type: 'integer', description: 'The 1-based step number from the guide.' },
+        done: { type: 'boolean', description: 'True marks the step done. Defaults to true.' },
+      },
+      required: ['filingId', 'stepNumber'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true && typeof result.stepNumber === 'number'
+        ? `Updated guide step ${result.stepNumber}`
+        : 'Attempted guide step update',
+    run: (context, args) => tool_updateFilingGuideStep(context, args),
   },
 
   // 3. Tasks & Workflow

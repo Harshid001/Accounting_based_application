@@ -71,6 +71,9 @@ export const CLOSED_COMPLIANCE_STATUSES: readonly ComplianceStatus[] = [
 export const GENERATED_BY = ['scheduler', 'bulk', 'manual'] as const;
 export type GeneratedBy = (typeof GENERATED_BY)[number];
 
+export const FILING_PREP_STATUSES = ['draft', 'ready', 'locked'] as const;
+export type FilingPrepStatus = (typeof FILING_PREP_STATUSES)[number];
+
 export const TASK_STATUSES = ['not_started', 'in_progress', 'review', 'done'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
@@ -148,6 +151,7 @@ export const AUDIT_ENTITY_KINDS = [
   'document',
   'documentRequest',
   'message',
+  'filingPreparation',
   'firmSettings',
   'session',
 ] as const;

@@ -29,6 +29,11 @@ export const queryKeys = {
     detail: (id: string) => ['compliance', 'detail', id] as const,
   },
 
+  filingPreparations: {
+    all: ['filing-preparations'] as const,
+    detail: (id: string) => ['filing-preparations', 'detail', id] as const,
+  },
+
   tasks: {
     all: ['tasks'] as const,
     list: (params?: QueryParams) => ['tasks', 'list', scoped(params)] as const,

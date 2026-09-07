@@ -11,6 +11,7 @@ type ItemRecord = Lean<ComplianceItemAttributes>;
 export interface ComplianceTypeRef {
   id: string;
   name: string;
+  code: string;
   category: string;
 }
 
@@ -20,6 +21,7 @@ const typeRef = (value: unknown): ComplianceTypeRef | null => {
   return {
     id,
     name: textOf(value, 'name') ?? '',
+    code: textOf(value, 'code') ?? '',
     category: textOf(value, 'category') ?? 'other',
   };
 };

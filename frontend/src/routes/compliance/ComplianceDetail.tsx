@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ComplianceStatusPill, OverdueBadge } from '@/components/domain/StatusPills';
 import { RequestList } from '@/components/domain/RequestList';
 import { StaffPicker } from '@/components/domain/StaffPicker';
+import { GuidedFiling } from '@/routes/compliance/components/GuidedFiling';
 import { StatusTransition } from '@/routes/compliance/components/StatusTransition';
 import { RequestForm } from '@/routes/requests/components/RequestForm';
 import { TaskTable } from '@/routes/tasks/components/TaskTable';
@@ -102,6 +103,21 @@ export function ComplianceDetail() {
   const item = query.data;
   const title = `${item.complianceType?.name ?? 'Filing'} — ${item.periodLabel}`;
   const canEdit = allows('compliance:update');
+  const PREPARABLE_FORMS = new Set([
+    'GSTR1',
+    'GSTR3B',
+    'GSTR9',
+    'CMP08',
+    'ITR-IND',
+    'ITR-CO',
+    'ADV-TAX',
+    'TDS24Q',
+    'TDS26Q',
+    'ROC-MGT7',
+    'ROC-AOC4',
+  ]);
+  const isPreparable =
+    item.complianceType !== null && PREPARABLE_FORMS.has(item.complianceType.code);
 
   return (
     <>
@@ -263,6 +279,10 @@ export function ComplianceDetail() {
         </div>
 
         <div className="space-y-4">
+          {isPreparable ? (
+            <GuidedFiling filingId={complianceId} canEdit={canEdit} />
+          ) : null}
+
           <StatusTransition
             complianceId={complianceId}
             current={item.status}
