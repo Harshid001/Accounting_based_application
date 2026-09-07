@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { TestAccount } from '../helpers/auth.js';
 import { app, auth, createAccount } from '../helpers/auth.js';
+import { cache } from '../../src/lib/cache.js';
+import { FIRM_SETTINGS_ID, FirmSettings } from '../../src/models/firmSettings.model.js';
 
 let admin: TestAccount;
 let staff: TestAccount;
@@ -248,6 +250,47 @@ describe('AI Copilot configuration API', () => {
     expect(response.body.data.openai).toMatchObject({ keySet: false });
     expect(JSON.stringify(response.body)).not.toContain('AIza');
     expect(JSON.stringify(response.body)).not.toContain('sk-');
+  });
+
+  it('handles legacy firm settings document missing aiConfig without crashing', async () => {
+    cache.invalidate('settings');
+    await FirmSettings.collection.deleteOne({ _id: FIRM_SETTINGS_ID });
+    await FirmSettings.collection.insertOne({
+      _id: FIRM_SETTINGS_ID,
+      firmName: 'JV Tax Consultancy',
+      defaultReminderOffsetsDays: [7, 3, 1],
+      complianceHorizonDays: 120,
+      financialYearStartMonth: 4,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as unknown as any);
+
+    const configResponse = await request(app()).get('/api/v1/ai/config').set(auth(admin));
+    expect(configResponse.status).toBe(200);
+    expect(configResponse.body.data).toMatchObject({
+      provider: null,
+      enabled: false,
+      hasKey: false,
+      source: 'none',
+      gemini: { keySet: false, model: 'gemini-2.5-flash' },
+      openai: { keySet: false, model: 'gpt-4o-mini' },
+    });
+
+    const chatResponse = await request(app())
+      .post('/api/v1/ai/chat')
+      .set(auth(admin))
+      .send({
+        message: 'What deadlines are coming up?',
+        history: [],
+      });
+    expect(chatResponse.status).toBe(200);
+
+    const updateResponse = await patchConfig(admin, {
+      provider: 'gemini',
+      geminiApiKey: 'AIza-test-legacy-doc-1234567890',
+    });
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.data.gemini.keySet).toBe(true);
   });
 
   it('saves an encrypted Gemini key, reports keySet, and enables the copilot', async () => {

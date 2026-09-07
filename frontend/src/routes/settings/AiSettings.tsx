@@ -41,8 +41,8 @@ export function AiSettings() {
   // Drafts override server values until the user edits them; server data stays
   // the source of truth otherwise, so no effect-based setState is needed.
   const provider: ProviderChoice = providerDraft ?? config?.provider ?? 'none';
-  const geminiModel: string = geminiModelDraft ?? config?.gemini.model ?? 'gemini-2.5-flash';
-  const openaiModel: string = openaiModelDraft ?? config?.openai.model ?? 'gpt-4o-mini';
+  const geminiModel: string = geminiModelDraft ?? config?.gemini?.model ?? 'gemini-2.5-flash';
+  const openaiModel: string = openaiModelDraft ?? config?.openai?.model ?? 'gpt-4o-mini';
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.settings.aiConfig });
@@ -118,9 +118,9 @@ export function AiSettings() {
     config === undefined
       ? false
       : provider === 'gemini'
-        ? config.gemini.keySet
+        ? (config.gemini?.keySet ?? false)
         : provider === 'openai'
-          ? config.openai.keySet
+          ? (config.openai?.keySet ?? false)
           : false;
   const canEnable =
     config !== undefined && provider !== 'none' && (providerKeySet || config.source !== 'none');
@@ -228,7 +228,7 @@ export function AiSettings() {
                     <FormField
                       label="Gemini API key"
                       helper={
-                        config?.gemini.keySet
+                        config?.gemini?.keySet
                           ? 'A key is already saved. Enter a new one to replace it.'
                           : 'Create one at aistudio.google.com/apikey.'
                       }
@@ -260,7 +260,7 @@ export function AiSettings() {
                       )}
                     </FormField>
                   </FieldRow>
-                  {config?.gemini.keySet && (
+                  {config?.gemini?.keySet && (
                     <Button
                       type="button"
                       variant="secondary"
@@ -282,7 +282,7 @@ export function AiSettings() {
                     <FormField
                       label="OpenAI API key"
                       helper={
-                        config?.openai.keySet
+                        config?.openai?.keySet
                           ? 'A key is already saved. Enter a new one to replace it.'
                           : 'Create one at platform.openai.com/api-keys.'
                       }
@@ -314,7 +314,7 @@ export function AiSettings() {
                       )}
                     </FormField>
                   </FieldRow>
-                  {config?.openai.keySet && (
+                  {config?.openai?.keySet && (
                     <Button
                       type="button"
                       variant="secondary"

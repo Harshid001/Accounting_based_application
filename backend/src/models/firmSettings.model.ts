@@ -73,7 +73,7 @@ const encryptedSecretSchema = new Schema<EncryptedSecretAttributes>(
   { _id: false },
 );
 
-const DEFAULT_AI_MODELS: Record<AiProviderName, string> = {
+export const DEFAULT_AI_MODELS: Record<AiProviderName, string> = {
   gemini: 'gemini-2.5-flash',
   openai: 'gpt-4o-mini',
 };

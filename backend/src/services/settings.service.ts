@@ -5,12 +5,50 @@ import { decryptField, encryptField } from '../lib/crypto.js';
 import { conflict } from '../lib/errors.js';
 import type { AddressAttributes } from '../models/client.model.js';
 import type {
+  AiConfigAttributes,
   AiProviderName,
   FirmSettingsAttributes,
 } from '../models/firmSettings.model.js';
-import { FIRM_SETTINGS_ID, FirmSettings } from '../models/firmSettings.model.js';
+import {
+  DEFAULT_AI_MODELS,
+  FIRM_SETTINGS_ID,
+  FirmSettings,
+} from '../models/firmSettings.model.js';
 import type { RequestActor } from '../types/context.js';
 import { buildDiff, recordAudit } from './audit.service.js';
+
+export const DEFAULT_AI_CONFIG: AiConfigAttributes = {
+  provider: null,
+  enabled: false,
+  geminiApiKey: null,
+  geminiModel: DEFAULT_AI_MODELS.gemini,
+  openaiApiKey: null,
+  openaiModel: DEFAULT_AI_MODELS.openai,
+  configuredBy: null,
+  configuredAt: null,
+};
+
+export const normaliseAiConfig = (
+  raw?: Partial<AiConfigAttributes> | null,
+): AiConfigAttributes => {
+  if (!raw) return { ...DEFAULT_AI_CONFIG };
+  return {
+    provider: raw.provider === 'gemini' || raw.provider === 'openai' ? raw.provider : null,
+    enabled: Boolean(raw.enabled),
+    geminiApiKey: raw.geminiApiKey ?? null,
+    geminiModel:
+      typeof raw.geminiModel === 'string' && raw.geminiModel.trim().length > 0
+        ? raw.geminiModel.trim()
+        : DEFAULT_AI_MODELS.gemini,
+    openaiApiKey: raw.openaiApiKey ?? null,
+    openaiModel:
+      typeof raw.openaiModel === 'string' && raw.openaiModel.trim().length > 0
+        ? raw.openaiModel.trim()
+        : DEFAULT_AI_MODELS.openai,
+    configuredBy: raw.configuredBy ?? null,
+    configuredAt: raw.configuredAt ? new Date(raw.configuredAt) : null,
+  };
+};
 
 export interface FirmSettingsUpdate {
   firmName?: string;
@@ -29,8 +67,18 @@ export const getFirmSettings = async (): Promise<FirmSettingsAttributes> => {
 
   const existing = await FirmSettings.findById(FIRM_SETTINGS_ID).lean().exec();
   if (existing) {
-    cache.set(cacheKey, existing, 60);
-    return existing;
+    const normalised: FirmSettingsAttributes = {
+      ...existing,
+      aiConfig: normaliseAiConfig(existing.aiConfig),
+    };
+    if (!existing.aiConfig) {
+      void FirmSettings.updateOne(
+        { _id: FIRM_SETTINGS_ID, aiConfig: { $exists: false } },
+        { $set: { aiConfig: DEFAULT_AI_CONFIG } },
+      ).exec().catch(() => {});
+    }
+    cache.set(cacheKey, normalised, 60);
+    return normalised;
   }
   const created = await FirmSettings.create({
     _id: FIRM_SETTINGS_ID,
@@ -47,8 +95,12 @@ export const getFirmSettings = async (): Promise<FirmSettingsAttributes> => {
     complianceHorizonDays: env.COMPLIANCE_HORIZON_DAYS,
   });
   const result = created.toObject();
-  cache.set(cacheKey, result, 60);
-  return result;
+  const normalised: FirmSettingsAttributes = {
+    ...result,
+    aiConfig: normaliseAiConfig(result.aiConfig),
+  };
+  cache.set(cacheKey, normalised, 60);
+  return normalised;
 };
 
 export const firmName = async (): Promise<string> => (await getFirmSettings()).firmName;
@@ -65,13 +117,21 @@ export const reminderOffsetsFallback = async (): Promise<number[]> => {
 
 const loadSettingsDoc = async () => {
   const existing = await FirmSettings.findById(FIRM_SETTINGS_ID).exec();
-  if (existing) return existing;
+  if (existing) {
+    if (!existing.aiConfig) {
+      existing.set('aiConfig', { ...DEFAULT_AI_CONFIG });
+    }
+    return existing;
+  }
   // A cached copy can outlive the underlying record (fresh database in tests,
   // manual drops). Drop the cache so getFirmSettings recreates the document.
   cache.invalidate('settings');
   await getFirmSettings();
   const recreated = await FirmSettings.findById(FIRM_SETTINGS_ID).exec();
   if (!recreated) throw new Error('Firm settings document could not be created.');
+  if (!recreated.aiConfig) {
+    recreated.set('aiConfig', { ...DEFAULT_AI_CONFIG });
+  }
   return recreated;
 };
 
@@ -153,7 +213,7 @@ export interface ResolvedAiProvider {
 
 export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> => {
   const settings = await getFirmSettings();
-  const ai = settings.aiConfig;
+  const ai = normaliseAiConfig(settings.aiConfig);
 
   // Database-stored configuration takes priority.
   if (ai.provider !== null && ai.enabled) {
@@ -178,7 +238,7 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
     return {
       provider: 'gemini',
       apiKey: env.GEMINI_API_KEY,
-      model: env.GEMINI_MODEL ?? 'gemini-2.5-flash',
+      model: env.GEMINI_MODEL ?? DEFAULT_AI_MODELS.gemini,
       source: 'env',
     };
   }
@@ -186,7 +246,7 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
     return {
       provider: 'openai',
       apiKey: env.OPENAI_API_KEY,
-      model: env.OPENAI_MODEL ?? 'gpt-4o-mini',
+      model: env.OPENAI_MODEL ?? DEFAULT_AI_MODELS.openai,
       source: 'env',
     };
   }
@@ -195,7 +255,7 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
 
 export const getAiConfigView = async (): Promise<AiConfigView> => {
   const settings = await getFirmSettings();
-  const ai = settings.aiConfig;
+  const ai = normaliseAiConfig(settings.aiConfig);
   const dbKeyFor = (provider: AiProviderName): boolean =>
     provider === 'gemini' ? secretSet(ai.geminiApiKey) : secretSet(ai.openaiApiKey);
 
@@ -206,6 +266,18 @@ export const getAiConfigView = async (): Promise<AiConfigView> => {
     env.GEMINI_API_KEY !== undefined ||
     env.OPENAI_API_KEY !== undefined;
 
+  let configuredAtIso: string | null = null;
+  if (ai.configuredAt) {
+    try {
+      configuredAtIso =
+        ai.configuredAt instanceof Date
+          ? ai.configuredAt.toISOString()
+          : new Date(ai.configuredAt).toISOString();
+    } catch {
+      configuredAtIso = null;
+    }
+  }
+
   return {
     provider: ai.provider,
     enabled: ai.enabled,
@@ -214,7 +286,7 @@ export const getAiConfigView = async (): Promise<AiConfigView> => {
     openai: { keySet: dbKeyFor('openai'), model: ai.openaiModel },
     hasKey,
     source: resolved === null ? 'none' : resolved.source,
-    configuredAt: ai.configuredAt ? ai.configuredAt.toISOString() : null,
+    configuredAt: configuredAtIso,
   };
 };
 
@@ -227,6 +299,9 @@ export const updateAiConfig = async (
 ): Promise<AiConfigView> => {
   const doc = await loadSettingsDoc();
 
+  if (!doc.aiConfig) {
+    doc.set('aiConfig', { ...DEFAULT_AI_CONFIG });
+  }
   const ai = doc.aiConfig;
   let touched = false;
 
