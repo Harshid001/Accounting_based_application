@@ -285,8 +285,17 @@ function loadStoredSessions(): StoredSession[] {
   try {
     const raw = window.localStorage.getItem(CHAT_SESSIONS_STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.slice(0, MAX_STORED_SESSIONS) : [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (item): item is StoredSession =>
+          Boolean(item) &&
+          typeof item === 'object' &&
+          typeof (item as StoredSession).id === 'string' &&
+          Array.isArray((item as StoredSession).messages),
+      )
+      .slice(0, MAX_STORED_SESSIONS);
   } catch {
     return [];
   }
@@ -301,6 +310,37 @@ function saveStoredSessions(sessions: StoredSession[]) {
   } catch {
     // ignore
   }
+}
+
+function persistSession(sessionId: string, msgs: ChatMessage[]) {
+  const hasUserMsg = msgs.some((m) => m.sender === 'user');
+  if (!hasUserMsg) return;
+
+  const firstUserMsg = msgs.find((m) => m.sender === 'user');
+  const title = firstUserMsg
+    ? firstUserMsg.content.trim().slice(0, 42) + (firstUserMsg.content.trim().length > 42 ? '...' : '')
+    : 'New Chat';
+
+  const now = new Date();
+  const dateFormatted = `${now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${formatCurrentTime()}`;
+
+  const currentList = loadStoredSessions();
+  const existingIdx = currentList.findIndex((s) => s.id === sessionId);
+  const updatedSession: StoredSession = {
+    id: sessionId,
+    title,
+    date: dateFormatted,
+    timestamp: Date.now(),
+    messages: msgs,
+  };
+
+  const updated = (
+    existingIdx >= 0
+      ? currentList.map((s, idx) => (idx === existingIdx ? updatedSession : s))
+      : [updatedSession, ...currentList]
+  ).slice(0, MAX_STORED_SESSIONS);
+
+  saveStoredSessions(updated);
 }
 
 /**
@@ -413,7 +453,11 @@ export function AiChatSidebar({ className }: { className?: string }) {
         image: currentImage,
       };
 
-      setMessages((prev) => [...prev, userMsg]);
+      setMessages((prev) => {
+        const next = [...prev, userMsg];
+        persistSession(currentSessionId, next);
+        return next;
+      });
       setInput('');
       setAttachedImage(null);
       setIsTyping(true);
@@ -441,7 +485,11 @@ export function AiChatSidebar({ className }: { className?: string }) {
           actions: reply.actions,
         };
 
-        setMessages((prev) => [...prev, aiMsg]);
+        setMessages((prev) => {
+          const next = [...prev, aiMsg];
+          persistSession(currentSessionId, next);
+          return next;
+        });
       } catch {
         const errMsg: ChatMessage = {
           id: `error-${crypto.randomUUID()}`,
@@ -449,12 +497,16 @@ export function AiChatSidebar({ className }: { className?: string }) {
           content: 'Sorry, I could not reach the AI service. Please try again in a moment.',
           timestamp: formatCurrentTime(),
         };
-        setMessages((prev) => [...prev, errMsg]);
+        setMessages((prev) => {
+          const next = [...prev, errMsg];
+          persistSession(currentSessionId, next);
+          return next;
+        });
       } finally {
         setIsTyping(false);
       }
     },
-    [attachedImage, input, isTyping, messages],
+    [attachedImage, currentSessionId, input, isTyping, messages],
   );
 
   const handleNewChat = useCallback(() => {
@@ -467,8 +519,6 @@ export function AiChatSidebar({ className }: { className?: string }) {
       inputRef.current?.focus();
     }, 50);
   }, [initialMessages]);
-
-  const handleClear = handleNewChat;
 
   const handleDeleteSession = useCallback(
     (sessionId: string, e: React.MouseEvent) => {
@@ -492,40 +542,6 @@ export function AiChatSidebar({ className }: { className?: string }) {
     setMessages(initialMessages);
     setCurrentSessionId(crypto.randomUUID());
   }, [initialMessages]);
-
-  // Auto-save conversation to history whenever messages change
-  useEffect(() => {
-    const hasUserMsg = messages.some((m) => m.sender === 'user');
-    if (!hasUserMsg) return;
-
-    const firstUserMsg = messages.find((m) => m.sender === 'user');
-    const title = firstUserMsg
-      ? firstUserMsg.content.trim().slice(0, 42) + (firstUserMsg.content.trim().length > 42 ? '...' : '')
-      : 'New Chat';
-
-    const now = new Date();
-    const dateFormatted = `${now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${formatCurrentTime()}`;
-
-    setSessions((prev) => {
-      const existingIdx = prev.findIndex((s) => s.id === currentSessionId);
-      const updatedSession: StoredSession = {
-        id: currentSessionId,
-        title,
-        date: dateFormatted,
-        timestamp: Date.now(),
-        messages,
-      };
-
-      const updated = (
-        existingIdx >= 0
-          ? prev.map((s, idx) => (idx === existingIdx ? updatedSession : s))
-          : [updatedSession, ...prev]
-      ).slice(0, MAX_STORED_SESSIONS);
-
-      saveStoredSessions(updated);
-      return updated;
-    });
-  }, [messages, currentSessionId]);
 
   const copyToClipboard = useCallback((text: string, id: string) => {
     void navigator.clipboard.writeText(text);
@@ -667,7 +683,15 @@ export function AiChatSidebar({ className }: { className?: string }) {
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setShowHistory((prev) => !prev)}
+              onClick={() => {
+                setShowHistory((prev) => {
+                  const next = !prev;
+                  if (next) {
+                    setSessions(loadStoredSessions());
+                  }
+                  return next;
+                });
+              }}
               title={showHistory ? 'Return to active chat' : 'Chat history'}
               aria-label="Chat history"
               className={cn(
