@@ -253,6 +253,19 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
   return null;
 };
 
+export const getProviderApiKey = async (provider: AiProviderName): Promise<string | null> => {
+  const settings = await getFirmSettings();
+  const ai = normaliseAiConfig(settings.aiConfig);
+  const secret = provider === 'gemini' ? ai.geminiApiKey : ai.openaiApiKey;
+  const key = decryptSecret(secret);
+  if (key !== null) return key;
+
+  if (provider === 'gemini' && env.GEMINI_API_KEY !== undefined) return env.GEMINI_API_KEY;
+  if (provider === 'openai' && env.OPENAI_API_KEY !== undefined) return env.OPENAI_API_KEY;
+
+  return null;
+};
+
 export const getAiConfigView = async (): Promise<AiConfigView> => {
   const settings = await getFirmSettings();
   const ai = normaliseAiConfig(settings.aiConfig);

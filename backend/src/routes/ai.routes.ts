@@ -4,7 +4,7 @@ import * as controller from '../controllers/ai.controller.js';
 import { aiLimiter, mutationLimiter, readLimiter } from '../middleware/rateLimit.js';
 import { requireCapability } from '../middleware/requireRole.js';
 import { handle } from '../middleware/validate.js';
-import { aiChatBody, aiConfigBody } from '../validators/ai.validators.js';
+import { aiChatBody, aiConfigBody, aiModelsBody } from '../validators/ai.validators.js';
 
 export const aiRouter: Router = Router();
 
@@ -27,4 +27,11 @@ aiRouter.patch(
   mutationLimiter,
   requireCapability('ai:config'),
   handle({ body: aiConfigBody }, controller.updateConfig),
+);
+
+aiRouter.post(
+  '/models',
+  readLimiter,
+  requireCapability('ai:config'),
+  handle({ body: aiModelsBody }, controller.listModels),
 );

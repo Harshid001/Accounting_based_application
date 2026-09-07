@@ -21,6 +21,7 @@ import { forbidden } from '../lib/errors.js';
 import { toPageRequest } from '../lib/pagination.js';
 import { ComplianceItem } from '../models/complianceItem.model.js';
 import { ComplianceType } from '../models/complianceType.model.js';
+import type { AiProviderName } from '../models/firmSettings.model.js';
 import type { AuthenticatedUser, RequestActor } from '../types/context.js';
 import { dashboardSummary } from './report.service.js';
 import { createDocumentRequests } from './documentRequest.service.js';
@@ -628,24 +629,45 @@ const runGeminiAgent = async (
   const model = credentials.model;
   const badges: AgentToolBadge[] = [];
 
+  const systemInstruction =
+    context.currentRoute !== null
+      ? `${buildSystemPrompt(context)}\n\n${ROUTE_CONTEXT_PREFIX(context.currentRoute)}`
+      : buildSystemPrompt(context);
+
   const contents: Array<{ role: 'user' | 'model'; parts: GeminiPart[] }> = [];
-  if (context.currentRoute !== null) {
-    contents.push({ role: 'user', parts: [{ text: ROUTE_CONTEXT_PREFIX(context.currentRoute) }] });
+  const rawTurns: Array<{ role: 'user' | 'model'; text: string }> = [
+    ...historyTurns(context).map((turn) => ({
+      role: turn.role === 'user' ? ('user' as const) : ('model' as const),
+      text: turn.text,
+    })),
+    { role: 'user' as const, text: userMessage },
+  ];
+
+  for (const turn of rawTurns) {
+    if (contents.length === 0) {
+      if (turn.role === 'user') {
+        contents.push({ role: 'user', parts: [{ text: turn.text }] });
+      }
+      continue;
+    }
+    const last = contents[contents.length - 1];
+    if (last !== undefined && last.role === turn.role) {
+      last.parts.push({ text: turn.text });
+    } else {
+      contents.push({ role: turn.role, parts: [{ text: turn.text }] });
+    }
   }
-  for (const turn of historyTurns(context)) {
-    contents.push({
-      role: turn.role === 'user' ? 'user' : 'model',
-      parts: [{ text: turn.text }],
-    });
+
+  if (contents.length === 0) {
+    contents.push({ role: 'user', parts: [{ text: userMessage }] });
   }
-  contents.push({ role: 'user', parts: [{ text: userMessage }] });
 
   for (let iteration = 0; iteration < MAX_AGENT_ITERATIONS; iteration += 1) {
     const response = await client.models.generateContent({
       model,
       contents,
       config: {
-        systemInstruction: buildSystemPrompt(context),
+        systemInstruction,
         tools: geminiTools(),
       },
     });
@@ -766,6 +788,7 @@ const runOpenAIAgent = async (
 const staticFallbackReply = async (
   context: AgentContext,
   message: string,
+  providerFailure?: { provider: AiProviderName; error: unknown } | null,
 ): Promise<{ content: string; toolCalls: AgentToolBadge[]; actions: AgentAction[] }> => {
   const query = message.toLowerCase();
   const name = context.user.name.split(' ')[0] ?? context.user.name;
@@ -791,7 +814,7 @@ const staticFallbackReply = async (
         (typeof result.overdueCount === 'number' && result.overdueCount > 0
           ? `⚠️ You also have **${result.overdueCount} overdue filing${result.overdueCount === 1 ? '' : 's'}**.\n\n`
           : '') +
-        `*This reply came from FirmDesk's built-in reference mode. An admin can add a Gemini or OpenAI key under Settings ? AI Copilot for full conversational answers.*`,
+        `*This reply came from FirmDesk's built-in reference mode. An admin can add a Gemini or OpenAI key under Settings → AI Copilot for full conversational answers.*`,
       toolCalls: [
         {
           tool: TOOL_NAMES.upcomingDeadlines,
@@ -828,7 +851,7 @@ const staticFallbackReply = async (
         (filings.length === 0
           ? `No pending ${category.toUpperCase()} filings found in your scope.\n\n`
           : `${lines.join('\n')}\n\n`) +
-        `*This reply came from FirmDesk's built-in reference mode. An admin can add a Gemini or OpenAI key under Settings ? AI Copilot for full conversational answers.*`,
+        `*This reply came from FirmDesk's built-in reference mode. An admin can add a Gemini or OpenAI key under Settings → AI Copilot for full conversational answers.*`,
       toolCalls: [
         { tool: TOOL_NAMES.complianceFilings, label: `Checked ${filings.length} filing${filings.length === 1 ? '' : 's'}` },
       ],
@@ -856,6 +879,25 @@ const staticFallbackReply = async (
       actions: [
         { label: 'Open Tasks', route: '/tasks' },
         { label: 'My Work Queue', route: '/my-work' },
+      ],
+    };
+  }
+
+  if (providerFailure) {
+    const providerLabel = providerFailure.provider === 'gemini' ? 'Google Gemini' : 'OpenAI';
+    const errorDetails =
+      providerFailure.error instanceof Error ? providerFailure.error.message : '';
+    return {
+      content:
+        `Hello ${name}! I'm temporarily running in **reference mode** because the configured **${providerLabel}** provider call failed${errorDetails ? ` (${errorDetails})` : ''}.\n\n` +
+        `I can still read live firm data — try:\n` +
+        `• *"What deadlines are coming up?"*\n` +
+        `• *"Show pending GST filings"*\n\n` +
+        `An admin can verify or change the model and key under Settings → AI Copilot.`,
+      toolCalls: [],
+      actions: [
+        { label: 'Dashboard', route: '/dashboard' },
+        { label: 'Statutory Filings', route: '/compliance' },
       ],
     };
   }
@@ -908,6 +950,7 @@ export const runAiAgent = async (input: {
     currentRoute: typeof input.currentRoute === 'string' ? input.currentRoute.slice(0, 200) : null,
   };
 
+  let providerFailure: { provider: AiProviderName; error: unknown } | null = null;
   const resolved = await resolveAiProvider();
   if (resolved !== null) {
     try {
@@ -924,6 +967,7 @@ export const runAiAgent = async (input: {
       const { content, actions } = splitActions(text);
       return { content, toolCalls: badges, actions, mode: 'llm' };
     } catch (error) {
+      providerFailure = { provider: resolved.provider, error };
       logger.warn(
         { event: 'ai.provider_failed', provider: resolved.provider, err: error },
         'LLM provider call failed, falling back to reference mode',
@@ -931,6 +975,6 @@ export const runAiAgent = async (input: {
     }
   }
 
-  const fallback = await staticFallbackReply(context, message);
+  const fallback = await staticFallbackReply(context, message, providerFailure);
   return { ...fallback, mode: 'fallback' };
 };

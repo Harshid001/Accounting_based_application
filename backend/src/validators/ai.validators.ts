@@ -39,3 +39,10 @@ export const aiConfigBody = z
   );
 
 export type AiConfigBody = z.infer<typeof aiConfigBody>;
+
+export const aiModelsBody = z.object({
+  provider: z.enum(['gemini', 'openai']),
+  apiKey: trimmedString(10, 400).optional(),
+});
+
+export type AiModelsBody = z.infer<typeof aiModelsBody>;

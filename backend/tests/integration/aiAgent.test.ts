@@ -351,4 +351,37 @@ describe('AI Copilot configuration API', () => {
     const empty = await patchConfig(admin, {});
     expect(empty.status).toBe(400);
   });
+
+  it('rejects non-admin access to model discovery', async () => {
+    const response = await request(app())
+      .post('/api/v1/ai/models')
+      .set(auth(staff))
+      .send({ provider: 'gemini' });
+    expect(response.status).toBe(403);
+  });
+
+  it('returns curated models when no key is configured', async () => {
+    const res = await request(app())
+      .post('/api/v1/ai/models')
+      .set(auth(admin))
+      .send({ provider: 'gemini' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.provider).toBe('gemini');
+    expect(Array.isArray(res.body.data.models)).toBe(true);
+    expect(res.body.data.models.length).toBeGreaterThan(0);
+    expect(res.body.data.models.some((m: { id: string }) => m.id === 'gemini-2.5-flash')).toBe(true);
+  });
+
+  it('returns curated OpenAI models when requested without key', async () => {
+    const res = await request(app())
+      .post('/api/v1/ai/models')
+      .set(auth(admin))
+      .send({ provider: 'openai' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.provider).toBe('openai');
+    expect(Array.isArray(res.body.data.models)).toBe(true);
+    expect(res.body.data.models.some((m: { id: string }) => m.id === 'gpt-4o-mini')).toBe(true);
+  });
 });

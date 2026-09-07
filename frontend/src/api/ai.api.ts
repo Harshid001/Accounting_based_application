@@ -52,3 +52,23 @@ export const fetchAiConfig = (): Promise<AiConfig> => apiGet<AiConfig>('/ai/conf
 
 export const updateAiConfig = (body: AiConfigUpdate): Promise<AiConfig> =>
   apiPatch<AiConfig>('/ai/config', body);
+
+export interface DetectedAiModel {
+  id: string;
+  name: string;
+  description?: string;
+  recommended?: boolean;
+}
+
+export interface AiModelDetectionResult {
+  provider: AiProviderName;
+  detected: boolean;
+  models: DetectedAiModel[];
+  error?: string;
+}
+
+export const detectAiModels = (body: {
+  provider: AiProviderName;
+  apiKey?: string;
+}): Promise<AiModelDetectionResult> =>
+  apiPost<AiModelDetectionResult>('/ai/models', body);
