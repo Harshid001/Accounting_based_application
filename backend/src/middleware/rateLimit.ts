@@ -90,6 +90,7 @@ export const mutationLimiter: RequestHandler = build('mutation', MINUTE, 120, ke
 export const uploadLimiter: RequestHandler = build('upload', HOUR, 60, keyByUserOrIp);
 export const exportLimiter: RequestHandler = build('export', HOUR, 10, keyByUserOrIp);
 export const searchLimiter: RequestHandler = build('search', MINUTE, 120, keyByUserOrIp);
+export const aiLimiter: RequestHandler = build('ai', MINUTE, 20, keyByUserOrIp);
 export const bulkLimiter: RequestHandler = build('bulk', HOUR, 10, keyByUserOrIp);
 export const revealLimiter: RequestHandler = build('reveal', HOUR, 10, keyByUserOrIp);
 export const publicReportLimiter: RequestHandler = build(

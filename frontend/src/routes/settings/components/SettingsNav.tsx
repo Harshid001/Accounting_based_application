@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 
 const TABS = [
   { to: '/settings/firm', label: 'Firm' },
+  { to: '/settings/ai', label: 'AI Copilot' },
   { to: '/settings/users', label: 'Users' },
   { to: '/settings/catalogue', label: 'Catalogue' },
   { to: '/settings/unlinked-accounts', label: 'Unlinked accounts' },

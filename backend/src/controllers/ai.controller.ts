@@ -1,0 +1,29 @@
+import { sendData } from '../lib/http.js';
+import type { RouteContext } from '../middleware/validate.js';
+import { runAiAgent } from '../services/aiAgent.service.js';
+import { getAiConfigView, updateAiConfig } from '../services/settings.service.js';
+import type { AiChatBody, AiConfigBody } from '../validators/ai.validators.js';
+
+export const chat = async (input: { body: AiChatBody }, ctx: RouteContext): Promise<void> => {
+  const reply = await runAiAgent({
+    user: ctx.user,
+    actor: ctx.actor,
+    message: input.body.message,
+    history: input.body.history,
+    currentRoute: input.body.currentRoute ?? null,
+  });
+  sendData(ctx.res, reply);
+};
+
+export const readConfig = async (_input: unknown, ctx: RouteContext): Promise<void> => {
+  const config = await getAiConfigView();
+  sendData(ctx.res, config);
+};
+
+export const updateConfig = async (
+  input: { body: AiConfigBody },
+  ctx: RouteContext,
+): Promise<void> => {
+  const config = await updateAiConfig(input.body, ctx.actor);
+  sendData(ctx.res, config);
+};

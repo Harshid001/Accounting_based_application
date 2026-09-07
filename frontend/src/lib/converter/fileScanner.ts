@@ -190,6 +190,14 @@ export async function detectMagicSignature(file: File): Promise<{
 
     // PK zip container (DOCX / XLSX)
     if (matchBytes(bytes, [0x50, 0x4b, 0x03, 0x04])) {
+      const header = await file.slice(0, 2048).arrayBuffer();
+      const headerStr = new TextDecoder('ascii').decode(new Uint8Array(header));
+      if (headerStr.includes('xl/workbook.xml') || headerStr.includes('xl/worksheets')) {
+        return { detected: 'xlsx', magicMatch: true };
+      }
+      if (headerStr.includes('word/document.xml')) {
+        return { detected: 'docx', magicMatch: true };
+      }
       const ext = extractFileExtension(file.name);
       if (ext === 'xlsx') return { detected: 'xlsx', magicMatch: true };
       return { detected: 'docx', magicMatch: true };
@@ -207,6 +215,58 @@ export async function detectMagicSignature(file: File): Promise<{
 }
 
 /**
+ * Reads image dimensions straight from PNG / JPEG headers when the browser
+ * decoder is unavailable (corrupt preview, exotic variant, headless tests).
+ * Returns null when the format is not PNG/JPEG or the header is truncated.
+ */
+function readDimensionsFromBytes(bytes: Uint8Array): { width: number; height: number } | null {
+  // PNG: IHDR stores width and height as big-endian u32 at offsets 16 and 20.
+  if (
+    bytes.length >= 24 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    return {
+      width: view.getUint32(16),
+      height: view.getUint32(20),
+    };
+  }
+
+  // JPEG: walk segment markers until an SOFn frame header is found.
+  if (bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8) {
+    let offset = 2;
+    while (offset + 9 < bytes.length) {
+      if (bytes[offset] !== 0xff) {
+        offset++;
+        continue;
+      }
+      const marker = bytes[offset + 1] ?? 0;
+      // Padding bytes or restart markers carry no length; skip them.
+      if (marker === 0x00 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0xff) {
+        offset++;
+        continue;
+      }
+      // Start of scan: everything after is entropy-coded data, no dims there.
+      if (marker === 0xda) break;
+
+      const segLength = ((bytes[offset + 2] ?? 0) << 8) | (bytes[offset + 3] ?? 0);
+      // SOF0-SOF15 (skipping DHT/JPG/DAC which share the prefix range).
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        const height = ((bytes[offset + 5] ?? 0) << 8) | (bytes[offset + 6] ?? 0);
+        const width = ((bytes[offset + 7] ?? 0) << 8) | (bytes[offset + 8] ?? 0);
+        return { width, height };
+      }
+      offset += 2 + segLength;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Inspects an image file to determine dimensions, aspect ratio, and alpha transparency.
  */
 async function inspectImageFile(file: File): Promise<{
@@ -214,6 +274,18 @@ async function inspectImageFile(file: File): Promise<{
   aspectRatio: string;
   hasAlpha: boolean;
 } | null> {
+  // Fast path: dimensions are available directly in PNG/JPEG headers.
+  try {
+    const buffer = await file.slice(0, 128 * 1024).arrayBuffer();
+    const dims = readDimensionsFromBytes(new Uint8Array(buffer));
+    if (dims && dims.width > 0 && dims.height > 0) {
+      return buildImageInfo(dims.width, dims.height, file);
+    }
+  } catch {
+    // Fall through to the browser decoder.
+  }
+
+  // Fallback: browser image decoder (WebP and other formats).
   return new Promise((resolve) => {
     try {
       const url = URL.createObjectURL(file);
@@ -222,22 +294,7 @@ async function inspectImageFile(file: File): Promise<{
         const width = img.naturalWidth || img.width;
         const height = img.naturalHeight || img.height;
         URL.revokeObjectURL(url);
-
-        // Aspect ratio computation
-        const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-        const divisor = gcd(Math.round(width), Math.round(height));
-        const aspectW = Math.round(width / divisor);
-        const aspectH = Math.round(height / divisor);
-        const ratioStr = aspectW <= 21 && aspectH <= 21 ? `${aspectW}:${aspectH}` : `${(width / height).toFixed(2)}:1`;
-
-        // Check if PNG has potential transparency
-        const hasAlpha = file.type === 'image/png' || extractFileExtension(file.name) === 'png';
-
-        resolve({
-          dimensions: { width, height },
-          aspectRatio: ratioStr,
-          hasAlpha,
-        });
+        resolve(width && height ? buildImageInfo(width, height, file) : null);
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
@@ -248,6 +305,31 @@ async function inspectImageFile(file: File): Promise<{
       resolve(null);
     }
   });
+}
+
+function buildImageInfo(
+  width: number,
+  height: number,
+  file: File,
+): {
+  dimensions: { width: number; height: number };
+  aspectRatio: string;
+  hasAlpha: boolean;
+} {
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+  const divisor = gcd(Math.round(width), Math.round(height));
+  const aspectW = Math.round(width / divisor);
+  const aspectH = Math.round(height / divisor);
+  const ratioStr =
+    aspectW <= 21 && aspectH <= 21 ? `${aspectW}:${aspectH}` : `${(width / height).toFixed(2)}:1`;
+
+  const hasAlpha = file.type === 'image/png' || extractFileExtension(file.name) === 'png';
+
+  return {
+    dimensions: { width, height },
+    aspectRatio: ratioStr,
+    hasAlpha,
+  };
 }
 
 /**

@@ -77,6 +77,12 @@ const schema = z.object({
   BOOTSTRAP_ADMIN_NAME: z.string().optional(),
   BOOTSTRAP_ADMIN_PASSWORD: z.string().optional(),
 
+  AI_PROVIDER: z.enum(['gemini', 'openai']).optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().optional(),
+
   R2_ACCOUNT_ID:
     process.env.NODE_ENV === 'test'
       ? z.string().min(1).default('test-account-id')
@@ -148,3 +154,10 @@ export const isProduction = env.NODE_ENV === 'production';
 export const isTest = env.NODE_ENV === 'test';
 export const googleOAuthConfigured =
   env.GOOGLE_CLIENT_ID !== undefined && env.GOOGLE_CLIENT_SECRET !== undefined;
+
+export const aiProvider: 'gemini' | 'openai' | null =
+  env.AI_PROVIDER ??
+  (env.GEMINI_API_KEY !== undefined ? 'gemini' : env.OPENAI_API_KEY !== undefined ? 'openai' : null);
+export const aiConfigured = aiProvider !== null;
+export const geminiConfigured = aiProvider === 'gemini' && env.GEMINI_API_KEY !== undefined;
+export const openaiConfigured = aiProvider === 'openai' && env.OPENAI_API_KEY !== undefined;

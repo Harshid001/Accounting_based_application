@@ -17,6 +17,12 @@ import type {
   PdfModificationOptions,
   SupportedFormat,
 } from './types';
+import {
+  extractTextFromPdfDocument,
+  loadPdfDocument,
+  renderPdfPageToCanvas,
+  sanitizeForWinAnsi,
+} from './pdfjs';
 
 export const DEFAULT_IMAGE_OPTIONS: ImageModificationOptions = {
   resizeMode: 'none',
@@ -36,9 +42,6 @@ export const DEFAULT_PDF_OPTIONS: PdfModificationOptions = {
   compressMetadata: true,
 };
 
-/**
- * Returns available conversion and modification targets based on input format.
- */
 export function getAvailableConversionTargets(inputFormat: SupportedFormat): ConversionTarget[] {
   switch (inputFormat) {
     case 'pdf':
@@ -311,9 +314,6 @@ export function getAvailableConversionTargets(inputFormat: SupportedFormat): Con
   }
 }
 
-/**
- * Builds base output filename from source file and target format.
- */
 export function generateOutputFileName(
   sourceName: string,
   targetFormat: SupportedFormat,
@@ -324,9 +324,19 @@ export function generateOutputFileName(
   return `${baseName}-converted.${targetExt}`;
 }
 
-// ---------------------------------------------------------------------------
-// 1. IMAGE CONVERSIONS & MODIFICATIONS
-// ---------------------------------------------------------------------------
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+interface DocBlock {
+  type: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'li' | 'hr';
+  text: string;
+}
 
 async function loadImageElement(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -344,15 +354,11 @@ async function loadImageElement(file: File): Promise<HTMLImageElement> {
   });
 }
 
-/**
- * Converts or modifies an image (PNG, JPG, WEBP) using HTML5 Canvas.
- */
 export async function processImageConversion(
   file: File,
   targetFormat: SupportedFormat,
   options: ImageModificationOptions,
 ): Promise<{ blob: Blob; mimeType: string }> {
-  // If target is PDF, we wrap it in a PDF document
   if (targetFormat === 'pdf') {
     return processImageToPdf(file, options);
   }
@@ -361,7 +367,6 @@ export async function processImageConversion(
   const origWidth = img.naturalWidth || img.width;
   const origHeight = img.naturalHeight || img.height;
 
-  // 1. Compute target dimensions
   let targetWidth = origWidth;
   let targetHeight = origHeight;
 
@@ -386,7 +391,6 @@ export async function processImageConversion(
     }
   }
 
-  // 2. Handle Rotation (90 and 270 swap width and height)
   const is90or270 = options.rotate === 90 || options.rotate === 270;
   const canvasWidth = is90or270 ? targetHeight : targetWidth;
   const canvasHeight = is90or270 ? targetWidth : targetHeight;
@@ -397,14 +401,12 @@ export async function processImageConversion(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not initialize 2D canvas context');
 
-  // 3. Handle Background Fill for transparency (vital when converting PNG to JPG!)
   const isJpg = targetFormat === 'jpg' || targetFormat === 'jpeg';
   if (isJpg || options.backgroundColor !== 'transparent') {
     ctx.fillStyle = options.backgroundColor === 'black' ? '#000000' : '#FFFFFF';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
   }
 
-  // 4. Apply Filters
   if (options.filter === 'grayscale') {
     ctx.filter = 'grayscale(100%)';
   } else if (options.filter === 'contrast') {
@@ -413,7 +415,6 @@ export async function processImageConversion(
     ctx.filter = 'contrast(125%) brightness(102%)';
   }
 
-  // 5. Apply transformations (Rotation & Flipping)
   ctx.save();
   ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
@@ -428,7 +429,6 @@ export async function processImageConversion(
   ctx.drawImage(img, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
   ctx.restore();
 
-  // 6. Export to target format Blob
   let mimeType = 'image/png';
   if (isJpg) mimeType = 'image/jpeg';
   else if (targetFormat === 'webp') mimeType = 'image/webp';
@@ -449,14 +449,10 @@ export async function processImageConversion(
   return { blob, mimeType };
 }
 
-/**
- * Wraps an image into a standard A4 or fitted PDF document.
- */
 async function processImageToPdf(
   file: File,
   options: ImageModificationOptions,
 ): Promise<{ blob: Blob; mimeType: string }> {
-  // First, process image with requested modifications (resize, rotate, filter)
   const isJpgSource = file.type === 'image/jpeg' || file.name.endsWith('.jpg') || file.name.endsWith('.jpeg');
   const intermediate = await processImageConversion(
     file,
@@ -471,10 +467,9 @@ async function processImageToPdf(
       ? await pdfDoc.embedJpg(imageBytes)
       : await pdfDoc.embedPng(imageBytes);
 
-  // Standard A4 dimensions in points (595.28 x 841.89)
   const a4Width = 595.28;
   const a4Height = 841.89;
-  const margin = 36; // 0.5 inch margins
+  const margin = 36;
 
   const maxW = a4Width - margin * 2;
   const maxH = a4Height - margin * 2;
@@ -482,7 +477,6 @@ async function processImageToPdf(
   const imgW = embeddedImage.width;
   const imgH = embeddedImage.height;
 
-  // Scale to fit neatly on page
   const scale = Math.min(maxW / imgW, maxH / imgH, 1.0);
   const renderW = imgW * scale;
   const renderH = imgH * scale;
@@ -503,82 +497,100 @@ async function processImageToPdf(
   return { blob, mimeType: 'application/pdf' };
 }
 
-// ---------------------------------------------------------------------------
-// 2. PDF EXTRACTION & CONVERSIONS (PDF -> DOCX, DOC, TEXT, HTML)
-// ---------------------------------------------------------------------------
+function parsePageRange(spec: string, totalPages: number): number[] {
+  const pages = new Set<number>();
+  const parts = spec.split(',');
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const rangeMatch = trimmed.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (rangeMatch) {
+      const start = parseInt(rangeMatch[1]!, 10);
+      const end = parseInt(rangeMatch[2]!, 10);
+      for (let i = start; i <= Math.min(end, totalPages); i++) {
+        if (i >= 1) pages.add(i);
+      }
+    } else {
+      const num = parseInt(trimmed, 10);
+      if (num >= 1 && num <= totalPages) pages.add(num);
+    }
+  }
+  return Array.from(pages).sort((a, b) => a - b);
+}
 
-/**
- * Robust text extractor for PDF documents.
- * Extracts text stream objects and operators (BT ... ET, Tj, TJ) from the PDF buffer.
- */
+async function getPdfPages(
+  file: File,
+  pdfOptions?: PdfModificationOptions,
+): Promise<{ doc: Awaited<ReturnType<typeof loadPdfDocument>>; pageIndexes: number[] }> {
+  const arrayBuffer = await file.arrayBuffer();
+  const doc = await loadPdfDocument(arrayBuffer);
+  let pageIndexes: number[];
+
+  if (!pdfOptions || pdfOptions.pageRange === 'all') {
+    pageIndexes = Array.from({ length: doc.numPages }, (_, i) => i + 1);
+  } else if (pdfOptions.pageRange === 'first') {
+    pageIndexes = [1];
+  } else if (pdfOptions.pageRange === 'custom' && pdfOptions.customPages) {
+    pageIndexes = parsePageRange(pdfOptions.customPages, doc.numPages);
+    if (pageIndexes.length === 0) {
+      pageIndexes = Array.from({ length: doc.numPages }, (_, i) => i + 1);
+    }
+  } else {
+    pageIndexes = Array.from({ length: doc.numPages }, (_, i) => i + 1);
+  }
+
+  return { doc, pageIndexes };
+}
+
 export async function extractTextFromPdf(pdfBytes: ArrayBuffer): Promise<string[]> {
   try {
-    const uint8 = new Uint8Array(pdfBytes);
-    // Convert buffer to binary string
-    let binary = '';
-    const chunk = 8192;
-    for (let i = 0; i < uint8.length; i += chunk) {
-      binary += String.fromCharCode.apply(null, Array.from(uint8.subarray(i, i + chunk)));
-    }
-
+    const doc = await loadPdfDocument(pdfBytes);
+    const result = await extractTextFromPdfDocument(doc);
     const lines: string[] = [];
-
-    // Match text blocks inside BT (Begin Text) ... ET (End Text)
-    const btRegex = /BT([\s\S]*?)ET/g;
-    let match;
-    while ((match = btRegex.exec(binary)) !== null) {
-      const block = match[1] ?? '';
-      // Match (text) Tj or [(text)] TJ
-      const tjRegex = /\((.*?)\)\s*Tj/g;
-      let tjMatch;
-      while ((tjMatch = tjRegex.exec(block)) !== null) {
-        const text = (tjMatch[1] ?? '')
-          .replace(/\\([()\\])/g, '$1')
-          .replace(/\\r/g, '\r')
-          .replace(/\\n/g, '\n');
-        if (text.trim().length > 0) lines.push(text.trim());
-      }
-
-      const tjArrayRegex = /\[(.*?)\]\s*TJ/g;
-      let tjArrayMatch;
-      while ((tjArrayMatch = tjArrayRegex.exec(block)) !== null) {
-        const arrayContent = tjArrayMatch[1] ?? '';
-        const innerRegex = /\((.*?)\)/g;
-        let innerMatch;
-        let line = '';
-        while ((innerMatch = innerRegex.exec(arrayContent)) !== null) {
-          line += (innerMatch[1] ?? '').replace(/\\([()\\])/g, '$1');
-        }
-        if (line.trim().length > 0) lines.push(line.trim());
+    for (const page of result.pages) {
+      for (const line of page.lines) {
+        lines.push(line.text);
       }
     }
-
-    // If stream compression prevented plain text extraction, provide structured fallback
     if (lines.length === 0) {
-      const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-      const pages = pdfDoc.getPageCount();
-      const title = pdfDoc.getTitle() || 'PDF Document';
-      lines.push(title);
-      lines.push(`Total Pages: ${pages}`);
-      lines.push('Content extracted from PDF document.');
+      lines.push('PDF Document');
+      lines.push(`${result.totalPages} page(s)`);
     }
-
     return lines;
   } catch {
     return ['PDF Document', 'Converted content from portable document format.'];
   }
 }
 
-/**
- * Converts a PDF into a genuine Microsoft Word (.docx) document using the docx package.
- */
-async function processPdfToDocx(file: File): Promise<{ blob: Blob; mimeType: string }> {
+async function extractBlocksFromPdf(file: File): Promise<DocBlock[]> {
   const arrayBuffer = await file.arrayBuffer();
-  const lines = await extractTextFromPdf(arrayBuffer);
+  const doc = await loadPdfDocument(arrayBuffer);
+  const result = await extractTextFromPdfDocument(doc);
+  const blocks: DocBlock[] = [];
+
+  for (const page of result.pages) {
+    for (const line of page.lines) {
+      const isHeading = line.fontSize >= 14 || (line.text.length < 60 && /^[A-Z0-9\s:.]+$/.test(line.text));
+      if (isHeading && line.fontSize >= 18) {
+        blocks.push({ type: 'h1', text: line.text });
+      } else if (isHeading && line.fontSize >= 14) {
+        blocks.push({ type: 'h2', text: line.text });
+      } else if (isHeading) {
+        blocks.push({ type: 'h3', text: line.text });
+      } else {
+        blocks.push({ type: 'p', text: line.text });
+      }
+    }
+  }
+
+  return blocks;
+}
+
+async function processPdfToDocx(file: File): Promise<{ blob: Blob; mimeType: string }> {
+  const blocks = await extractBlocksFromPdf(file);
 
   const paragraphs: Paragraph[] = [];
 
-  // Header / Title
   paragraphs.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -587,7 +599,7 @@ async function processPdfToDocx(file: File): Promise<{ blob: Blob; mimeType: str
         new TextRun({
           text: file.name.replace(/\.[^/.]+$/, ''),
           bold: true,
-          size: 32, // 16pt
+          size: 32,
           font: 'Calibri',
           color: '1E3A8A',
         }),
@@ -595,38 +607,52 @@ async function processPdfToDocx(file: File): Promise<{ blob: Blob; mimeType: str
     }),
   );
 
-  // Group lines into paragraphs or headings
-  for (const line of lines) {
-    const isHeading = line.length < 50 && (/^[A-Z0-9\s:.-]+$/.test(line) || line.endsWith(':'));
-
-    if (isHeading) {
+  for (const block of blocks) {
+    if (block.type === 'h1') {
+      paragraphs.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 360, after: 120 },
+          children: [new TextRun({ text: block.text, bold: true, size: 32, font: 'Calibri', color: '1E3A8A' })],
+        }),
+      );
+    } else if (block.type === 'h2') {
       paragraphs.push(
         new Paragraph({
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 240, after: 120 },
-          children: [
-            new TextRun({
-              text: line,
-              bold: true,
-              size: 26, // 13pt
-              font: 'Calibri',
-              color: '1E40AF',
-            }),
-          ],
+          children: [new TextRun({ text: block.text, bold: true, size: 26, font: 'Calibri', color: '1E40AF' })],
+        }),
+      );
+    } else if (block.type === 'h3') {
+      paragraphs.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 200, after: 80 },
+          children: [new TextRun({ text: block.text, bold: true, size: 24, font: 'Calibri', color: '1E40AF' })],
+        }),
+      );
+    } else if (block.type === 'li') {
+      paragraphs.push(
+        new Paragraph({
+          bullet: { level: 0 },
+          spacing: { after: 80 },
+          children: [new TextRun({ text: block.text, size: 22, font: 'Calibri', color: '1F2937' })],
+        }),
+      );
+    } else if (block.type === 'hr') {
+      paragraphs.push(
+        new Paragraph({
+          border: { bottom: { style: 'single', size: 6, color: 'CBD5E1' } },
+          spacing: { before: 120, after: 120 },
+          children: [],
         }),
       );
     } else {
       paragraphs.push(
         new Paragraph({
           spacing: { after: 140 },
-          children: [
-            new TextRun({
-              text: line,
-              size: 22, // 11pt
-              font: 'Calibri',
-              color: '1F2937',
-            }),
-          ],
+          children: [new TextRun({ text: block.text, size: 22, font: 'Calibri', color: '1F2937' })],
         }),
       );
     }
@@ -637,12 +663,7 @@ async function processPdfToDocx(file: File): Promise<{ blob: Blob; mimeType: str
       {
         properties: {
           page: {
-            margin: {
-              top: 1440, // 1 inch
-              bottom: 1440,
-              left: 1440,
-              right: 1440,
-            },
+            margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 },
           },
         },
         children: paragraphs,
@@ -657,20 +678,19 @@ async function processPdfToDocx(file: File): Promise<{ blob: Blob; mimeType: str
   };
 }
 
-/**
- * Converts a PDF into Microsoft Word 97-2003 (.doc) HTML/Word format.
- */
 async function processPdfToDoc(file: File): Promise<{ blob: Blob; mimeType: string }> {
-  const arrayBuffer = await file.arrayBuffer();
-  const lines = await extractTextFromPdf(arrayBuffer);
+  const blocks = await extractBlocksFromPdf(file);
 
-  const bodyContent = lines
-    .map((line) => {
-      const isHeading = line.length < 50 && (/^[A-Z0-9\s:.-]+$/.test(line) || line.endsWith(':'));
-      if (isHeading) {
-        return `<h2 style="color: #1e3a8a; margin-top: 16pt; margin-bottom: 6pt; font-size: 14pt;">${escapeHtml(line)}</h2>`;
+  const bodyContent = blocks
+    .map((block) => {
+      if (block.type === 'hr') return '<hr />';
+      if (block.type.startsWith('h')) {
+        const level = parseInt(block.type[1]!, 10);
+        const sizes: Record<number, string> = { 1: '18pt', 2: '14pt', 3: '13pt', 4: '12pt', 5: '11pt', 6: '10pt' };
+        return `<h${level} style="color: #1e3a8a; margin-top: 16pt; margin-bottom: 6pt; font-size: ${sizes[level] || '12pt'};">${escapeHtml(block.text)}</h${level}>`;
       }
-      return `<p style="margin-bottom: 8pt; font-size: 11pt; color: #1f2937;">${escapeHtml(line)}</p>`;
+      if (block.type === 'li') return `<li>${escapeHtml(block.text)}</li>`;
+      return `<p style="margin-bottom: 8pt; font-size: 11pt; color: #1f2937;">${escapeHtml(block.text)}</p>`;
     })
     .join('\n');
 
@@ -706,113 +726,171 @@ async function processPdfToDoc(file: File): Promise<{ blob: Blob; mimeType: stri
   return { blob, mimeType: 'application/msword' };
 }
 
-/**
- * Converts PDF pages into images (PNG or JPG) by rendering the page onto canvas.
- */
 async function processPdfToImages(
   file: File,
   targetFormat: 'png' | 'jpg',
+  pdfOptions?: PdfModificationOptions,
 ): Promise<{ blob: Blob; mimeType: string }> {
-  // Render a clean preview representation
-  const arrayBuffer = await file.arrayBuffer();
-  const lines = await extractTextFromPdf(arrayBuffer);
+  const { doc, pageIndexes } = await getPdfPages(file, pdfOptions);
+  const mime = targetFormat === 'jpg' ? 'image/jpeg' : 'image/png';
 
-  const canvas = document.createElement('canvas');
-  canvas.width = 1200;
-  canvas.height = 1600;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Could not get canvas context');
-
-  // Background
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, 1200, 1600);
-
-  // Border & Header
-  ctx.strokeStyle = '#E5E7EB';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(30, 30, 1140, 1540);
-
-  ctx.fillStyle = '#1E3A8A';
-  ctx.font = 'bold 36px sans-serif';
-  ctx.fillText(file.name.replace(/\.[^/.]+$/, ''), 60, 100);
-
-  ctx.fillStyle = '#6B7280';
-  ctx.font = '20px sans-serif';
-  ctx.fillText('FirmDesk Document Render', 60, 135);
-
-  ctx.strokeStyle = '#CBD5E1';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(60, 160);
-  ctx.lineTo(1140, 160);
-  ctx.stroke();
-
-  // Content text
-  ctx.fillStyle = '#1F2937';
-  ctx.font = '22px sans-serif';
-  let y = 210;
-  for (const line of lines.slice(0, 45)) {
-    if (y > 1500) break;
-    ctx.fillText(line.slice(0, 85), 60, y);
-    y += 32;
+  if (pageIndexes.length === 1) {
+    const page = await doc.getPage(pageIndexes[0]!);
+    const canvas = await renderPdfPageToCanvas(page, 4);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => {
+          if (b) resolve(b);
+          else reject(new Error('Failed to convert PDF page to image blob'));
+        },
+        mime,
+        targetFormat === 'jpg' ? 0.92 : undefined,
+      );
+    });
+    return { blob, mimeType: mime };
   }
 
-  const mime = targetFormat === 'jpg' ? 'image/jpeg' : 'image/png';
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (b) => {
-        if (b) resolve(b);
-        else reject(new Error('Failed to convert PDF page to image blob'));
-      },
-      mime,
-      targetFormat === 'jpg' ? 0.92 : undefined,
-    );
-  });
+  const zip = new JSZip();
+  for (let i = 0; i < pageIndexes.length; i++) {
+    const pageNum = pageIndexes[i]!;
+    const page = await doc.getPage(pageNum);
+    const canvas = await renderPdfPageToCanvas(page, 4);
+    const imageData = canvas.toDataURL(mime, targetFormat === 'jpg' ? 0.92 : undefined);
+    const base64 = imageData.split(',')[1]!;
+    const baseName = file.name.replace(/\.[^/.]+$/, '');
+    zip.file(`${baseName}_page_${pageNum}.${targetFormat === 'jpg' ? 'jpg' : 'png'}`, base64, { base64: true });
+  }
 
-  return { blob, mimeType: mime };
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  return { blob: zipBlob, mimeType: 'application/zip' };
 }
 
-// ---------------------------------------------------------------------------
-// 3. WORD (.docx) TO PDF / TEXT / HTML
-// ---------------------------------------------------------------------------
+async function processPdfToTxt(file: File): Promise<{ blob: Blob; mimeType: string }> {
+  const blocks = await extractBlocksFromPdf(file);
+  const text = blocks.map((b) => b.text).join('\n\n');
+  const blob = new Blob([text], { type: 'text/plain' });
+  return { blob, mimeType: 'text/plain' };
+}
 
-/**
- * Extracts text paragraphs from a .docx file using JSZip to parse word/document.xml.
- */
+async function processPdfToHtml(file: File): Promise<{ blob: Blob; mimeType: string }> {
+  const blocks = await extractBlocksFromPdf(file);
+  const bodyContent = blocks
+    .map((block) => {
+      if (block.type === 'hr') return '<hr />';
+      if (block.type.startsWith('h')) return `<${block.type}>${escapeHtml(block.text)}</${block.type}>`;
+      if (block.type === 'li') return `<li>${escapeHtml(block.text)}</li>`;
+      return `<p>${escapeHtml(block.text)}</p>`;
+    })
+    .join('\n');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;padding:20px;max-width:800px;margin:0 auto;line-height:1.6;}</style></head><body>${bodyContent}</body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  return { blob, mimeType: 'text/html' };
+}
+
+function decodeXmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_: string, code: string) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 export async function extractTextFromDocx(file: File): Promise<string[]> {
+  const blocks = await extractBlocksFromDocx(file);
+  return blocks.map((b) => b.text);
+}
+
+async function extractBlocksFromDocx(file: File): Promise<DocBlock[]> {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const zip = await JSZip.loadAsync(arrayBuffer);
     const documentXml = await zip.file('word/document.xml')?.async('text');
-    if (!documentXml) return [file.name.replace(/\.[^/.]+$/, '')];
+    if (!documentXml) return [{ type: 'p', text: file.name.replace(/\.[^/.]+$/, '') }];
 
-    // Simple regex parser for <w:p> paragraphs and <w:t> text runs
-    const paragraphs: string[] = [];
-    const pRegex = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
-    let pMatch;
-    while ((pMatch = pRegex.exec(documentXml)) !== null) {
-      const pContent = pMatch[1] ?? '';
-      const tRegex = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g;
-      let tMatch;
-      let pText = '';
-      while ((tMatch = tRegex.exec(pContent)) !== null) {
-        pText += tMatch[1] ?? '';
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(documentXml, 'application/xml');
+    const blocks: DocBlock[] = [];
+
+    const pElements = xmlDoc.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'p');
+
+    for (let i = 0; i < pElements.length; i++) {
+      const pEl = pElements[i]!;
+      let pStyle = '';
+      const pPr = pEl.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'pPr')[0];
+      if (pPr) {
+        const pStyleEl = pPr.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'pStyle')[0];
+        if (pStyleEl) {
+          pStyle = pStyleEl.getAttributeNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'val') || '';
+        }
       }
-      if (pText.trim().length > 0) paragraphs.push(pText.trim());
+
+      let text = '';
+      const runs = pEl.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'r');
+      for (let j = 0; j < runs.length; j++) {
+        const run = runs[j]!;
+        const brs = run.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'br');
+        for (let k = 0; k < brs.length; k++) {
+          text += '\n';
+        }
+        const tabs = run.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'tab');
+        for (let k = 0; k < tabs.length; k++) {
+          text += '    ';
+        }
+        const tEls = run.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 't');
+        for (let k = 0; k < tEls.length; k++) {
+          text += tEls[k]!.textContent || '';
+        }
+      }
+
+      text = decodeXmlEntities(text).trim();
+      if (!text && !pStyle) continue;
+
+      const headingMatch = pStyle.match(/^Heading(\d)$/i);
+      if (headingMatch) {
+        const level = Math.min(parseInt(headingMatch[1]!, 10), 6) as 1 | 2 | 3 | 4 | 5 | 6;
+        blocks.push({ type: `h${level}` as DocBlock['type'], text });
+      } else if (pStyle.toLowerCase().includes('list')) {
+        blocks.push({ type: 'li', text });
+      } else if (text) {
+        blocks.push({ type: 'p', text });
+      }
     }
 
-    return paragraphs.length > 0 ? paragraphs : [file.name.replace(/\.[^/.]+$/, '')];
+    return blocks.length > 0 ? blocks : [{ type: 'p', text: file.name.replace(/\.[^/.]+$/, '') }];
   } catch {
-    return [file.name.replace(/\.[^/.]+$/, ''), 'Document contents'];
+    return [{ type: 'p', text: file.name.replace(/\.[^/.]+$/, '') }, { type: 'p', text: 'Document contents' }];
   }
 }
 
-/**
- * Converts a Word document (.docx) into a printable PDF document using pdf-lib.
- */
-async function processDocxToPdf(file: File): Promise<{ blob: Blob; mimeType: string }> {
-  const paragraphs = await extractTextFromDocx(file);
+function wrapText(font: Awaited<ReturnType<PDFDocument['embedFont']>>, text: string, fontSize: number, maxWidth: number): string[] {
+  const sanitized = sanitizeForWinAnsi(text);
+  const words = sanitized.split(/\s+/);
+  const wrapped: string[] = [];
+  let currentLine = '';
 
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const textWidth = font.widthOfTextAtSize(testLine, fontSize);
+    if (textWidth > maxWidth && currentLine) {
+      wrapped.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) wrapped.push(currentLine);
+  return wrapped.length > 0 ? wrapped : [''];
+}
+
+async function processDocxToPdf(file: File): Promise<{ blob: Blob; mimeType: string }> {
+  const blocks = await extractBlocksFromDocx(file);
+  return renderBlocksToPdf(blocks, file.name);
+}
+
+async function renderBlocksToPdf(blocks: DocBlock[], sourceName: string): Promise<{ blob: Blob; mimeType: string }> {
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -820,14 +898,12 @@ async function processDocxToPdf(file: File): Promise<{ blob: Blob; mimeType: str
   const a4Width = 595.28;
   const a4Height = 841.89;
   const margin = 50;
-  const lineHeight = 18;
   const maxWidth = a4Width - margin * 2;
 
   let page = pdfDoc.addPage([a4Width, a4Height]);
   let y = a4Height - margin;
 
-  // Title
-  const title = file.name.replace(/\.[^/.]+$/, '');
+  const title = sanitizeForWinAnsi(sourceName.replace(/\.[^/.]+$/, ''));
   page.drawText(title, {
     x: margin,
     y: y - 10,
@@ -837,48 +913,58 @@ async function processDocxToPdf(file: File): Promise<{ blob: Blob; mimeType: str
   });
   y -= 45;
 
-  // Divider
   page.drawLine({
-    start: { x: margin, y: y },
-    end: { x: a4Width - margin, y: y },
+    start: { x: margin, y },
+    end: { x: a4Width - margin, y },
     thickness: 1.5,
     color: rgb(0.8, 0.85, 0.9),
   });
   y -= 25;
 
-  // Helper to split text into lines that fit maxWidth
-  const wrapText = (text: string, fontSize: number): string[] => {
-    const words = text.split(/\s+/);
-    const wrapped: string[] = [];
-    let currentLine = '';
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const textWidth = font.widthOfTextAtSize(testLine, fontSize);
-      if (textWidth > maxWidth && currentLine) {
-        wrapped.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
+  for (const block of blocks) {
+    if (block.type === 'hr') {
+      if (y < margin + 20) {
+        page = pdfDoc.addPage([a4Width, a4Height]);
+        y = a4Height - margin;
       }
+      page.drawLine({
+        start: { x: margin, y },
+        end: { x: a4Width - margin, y },
+        thickness: 0.5,
+        color: rgb(0.8, 0.8, 0.8),
+      });
+      y -= 20;
+      continue;
     }
-    if (currentLine) wrapped.push(currentLine);
-    return wrapped;
-  };
 
-  for (const para of paragraphs) {
-    const isHeading = para.length < 50 && (/^[A-Z0-9\s:.-]+$/.test(para) || para.endsWith(':'));
-    const fontSize = isHeading ? 13 : 10;
+    const isHeading = block.type.startsWith('h');
+    const headingLevel = isHeading ? parseInt(block.type[1]!, 10) : 0;
+    const fontSizes: Record<number, number> = { 1: 18, 2: 15, 3: 13, 4: 12, 5: 11, 6: 10 };
+    const fontSize = isHeading ? (fontSizes[headingLevel] || 11) : 10;
     const currentFont = isHeading ? fontBold : font;
     const color = isHeading ? rgb(0.12, 0.23, 0.54) : rgb(0.15, 0.18, 0.22);
+    const lineHeight = fontSize + 4;
+    const indent = block.type === 'li' ? 20 : 0;
 
-    const wrappedLines = wrapText(para, fontSize);
+    if (isHeading) y -= 8;
+
+    const wrappedLines = wrapText(font, block.text, fontSize, maxWidth - indent);
     for (const line of wrappedLines) {
       if (y < margin + lineHeight) {
         page = pdfDoc.addPage([a4Width, a4Height]);
         y = a4Height - margin;
       }
+      if (block.type === 'li') {
+        page.drawText('\u2022', {
+          x: margin,
+          y,
+          size: fontSize,
+          font: currentFont,
+          color,
+        });
+      }
       page.drawText(line, {
-        x: margin,
+        x: margin + indent,
         y,
         size: fontSize,
         font: currentFont,
@@ -886,7 +972,9 @@ async function processDocxToPdf(file: File): Promise<{ blob: Blob; mimeType: str
       });
       y -= lineHeight;
     }
-    y -= 8; // Paragraph spacing
+
+    if (isHeading) y -= 4;
+    else y -= 4;
   }
 
   const pdfBytes = await pdfDoc.save();
@@ -894,40 +982,171 @@ async function processDocxToPdf(file: File): Promise<{ blob: Blob; mimeType: str
   return { blob, mimeType: 'application/pdf' };
 }
 
-// ---------------------------------------------------------------------------
-// 4. CSV & SPREADSHEET CONVERSIONS
-// ---------------------------------------------------------------------------
-
-function parseCsv(text: string): string[][] {
-  const lines = text.split(/\r\n|\r|\n/);
-  return lines
-    .map((line) => {
-      const row: string[] = [];
-      let inQuotes = false;
-      let token = '';
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          row.push(token.trim());
-          token = '';
-        } else {
-          token += char;
-        }
-      }
-      row.push(token.trim());
-      return row;
-    })
-    .filter((row) => row.length > 0 && row.some((cell) => cell.length > 0));
+function detectDelimiter(text: string): string {
+  const firstLine = text.split(/\r?\n/)[0] || '';
+  const counts: Record<string, number> = { ',': 0, ';': 0, '\t': 0 };
+  let inQuotes = false;
+  for (const char of firstLine) {
+    if (char === '"') inQuotes = !inQuotes;
+    if (!inQuotes && char in counts) counts[char]!++;
+  }
+  let best = ',';
+  let max = 0;
+  for (const [delim, count] of Object.entries(counts)) {
+    if (count > max) {
+      max = count;
+      best = delim;
+    }
+  }
+  return best;
 }
 
-async function processCsvConversion(
+function parseCsv(text: string): string[][] {
+  const cleaned = text.replace(/^\uFEFF/, '');
+  const delimiter = detectDelimiter(cleaned);
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let token = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < cleaned.length; i++) {
+    const char = cleaned[i]!;
+    const next = cleaned[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && next === '"') {
+        token += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        token += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === delimiter) {
+        row.push(token);
+        token = '';
+      } else if (char === '\r' && next === '\n') {
+        row.push(token);
+        token = '';
+        rows.push(row);
+        row = [];
+        i++;
+      } else if (char === '\n' || char === '\r') {
+        row.push(token);
+        token = '';
+        rows.push(row);
+        row = [];
+      } else {
+        token += char;
+      }
+    }
+  }
+
+  row.push(token);
+  if (row.length > 0 && row.some((c) => c.length > 0)) {
+    rows.push(row);
+  }
+
+  return rows.filter((r) => r.length > 0 && r.some((cell) => cell.length > 0));
+}
+
+async function parseXlsx(file: File): Promise<string[][]> {
+  const arrayBuffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+
+  const sharedStringsXml = await zip.file('xl/sharedStrings.xml')?.async('text');
+  const sharedStrings: string[] = [];
+  if (sharedStringsXml) {
+    const parser = new DOMParser();
+    const ssDoc = parser.parseFromString(sharedStringsXml, 'application/xml');
+    const siEls = ssDoc.getElementsByTagName('si');
+    for (let i = 0; i < siEls.length; i++) {
+      const tEls = siEls[i]!.getElementsByTagName('t');
+      let text = '';
+      for (let j = 0; j < tEls.length; j++) {
+        text += tEls[j]!.textContent || '';
+      }
+      sharedStrings.push(text);
+    }
+  }
+
+  const sheetXml = await zip.file('xl/worksheets/sheet1.xml')?.async('text');
+  if (!sheetXml) return [];
+
+  const parser = new DOMParser();
+  const sheetDoc = parser.parseFromString(sheetXml, 'application/xml');
+  const rowEls = sheetDoc.getElementsByTagName('row');
+  const rows: string[][] = [];
+
+  for (let i = 0; i < rowEls.length; i++) {
+    const rowEl = rowEls[i]!;
+    const cellEls = rowEl.getElementsByTagName('c');
+    const row: string[] = [];
+    let maxCol = 0;
+
+    for (let j = 0; j < cellEls.length; j++) {
+      const cell = cellEls[j]!;
+      const ref = cell.getAttribute('r') || '';
+      const colMatch = ref.match(/^[A-Z]+/);
+      if (!colMatch) continue;
+      const colStr = colMatch[0];
+      let colIdx = 0;
+      for (let k = 0; k < colStr.length; k++) {
+        colIdx = colIdx * 26 + (colStr.charCodeAt(k) - 64);
+      }
+      colIdx -= 1;
+      if (colIdx > maxCol) maxCol = colIdx;
+
+      const type = cell.getAttribute('t') || '';
+      const vEl = cell.getElementsByTagName('v')[0];
+      const vText = vEl?.textContent || '';
+
+      let value = '';
+      if (type === 's') {
+        const idx = parseInt(vText, 10);
+        value = sharedStrings[idx] || '';
+      } else if (type === 'inlineStr') {
+        const isEls = cell.getElementsByTagName('is');
+        if (isEls.length > 0) {
+          const tEls = isEls[0]!.getElementsByTagName('t');
+          for (let k = 0; k < tEls.length; k++) {
+            value += tEls[k]!.textContent || '';
+          }
+        }
+      } else if (type === 'b') {
+        value = vText === '1' ? 'TRUE' : 'FALSE';
+      } else {
+        value = vText;
+      }
+
+      while (row.length <= colIdx) row.push('');
+      row[colIdx] = value;
+    }
+
+    while (row.length <= maxCol) row.push('');
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+async function getSpreadsheetRows(file: File, format: SupportedFormat): Promise<string[][]> {
+  if (format === 'xlsx') {
+    return parseXlsx(file);
+  }
+  const text = await file.text();
+  return parseCsv(text);
+}
+
+async function processSpreadsheetConversion(
   file: File,
+  inputFormat: SupportedFormat,
   targetFormat: SupportedFormat,
 ): Promise<{ blob: Blob; mimeType: string }> {
-  const text = await file.text();
-  const rows = parseCsv(text);
+  const rows = await getSpreadsheetRows(file, inputFormat);
 
   if (targetFormat === 'json') {
     if (rows.length === 0) {
@@ -946,8 +1165,25 @@ async function processCsvConversion(
     return { blob, mimeType: 'application/json' };
   }
 
+  if (targetFormat === 'csv') {
+    const csvLines = rows.map((row) =>
+      row
+        .map((cell) => {
+          if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
+            return `"${cell.replace(/"/g, '""')}"`;
+          }
+          return cell;
+        })
+        .join(','),
+    );
+    const blob = new Blob([csvLines.join('\n')], { type: 'text/csv' });
+    return { blob, mimeType: 'text/csv' };
+  }
+
   if (targetFormat === 'html') {
-    const tableHeaders = (rows[0] || []).map((h) => `<th style="padding: 10px; background: #1e3a8a; color: white; text-align: left; border: 1px solid #d1d5db;">${escapeHtml(h)}</th>`).join('');
+    const tableHeaders = (rows[0] || [])
+      .map((h) => `<th style="padding: 10px; background: #1e3a8a; color: white; text-align: left; border: 1px solid #d1d5db;">${escapeHtml(h)}</th>`)
+      .join('');
     const tableRows = rows
       .slice(1)
       .map(
@@ -983,88 +1219,181 @@ async function processCsvConversion(
   }
 
   if (targetFormat === 'pdf') {
-    const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-    // Landscape A4 for tables (841.89 x 595.28)
-    const a4W = 841.89;
-    const a4H = 595.28;
-    const margin = 40;
-    const page = pdfDoc.addPage([a4W, a4H]);
-
-    let y = a4H - margin;
-    page.drawText(file.name.replace(/\.[^/.]+$/, ''), {
-      x: margin,
-      y,
-      size: 16,
-      font: fontBold,
-      color: rgb(0.12, 0.23, 0.54),
-    });
-    y -= 30;
-
-    const colCount = Math.max(1, Math.min(rows[0]?.length || 4, 8));
-    const tableW = a4W - margin * 2;
-    const colW = tableW / colCount;
-    const rowH = 22;
-
-    for (let r = 0; r < Math.min(rows.length, 22); r++) {
-      if (y < margin + rowH) break;
-      const isHeader = r === 0;
-      const row = rows[r];
-      if (!row) continue;
-
-      // Draw background
-      page.drawRectangle({
-        x: margin,
-        y: y - rowH + 6,
-        width: tableW,
-        height: rowH,
-        color: isHeader ? rgb(0.9, 0.94, 1.0) : r % 2 === 0 ? rgb(0.98, 0.98, 0.99) : rgb(1, 1, 1),
-      });
-
-      for (let c = 0; c < colCount; c++) {
-        const text = (row[c] || '').slice(0, 20);
-        page.drawText(text, {
-          x: margin + c * colW + 6,
-          y: y - 8,
-          size: 9,
-          font: isHeader ? fontBold : font,
-          color: isHeader ? rgb(0.12, 0.23, 0.54) : rgb(0.15, 0.18, 0.22),
-        });
-      }
-      y -= rowH;
-    }
-
-    const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
-    return { blob, mimeType: 'application/pdf' };
+    return renderSpreadsheetToPdf(rows, file.name);
   }
 
-  // Default CSV return
+  const text = await file.text();
   const blob = new Blob([text], { type: 'text/csv' });
   return { blob, mimeType: 'text/csv' };
 }
 
-// ---------------------------------------------------------------------------
-// 5. TEXT / MARKDOWN CONVERSIONS
-// ---------------------------------------------------------------------------
+async function renderSpreadsheetToPdf(rows: string[][], sourceName: string): Promise<{ blob: Blob; mimeType: string }> {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const a4W = 841.89;
+  const a4H = 595.28;
+  const margin = 40;
+  const rowH = 22;
+  const headerFontSize = 9;
+  const cellFontSize = 8;
+
+  let page = pdfDoc.addPage([a4W, a4H]);
+  let y = a4H - margin;
+
+  const title = sanitizeForWinAnsi(sourceName.replace(/\.[^/.]+$/, ''));
+  page.drawText(title, {
+    x: margin,
+    y,
+    size: 16,
+    font: fontBold,
+    color: rgb(0.12, 0.23, 0.54),
+  });
+  y -= 30;
+
+  const colCount = Math.max(1, Math.min(rows[0]?.length || 4, 10));
+  const tableW = a4W - margin * 2;
+  const colW = tableW / colCount;
+
+  for (let r = 0; r < rows.length; r++) {
+    if (y < margin + rowH) {
+      page = pdfDoc.addPage([a4W, a4H]);
+      y = a4H - margin;
+    }
+
+    const isHeader = r === 0;
+    const row = rows[r]!;
+
+    page.drawRectangle({
+      x: margin,
+      y: y - rowH + 6,
+      width: tableW,
+      height: rowH,
+      color: isHeader ? rgb(0.9, 0.94, 1.0) : r % 2 === 0 ? rgb(0.98, 0.98, 0.99) : rgb(1, 1, 1),
+    });
+
+    for (let c = 0; c < colCount; c++) {
+      const rawText = row[c] || '';
+      const sanitized = sanitizeForWinAnsi(rawText);
+      const maxChars = Math.floor(colW / (isHeader ? 5.5 : 4.5));
+      const displayText = sanitized.length > maxChars ? sanitized.slice(0, maxChars - 1) + '\u2026' : sanitized;
+      page.drawText(displayText, {
+        x: margin + c * colW + 6,
+        y: y - 8,
+        size: isHeader ? headerFontSize : cellFontSize,
+        font: isHeader ? fontBold : font,
+        color: isHeader ? rgb(0.12, 0.23, 0.54) : rgb(0.15, 0.18, 0.22),
+      });
+    }
+    y -= rowH;
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+  return { blob, mimeType: 'application/pdf' };
+}
+
+function parseMarkdownToBlocks(text: string): DocBlock[] {
+  const lines = text.split(/\r\n|\r|\n/);
+  const blocks: DocBlock[] = [];
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1]!.length as 1 | 2 | 3 | 4 | 5 | 6;
+      blocks.push({ type: `h${level}`, text: headingMatch[2]!.trim() });
+      continue;
+    }
+
+    if (/^[-*_]{3,}\s*$/.test(line.trim())) {
+      blocks.push({ type: 'hr', text: '' });
+      continue;
+    }
+
+    const listMatch = line.match(/^\s*[-*+]\s+(.+)$/);
+    if (listMatch) {
+      blocks.push({ type: 'li', text: listMatch[1]!.trim() });
+      continue;
+    }
+
+    const numListMatch = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if (numListMatch) {
+      blocks.push({ type: 'li', text: numListMatch[1]!.trim() });
+      continue;
+    }
+
+    if (line.trim().length === 0) {
+      continue;
+    }
+
+    blocks.push({ type: 'p', text: line.trim() });
+  }
+
+  return blocks;
+}
+
+function blocksToMarkdown(blocks: DocBlock[]): string {
+  return blocks
+    .map((block) => {
+      if (block.type.startsWith('h')) {
+        const level = parseInt(block.type[1]!, 10);
+        return '#'.repeat(level) + ' ' + block.text;
+      }
+      if (block.type === 'li') return '- ' + block.text;
+      if (block.type === 'hr') return '---';
+      return block.text;
+    })
+    .join('\n\n');
+}
+
+function blocksToHtml(blocks: DocBlock[]): string {
+  const body = blocks
+    .map((block) => {
+      if (block.type === 'hr') return '<hr />';
+      if (block.type.startsWith('h')) return `<${block.type}>${escapeHtml(block.text)}</${block.type}>`;
+      if (block.type === 'li') return `<li>${escapeHtml(block.text)}</li>`;
+      return `<p>${escapeHtml(block.text)}</p>`;
+    })
+    .join('\n');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;padding:20px;max-width:800px;margin:0 auto;line-height:1.6;}</style></head><body>\n${body}\n</body></html>`;
+}
 
 async function processTextConversion(
   file: File,
   targetFormat: SupportedFormat,
 ): Promise<{ blob: Blob; mimeType: string }> {
   const text = await file.text();
-  const lines = text.split(/\r\n|\r|\n/);
+  const isMd = file.name.endsWith('.md') || file.type === 'text/markdown';
+  const blocks = isMd ? parseMarkdownToBlocks(text) : text.split(/\r\n|\r|\n/).filter((l) => l.trim()).map((l) => ({ type: 'p' as const, text: l.trim() }));
 
   if (targetFormat === 'docx') {
-    const paragraphs = lines.map(
-      (line) =>
-        new Paragraph({
-          spacing: { after: 120 },
-          children: [new TextRun({ text: line, size: 22, font: 'Calibri' })],
-        }),
-    );
+    const paragraphs = blocks.map((block) => {
+      const isHeading = block.type.startsWith('h');
+      const headingMap: Record<string, (typeof HeadingLevel)[keyof typeof HeadingLevel]> = {
+        h1: HeadingLevel.HEADING_1,
+        h2: HeadingLevel.HEADING_2,
+        h3: HeadingLevel.HEADING_3,
+        h4: HeadingLevel.HEADING_4,
+        h5: HeadingLevel.HEADING_5,
+        h6: HeadingLevel.HEADING_6,
+      };
+      const heading = headingMap[block.type];
+      const opts: ConstructorParameters<typeof Paragraph>[0] = {
+        spacing: { after: 120 },
+        children: [
+          new TextRun({
+            text: block.text,
+            size: isHeading ? 26 : 22,
+            font: 'Calibri',
+            bold: isHeading,
+          }),
+        ],
+        ...(heading ? { heading } : {}),
+        ...(block.type === 'li' ? { bullet: { level: 0 } } : {}),
+      };
+      return new Paragraph(opts);
+    });
     const doc = new Document({
       sections: [{ children: paragraphs }],
     });
@@ -1076,76 +1405,37 @@ async function processTextConversion(
   }
 
   if (targetFormat === 'pdf') {
-    const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-    const a4W = 595.28;
-    const a4H = 841.89;
-    const margin = 50;
-    let page = pdfDoc.addPage([a4W, a4H]);
-    let y = a4H - margin;
-
-    page.drawText(file.name.replace(/\.[^/.]+$/, ''), {
-      x: margin,
-      y,
-      size: 16,
-      font: fontBold,
-      color: rgb(0.12, 0.23, 0.54),
-    });
-    y -= 35;
-
-    for (const line of lines) {
-      if (y < margin + 18) {
-        page = pdfDoc.addPage([a4W, a4H]);
-        y = a4H - margin;
-      }
-      page.drawText(line.slice(0, 85), {
-        x: margin,
-        y,
-        size: 10,
-        font,
-        color: rgb(0.15, 0.18, 0.22),
-      });
-      y -= 16;
-    }
-
-    const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
-    return { blob, mimeType: 'application/pdf' };
+    return renderBlocksToPdf(blocks, file.name);
   }
 
   if (targetFormat === 'html') {
-    const html = `<!DOCTYPE html><html><body>${lines.map((l) => `<p>${escapeHtml(l)}</p>`).join('')}</body></html>`;
+    const html = blocksToHtml(blocks);
     const blob = new Blob([html], { type: 'text/html' });
     return { blob, mimeType: 'text/html' };
+  }
+
+  if (targetFormat === 'md') {
+    const md = isMd ? text : blocksToMarkdown(blocks);
+    const blob = new Blob([md], { type: 'text/markdown' });
+    return { blob, mimeType: 'text/markdown' };
   }
 
   const blob = new Blob([text], { type: 'text/plain' });
   return { blob, mimeType: 'text/plain' };
 }
 
-// ---------------------------------------------------------------------------
-// MASTER EXECUTION DISPATCHER
-// ---------------------------------------------------------------------------
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+async function processDocxToMd(file: File): Promise<{ blob: Blob; mimeType: string }> {
+  const blocks = await extractBlocksFromDocx(file);
+  const md = blocksToMarkdown(blocks);
+  const blob = new Blob([md], { type: 'text/markdown' });
+  return { blob, mimeType: 'text/markdown' };
 }
 
-/**
- * Main conversion function: executes the requested conversion job and returns results.
- */
 export async function convertFile(
   job: ConversionJob,
   onProgress?: (percent: number, status: string) => void,
 ): Promise<ConversionResult> {
-  const { sourceFile, userOverrideFormat, targetFormat, imageOptions } = job;
+  const { sourceFile, userOverrideFormat, targetFormat, imageOptions, pdfOptions } = job;
   const inputFormat = userOverrideFormat || job.scanResult.detectedFormat;
 
   onProgress?.(15, 'Preparing document for conversion...');
@@ -1153,15 +1443,12 @@ export async function convertFile(
   let resultBlob: Blob;
   let resultMime: string;
 
-  // 1. Image source
   if (['png', 'jpg', 'jpeg', 'webp'].includes(inputFormat)) {
     onProgress?.(45, `Processing image and converting to ${targetFormat.toUpperCase()}...`);
     const processed = await processImageConversion(sourceFile, targetFormat, imageOptions);
     resultBlob = processed.blob;
     resultMime = processed.mimeType;
-  }
-  // 2. PDF source
-  else if (inputFormat === 'pdf') {
+  } else if (inputFormat === 'pdf') {
     onProgress?.(40, 'Analyzing PDF structure and extracting content...');
     if (targetFormat === 'docx') {
       const res = await processPdfToDocx(sourceFile);
@@ -1172,28 +1459,22 @@ export async function convertFile(
       resultBlob = res.blob;
       resultMime = res.mimeType;
     } else if (targetFormat === 'png' || targetFormat === 'jpg') {
-      const res = await processPdfToImages(sourceFile, targetFormat);
+      const res = await processPdfToImages(sourceFile, targetFormat, pdfOptions);
       resultBlob = res.blob;
       resultMime = res.mimeType;
     } else if (targetFormat === 'txt') {
-      const arrayBuffer = await sourceFile.arrayBuffer();
-      const lines = await extractTextFromPdf(arrayBuffer);
-      resultBlob = new Blob([lines.join('\n\n')], { type: 'text/plain' });
-      resultMime = 'text/plain';
+      const res = await processPdfToTxt(sourceFile);
+      resultBlob = res.blob;
+      resultMime = res.mimeType;
     } else if (targetFormat === 'html') {
-      const arrayBuffer = await sourceFile.arrayBuffer();
-      const lines = await extractTextFromPdf(arrayBuffer);
-      const html = `<!DOCTYPE html><html><body style="font-family: sans-serif; padding: 20px;">${lines.map((l) => `<p>${escapeHtml(l)}</p>`).join('')}</body></html>`;
-      resultBlob = new Blob([html], { type: 'text/html' });
-      resultMime = 'text/html';
+      const res = await processPdfToHtml(sourceFile);
+      resultBlob = res.blob;
+      resultMime = res.mimeType;
     } else {
-      // Fallback
       resultBlob = sourceFile;
       resultMime = sourceFile.type;
     }
-  }
-  // 3. Word (.docx / .doc) source
-  else if (inputFormat === 'docx' || inputFormat === 'doc') {
+  } else if (inputFormat === 'docx' || inputFormat === 'doc') {
     onProgress?.(40, 'Reading Word document elements...');
     if (targetFormat === 'pdf') {
       const res = await processDocxToPdf(sourceFile);
@@ -1204,24 +1485,24 @@ export async function convertFile(
       resultBlob = new Blob([lines.join('\n\n')], { type: 'text/plain' });
       resultMime = 'text/plain';
     } else if (targetFormat === 'html') {
-      const lines = await extractTextFromDocx(sourceFile);
-      const html = `<!DOCTYPE html><html><body style="font-family: sans-serif; padding: 20px;">${lines.map((l) => `<p>${escapeHtml(l)}</p>`).join('')}</body></html>`;
+      const blocks = await extractBlocksFromDocx(sourceFile);
+      const html = blocksToHtml(blocks);
       resultBlob = new Blob([html], { type: 'text/html' });
       resultMime = 'text/html';
+    } else if (targetFormat === 'md') {
+      const res = await processDocxToMd(sourceFile);
+      resultBlob = res.blob;
+      resultMime = res.mimeType;
     } else {
       resultBlob = sourceFile;
       resultMime = sourceFile.type;
     }
-  }
-  // 4. Spreadsheet / CSV source
-  else if (inputFormat === 'csv' || inputFormat === 'xlsx') {
+  } else if (inputFormat === 'csv' || inputFormat === 'xlsx') {
     onProgress?.(50, `Formatting spreadsheet into ${targetFormat.toUpperCase()}...`);
-    const res = await processCsvConversion(sourceFile, targetFormat);
+    const res = await processSpreadsheetConversion(sourceFile, inputFormat, targetFormat);
     resultBlob = res.blob;
     resultMime = res.mimeType;
-  }
-  // 5. Text / Markdown source
-  else {
+  } else {
     onProgress?.(50, `Converting text to ${targetFormat.toUpperCase()}...`);
     const res = await processTextConversion(sourceFile, targetFormat);
     resultBlob = res.blob;
@@ -1232,19 +1513,17 @@ export async function convertFile(
 
   const outputFileName = generateOutputFileName(sourceFile.name, targetFormat);
 
-  // Generate preview URL if it's an image
   let previewUrl: string | undefined;
   if (resultMime.startsWith('image/')) {
     previewUrl = URL.createObjectURL(resultBlob);
   }
 
-  // Generate text preview if text-based
   let previewText: string | undefined;
   if (resultMime.includes('text') || resultMime.includes('json')) {
     try {
       previewText = (await resultBlob.slice(0, 500).text()).slice(0, 300);
     } catch {
-      // Ignore preview text error
+      // Preview extraction is best-effort; leave it unset on failure.
     }
   }
 

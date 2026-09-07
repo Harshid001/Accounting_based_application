@@ -66,7 +66,7 @@ export default defineConfig(({ mode }) => {
           // Precache app-shell assets only; exclude heavy landing-page images
           // (hero PNGs, generated images) which are fetched on demand and must
           // not bloat the service-worker precache manifest.
-          globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
+          globPatterns: ['**/*.{js,mjs,css,html,svg,ico,woff2}'],
           globIgnores: ['**/images/**', '**/Gemini_Generated_Image*'],
           // Safety-net: raise limit so large assets that slip through don't
           // break the build; they are excluded above but belt-and-suspenders.

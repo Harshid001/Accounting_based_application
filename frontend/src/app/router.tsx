@@ -108,6 +108,9 @@ const Profile = lazy(async () => ({ default: (await import('@/routes/profile/Pro
 const FirmSettings = lazy(async () => ({
   default: (await import('@/routes/settings/FirmSettings')).FirmSettings,
 }));
+const AiSettings = lazy(async () => ({
+  default: (await import('@/routes/settings/AiSettings')).AiSettings,
+}));
 const UsersList = lazy(async () => ({
   default: (await import('@/routes/settings/UsersList')).UsersList,
 }));
@@ -208,6 +211,10 @@ export function AppRoutes() {
         <Route
           path="/settings/firm"
           element={<RoleGate roles={['admin']}>{<FirmSettings />}</RoleGate>}
+        />
+        <Route
+          path="/settings/ai"
+          element={<RoleGate roles={['admin']}>{<AiSettings />}</RoleGate>}
         />
         <Route
           path="/settings/users"

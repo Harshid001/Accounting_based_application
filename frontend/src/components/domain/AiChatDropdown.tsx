@@ -9,10 +9,12 @@ import {
   Sparkles,
   User,
   X,
+  Zap,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { sendAiChat } from '@/api/ai.api';
 import { useSession } from '@/context/SessionContext';
 import { cn } from '@/lib/cn';
 
@@ -21,10 +23,8 @@ interface ChatMessage {
   sender: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  actions?: Array<{
-    label: string;
-    route: string;
-  }>;
+  toolCalls?: Array<{ tool: string; label: string }>;
+  actions?: Array<{ label: string; route: string }>;
 }
 
 const QUICK_PROMPTS = [
@@ -50,158 +50,156 @@ const QUICK_PROMPTS = [
   },
 ];
 
-function getAiResponse(userQuery: string, userName: string): {
-  text: string;
-  actions?: Array<{ label: string; route: string }>;
-} {
-  const query = userQuery.toLowerCase();
-
-  // Deadlines / Calendar
-  if (query.includes('deadline') || query.includes('due date') || query.includes('calendar') || query.includes('filing date')) {
-    return {
-      text: `### 📅 Key Statutory Compliance Deadlines for Indian CA Firms:\n\n` +
-        `• **GSTR-1**: **11th of every month** for monthly filers (or 13th under QRMP IFF).\n` +
-        `• **GSTR-3B**: **20th of every month** (Category 1 states: 22nd, Category 2 states: 24th for quarterly).\n` +
-        `• **TDS Deposit (Challan 281)**: **7th of the following month** (30th April for March deductions).\n` +
-        `• **TDS Quarterly Return (24Q/26Q)**: **31st July, 31st Oct, 31st Jan, 31st May**.\n` +
-        `• **Advance Tax Installments**: 15% (Jun 15), 45% (Sep 15), 75% (Dec 15), 100% (Mar 15).\n` +
-        `• **Income Tax Returns**: 31st July (Non-audit), 31st October (Audit cases).\n\n` +
-        `💡 *FirmDesk automatically groups your firm's filings into 7, 14, and 30-day buckets on your dashboard!*`,
-      actions: [
-        { label: 'View Statutory Filings', route: '/compliance' },
-        { label: 'Bulk Generate Filings', route: '/compliance/generate' },
-      ],
-    };
-  }
-
-  // TDS Section 194C / 194J / TDS rates
-  if (query.includes('tds') || query.includes('194c') || query.includes('194j') || query.includes('194i') || query.includes('rate')) {
-    return {
-      text: `### ⚖️ Standard TDS Rates & Thresholds (FY 2024-25 / AY 2025-26):\n\n` +
-        `1. **Section 194C (Payments to Contractors/Subcontractors)**:\n` +
-        `   - Rate: **1%** (Individual/HUF), **2%** (Companies/Firms).\n` +
-        `   - Single bill threshold: **₹30,000** | Aggregate annual threshold: **₹1,00,000**.\n` +
-        `   - PAN not furnished: **20%** under Sec 206AA.\n\n` +
-        `2. **Section 194J (Fees for Professional / Technical Services)**:\n` +
-        `   - Technical services / Call centers: **2%**.\n` +
-        `   - Professional services / Royalty: **10%**.\n` +
-        `   - Annual threshold: **₹30,000** per payee.\n\n` +
-        `3. **Section 194I (Rent)**:\n` +
-        `   - Plant, machinery & equipment: **2%**.\n` +
-        `   - Land, building or furniture: **10%** (Threshold: **₹2,40,000** per annum).\n\n` +
-        `4. **Section 194Q & 206C(1H) (Purchase/Sale of Goods)**:\n` +
-        `   - Rate: **0.1%** on value exceeding **₹50 Lakhs** (if buyer's turnover > ₹10 Cr).`,
-      actions: [
-        { label: 'Open Client Filings', route: '/compliance' },
-        { label: 'Check Tasks', route: '/tasks' },
-      ],
-    };
-  }
-
-  // Draft email / notice reminder
-  if (query.includes('draft') || query.includes('email') || query.includes('reminder') || query.includes('letter')) {
-    return {
-      text: `### 📝 Ready-to-Send Client Document Reminder Template\n\n` +
-        `**Subject:** Urgent: Pending Documents for Statutory Tax Filing — Action Required\n\n` +
-        `Dear Valued Client,\n\n` +
-        `Greetings from our firm.\n\n` +
-        `To ensure your upcoming statutory filings (GST / TDS / Advance Tax) are submitted well ahead of the government deadline and to avoid statutory late fees or interest under the Income Tax & GST Acts, please provide the following pending documents:\n\n` +
-        `1. Bank Statements for all operational accounts (with narration)\n` +
-        `2. Sales & Purchase Registers (GSTR-2B reconciliation)\n` +
-        `3. Invoices for capital asset purchases or major expenses\n` +
-        `4. TDS certificates received (Form 16A / 26AS)\n\n` +
-        `You can conveniently upload these files directly via your **FirmDesk Client Portal** link or reply to this message.\n\n` +
-        `Warm regards,\n` +
-        `**${userName}**\n` +
-        `*Chartered Accountants / Tax Advisory*`,
-      actions: [
-        { label: 'Create Document Request', route: '/requests' },
-        { label: 'Open Messages', route: '/messages' },
-      ],
-    };
-  }
-
-  // GST Reverse Charge / RCM
-  if (query.includes('rcm') || query.includes('reverse charge') || query.includes('composition')) {
-    return {
-      text: `### 🏛️ GST Reverse Charge Mechanism (RCM) Summary:\n\n` +
-        `Under RCM (Sec 9(3) & 9(4) of CGST Act), the recipient of goods/services is liable to pay GST directly to the government instead of the supplier:\n\n` +
-        `• **Key RCM Services**:\n` +
-        `  - Goods Transport Agency (GTA) services (where recipient pays 5% under RCM).\n` +
-        `  - Legal services supplied by an advocate or senior advocate.\n` +
-        `  - Services provided by an arbitral tribunal or director to a company.\n` +
-        `  - Sponsorship services provided to body corporate or partnership.\n\n` +
-        `• **ITC Rules for RCM**:\n` +
-        `  - Tax must be discharged **in cash via Electronic Cash Ledger** (cannot use existing ITC to pay RCM liability).\n` +
-        `  - Input Tax Credit (ITC) can be claimed in the same tax period upon payment in GSTR-3B Table 4(A)(3).`,
-      actions: [
-        { label: 'Check Compliance List', route: '/compliance' },
-      ],
-    };
-  }
-
-  // How to generate filings or FirmDesk workflow
-  if (query.includes('generate') || query.includes('bulk') || query.includes('filing') || query.includes('firmdesk')) {
-    return {
-      text: `### ⚡ How to Bulk Generate Filings in FirmDesk:\n\n` +
-        `1. Navigate to **Statutory Filings** or the **Generate Filings** tool.\n` +
-        `2. Select the target **Period** (e.g., current month or upcoming quarter).\n` +
-        `3. Select the compliance types (e.g. *GSTR-1, GSTR-3B, TDS 26Q*).\n` +
-        `4. Click **Generate Filings**. FirmDesk automatically assigns them across your active clients based on their registered entity types (Pvt Ltd, LLP, Prop).\n` +
-        `5. Deadlines will immediately appear on your **Dashboard** and team **My Work** queues!`,
-      actions: [
-        { label: 'Go to Generate Filings', route: '/compliance/generate' },
-        { label: 'View Dashboard', route: '/dashboard' },
-      ],
-    };
-  }
-
-  // Client onboarding
-  if (query.includes('client') || query.includes('onboard') || query.includes('add client')) {
-    return {
-      text: `### 💼 Onboarding a Client in FirmDesk:\n\n` +
-        `• Go to **Clients > Add Client**.\n` +
-        `• Select Entity Type (*Private Limited, LLP, Partnership, Sole Proprietorship, Individual*).\n` +
-        `• Enter PAN, GSTIN, CIN, and TAN — FirmDesk validates Indian format rules automatically.\n` +
-        `• Assign primary staff members and set their initial statutory compliance obligations.`,
-      actions: [
-        { label: 'Add New Client', route: '/clients/new' },
-        { label: 'Browse Clients Directory', route: '/clients' },
-      ],
-    };
-  }
-
-  // General fallback
-  return {
-    text: `I've analyzed your question regarding **"${userQuery}"**:\n\n` +
-      `Here is key guidance for your practice:\n` +
-      `• **Statutory Compliance**: Ensure all client records, books of accounts, and filings are reconciled with GST Portal (GSTR-2B) and Income Tax AIS/TIS.\n` +
-      `• **Team Coordination**: Assign internal tasks and set milestone dates in FirmDesk to avoid last-minute rush.\n` +
-      `• **Client Communications**: You can send automated document requests or message clients directly via the portal.\n\n` +
-      `Would you like me to draft an email, lookup specific section rates, or navigate to a feature in FirmDesk?`,
-    actions: [
-      { label: 'Dashboard', route: '/dashboard' },
-      { label: 'My Work Queue', route: '/my-work' },
-      { label: 'Document Requests', route: '/requests' },
-    ],
-  };
-}
-
 function formatCurrentTime(): string {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export function AiChatDropdown() {
-  let userName = 'there';
-  try {
-    const session = useSession();
-    if (session.user?.name) {
-      userName = session.user.name;
+type MarkdownNode =
+  | { type: 'text'; value: string }
+  | { type: 'header'; level: number; children: MarkdownNode[] }
+  | { type: 'bold'; children: MarkdownNode[] }
+  | { type: 'italic'; children: MarkdownNode[] }
+  | { type: 'code'; value: string }
+  | { type: 'bullet'; children: MarkdownNode[] }
+  | { type: 'paragraph'; children: MarkdownNode[] };
+
+const parseMarkdown = (text: string): MarkdownNode[] => {
+  const lines = text.split('\n');
+  const nodes: MarkdownNode[] = [];
+  let currentParagraph: MarkdownNode[] = [];
+
+  const flushParagraph = () => {
+    if (currentParagraph.length > 0) {
+      nodes.push({ type: 'paragraph', children: currentParagraph });
+      currentParagraph = [];
     }
-  } catch {
-    userName = 'there';
+  };
+
+  const parseInline = (str: string): MarkdownNode[] => {
+    const result: MarkdownNode[] = [];
+    let i = 0;
+    let current = '';
+    while (i < str.length) {
+      const ch = str[i];
+      if (ch === '*' && i + 1 < str.length && str[i + 1] === '*') {
+        if (current) result.push({ type: 'text', value: current });
+        current = '';
+        i += 2;
+        let boldText = '';
+        while (i < str.length && !(str[i] === '*' && str[i + 1] === '*')) {
+          boldText += str[i];
+          i += 1;
+        }
+        result.push({ type: 'bold', children: [{ type: 'text', value: boldText }] });
+        i += 2;
+      } else if (ch === '`') {
+        if (current) result.push({ type: 'text', value: current });
+        current = '';
+        i += 1;
+        let codeText = '';
+        while (i < str.length && str[i] !== '`') {
+          codeText += str[i];
+          i += 1;
+        }
+        result.push({ type: 'code', value: codeText });
+        i += 1;
+      } else if (ch === '_' && i + 1 < str.length && str[i + 1] === '_') {
+        if (current) result.push({ type: 'text', value: current });
+        current = '';
+        i += 2;
+        let italicText = '';
+        while (i < str.length && !(str[i] === '_' && str[i + 1] === '_')) {
+          italicText += str[i];
+          i += 1;
+        }
+        result.push({ type: 'italic', children: [{ type: 'text', value: italicText }] });
+        i += 2;
+      } else {
+        current += ch;
+        i += 1;
+      }
+    }
+    if (current) result.push({ type: 'text', value: current });
+    return result;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('### ')) {
+      flushParagraph();
+      nodes.push({
+        type: 'header',
+        level: 3,
+        children: parseInline(trimmed.slice(4)),
+      });
+    } else if (trimmed.startsWith('**') && trimmed.includes('**:')) {
+      flushParagraph();
+      const boldEnd = trimmed.indexOf('**:');
+      const boldText = trimmed.slice(2, boldEnd);
+      const rest = trimmed.slice(boldEnd + 3);
+      nodes.push({ type: 'bold', children: [{ type: 'text', value: boldText }] });
+      if (rest.trim()) {
+        currentParagraph.push(...parseInline(rest.trim()));
+      }
+    } else if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
+      flushParagraph();
+      nodes.push({ type: 'bullet', children: parseInline(trimmed.slice(2)) });
+    } else if (trimmed === '') {
+      flushParagraph();
+    } else {
+      currentParagraph.push(...parseInline(line));
+    }
   }
+  flushParagraph();
+  return nodes;
+};
+
+const renderMarkdown = (nodes: MarkdownNode[]): React.ReactNode => (
+  <div className="space-y-1.5 font-sans leading-relaxed">
+    {nodes.map((node, idx) => {
+      switch (node.type) {
+        case 'header':
+          return (
+            <h4 key={idx} className="font-semibold text-sm text-indigo-500 pt-1 pb-0.5">
+              {renderMarkdown(node.children)}
+            </h4>
+          );
+        case 'paragraph':
+          return <p key={idx}>{renderMarkdown(node.children)}</p>;
+        case 'bullet':
+          return (
+            <p key={idx} className="ml-4 flex gap-2">
+              <span className="text-indigo-500">•</span>
+              <span>{renderMarkdown(node.children)}</span>
+            </p>
+          );
+        case 'bold':
+          return <strong key={idx}>{renderMarkdown(node.children)}</strong>;
+        case 'italic':
+          return <em key={idx}>{renderMarkdown(node.children)}</em>;
+        case 'code':
+          return (
+            <code
+              key={idx}
+              className="rounded bg-[var(--fd-surface-3)] px-1 py-0.5 text-xs font-mono text-indigo-600 dark:text-indigo-400"
+            >
+              {node.value}
+            </code>
+          );
+        case 'text':
+          return <span key={idx}>{node.value}</span>;
+      }
+    })}
+  </div>
+);
+
+export function AiChatDropdown() {
+  const session = useSession();
+  const userName = session.user?.name ?? 'there';
+  const firstName = userName.split(' ')[0] ?? userName;
 
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -210,14 +208,11 @@ export function AiChatDropdown() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const msgIdRef = useRef(1);
 
-  const firstName = userName.split(' ')[0] ?? userName;
-
   const initialMessages: ChatMessage[] = [
     {
       id: 'welcome-msg',
       sender: 'assistant',
-      content: `Hello ${firstName}! 👋 I am your **FirmDesk CA Copilot**.\n\n` +
-        `I can help you with Indian taxation (GST, TDS, Income Tax), compliance deadlines, drafting client communications, and navigating FirmDesk features. What would you like assistance with today?`,
+      content: `Hello ${firstName}! 👋 I am your **FirmDesk CA Copilot**.\n\nI can help you with Indian taxation (GST, TDS, Income Tax), compliance deadlines, drafting client communications, and navigating FirmDesk features. What would you like assistance with today?`,
       timestamp: 'Just now',
     },
   ];
@@ -239,7 +234,7 @@ export function AiChatDropdown() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const text = (textToSend ?? input).trim();
     if (!text || isTyping) return;
 
@@ -256,22 +251,37 @@ export function AiChatDropdown() {
     setInput('');
     setIsTyping(true);
 
-    // Realistic assistant delay
-    setTimeout(() => {
+    try {
+      const history = messages
+        .filter((m) => m.sender === 'user' || m.sender === 'assistant')
+        .map((m) => ({ role: m.sender, content: m.content }));
+      const route = window.location.pathname;
+      const reply = await sendAiChat({ message: text, history, currentRoute: route });
+
       msgIdRef.current += 1;
       const aiId = msgIdRef.current;
-      const response = getAiResponse(text, firstName);
       const aiMsg: ChatMessage = {
         id: `assistant-${aiId}`,
         sender: 'assistant',
-        content: response.text,
+        content: reply.content,
         timestamp: formatCurrentTime(),
-        actions: response.actions,
+        toolCalls: reply.toolCalls,
+        actions: reply.actions,
       };
 
       setMessages((prev) => [...prev, aiMsg]);
+    } catch {
+      const errMsg: ChatMessage = {
+        id: `error-${crypto.randomUUID()}`,
+        sender: 'assistant',
+        content:
+          'Sorry, I could not reach the AI service. Please try again in a moment.',
+        timestamp: formatCurrentTime(),
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
       setIsTyping(false);
-    }, 450);
+    }
   };
 
   const handleClear = () => {
@@ -342,7 +352,7 @@ export function AiChatDropdown() {
                 </div>
                 <p className="text-[11px] text-[var(--fd-text-tertiary)] flex items-center gap-1.5">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Online • GST, TDS, Compliance & Workflows
+                  Online • Live Firm Data • GST, TDS, Compliance
                 </p>
               </div>
             </div>
@@ -409,6 +419,21 @@ export function AiChatDropdown() {
                         : 'rounded-tl-xs border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] text-[var(--fd-text-primary)]',
                     )}
                   >
+                    {/* Tool Badges */}
+                    {msg.toolCalls && msg.toolCalls.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        {msg.toolCalls.map((tc, tIdx) => (
+                          <span
+                            key={tIdx}
+                            className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
+                          >
+                            <Zap className="h-2.5 w-2.5" />
+                            <span>{tc.label}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Copy Button for Assistant message */}
                     {!isUser && (
                       <button
@@ -426,28 +451,8 @@ export function AiChatDropdown() {
                       </button>
                     )}
 
-                    {/* Message Content formatted */}
-                    <div className="whitespace-pre-wrap font-sans space-y-1.5">
-                      {msg.content.split('\n\n').map((para, pIdx) => {
-                        // Header rendering
-                        if (para.startsWith('### ')) {
-                          return (
-                            <h4 key={pIdx} className="font-semibold text-sm text-indigo-500 pt-1 pb-0.5">
-                              {para.replace('### ', '')}
-                            </h4>
-                          );
-                        }
-                        // Bold title rendering
-                        if (para.startsWith('**') && para.includes('**:\n')) {
-                          return (
-                            <div key={pIdx} className="font-medium">
-                              {para}
-                            </div>
-                          );
-                        }
-                        return <p key={pIdx}>{para}</p>;
-                      })}
-                    </div>
+                    {/* Message Content - Markdown rendered */}
+                    {renderMarkdown(parseMarkdown(msg.content))}
 
                     {/* Quick Action Navigation Chips */}
                     {msg.actions && msg.actions.length > 0 && (
@@ -514,7 +519,7 @@ export function AiChatDropdown() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleSend();
+                void handleSend();
               }}
               className="flex items-center gap-2"
             >

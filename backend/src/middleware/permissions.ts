@@ -69,6 +69,9 @@ export const CAPABILITIES = {
 
   'search:run': ['admin', 'staff'],
 
+  'ai:chat': ['admin', 'staff', 'client'],
+  'ai:config': ['admin'],
+
   'portal:read': ['client'],
   'portal:write': ['client'],
 } as const satisfies Record<string, readonly Role[]>;

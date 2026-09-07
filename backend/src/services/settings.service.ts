@@ -1,7 +1,13 @@
 import { env } from '../config/env.js';
 import { cache, createCacheKey } from '../lib/cache.js';
+import type { EncryptedField } from '../lib/crypto.js';
+import { decryptField, encryptField } from '../lib/crypto.js';
+import { conflict } from '../lib/errors.js';
 import type { AddressAttributes } from '../models/client.model.js';
-import type { FirmSettingsAttributes } from '../models/firmSettings.model.js';
+import type {
+  AiProviderName,
+  FirmSettingsAttributes,
+} from '../models/firmSettings.model.js';
 import { FIRM_SETTINGS_ID, FirmSettings } from '../models/firmSettings.model.js';
 import type { RequestActor } from '../types/context.js';
 import { buildDiff, recordAudit } from './audit.service.js';
@@ -57,13 +63,24 @@ export const reminderOffsetsFallback = async (): Promise<number[]> => {
   return settings.defaultReminderOffsetsDays;
 };
 
+const loadSettingsDoc = async () => {
+  const existing = await FirmSettings.findById(FIRM_SETTINGS_ID).exec();
+  if (existing) return existing;
+  // A cached copy can outlive the underlying record (fresh database in tests,
+  // manual drops). Drop the cache so getFirmSettings recreates the document.
+  cache.invalidate('settings');
+  await getFirmSettings();
+  const recreated = await FirmSettings.findById(FIRM_SETTINGS_ID).exec();
+  if (!recreated) throw new Error('Firm settings document could not be created.');
+  return recreated;
+};
+
 export const updateFirmSettings = async (
   update: FirmSettingsUpdate,
   actor: RequestActor,
 ): Promise<FirmSettingsAttributes> => {
   const before = await getFirmSettings();
-  const doc = await FirmSettings.findById(FIRM_SETTINGS_ID).exec();
-  if (!doc) throw new Error('Firm settings document vanished after being created.');
+  const doc = await loadSettingsDoc();
 
   for (const [key, value] of Object.entries(update)) {
     if (value !== undefined) doc.set(key, value);
@@ -89,4 +106,187 @@ export const updateFirmSettings = async (
   }
   cache.invalidate('settings');
   return after;
+};
+
+// ---------------------------------------------------------------------------
+// AI Copilot configuration (admin-managed, keys encrypted at rest)
+// ---------------------------------------------------------------------------
+
+export interface AiConfigUpdate {
+  provider?: AiProviderName | null;
+  enabled?: boolean;
+  geminiApiKey?: string | null;
+  geminiModel?: string;
+  openaiApiKey?: string | null;
+  openaiModel?: string;
+}
+
+export interface AiConfigView {
+  provider: AiProviderName | null;
+  enabled: boolean;
+  activeModel: string | null;
+  gemini: { keySet: boolean; model: string };
+  openai: { keySet: boolean; model: string };
+  hasKey: boolean;
+  source: 'db' | 'env' | 'none';
+  configuredAt: string | null;
+}
+
+const secretSet = (secret: EncryptedField | null | undefined): boolean =>
+  secret !== null && secret !== undefined;
+
+const decryptSecret = (secret: EncryptedField | null | undefined): string | null => {
+  if (!secretSet(secret)) return null;
+  try {
+    return decryptField(secret as EncryptedField, env.FIELD_ENCRYPTION_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export interface ResolvedAiProvider {
+  provider: AiProviderName;
+  apiKey: string;
+  model: string;
+  source: 'db' | 'env';
+}
+
+export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> => {
+  const settings = await getFirmSettings();
+  const ai = settings.aiConfig;
+
+  // Database-stored configuration takes priority.
+  if (ai.provider !== null && ai.enabled) {
+    const secret =
+      ai.provider === 'gemini' ? ai.geminiApiKey : ai.openaiApiKey;
+    const key = decryptSecret(secret);
+    if (key !== null) {
+      return {
+        provider: ai.provider,
+        apiKey: key,
+        model:
+          ai.provider === 'gemini'
+            ? ai.geminiModel
+            : ai.openaiModel,
+        source: 'db',
+      };
+    }
+  }
+
+  // Fall back to environment variables.
+  if (env.GEMINI_API_KEY !== undefined) {
+    return {
+      provider: 'gemini',
+      apiKey: env.GEMINI_API_KEY,
+      model: env.GEMINI_MODEL ?? 'gemini-2.5-flash',
+      source: 'env',
+    };
+  }
+  if (env.OPENAI_API_KEY !== undefined) {
+    return {
+      provider: 'openai',
+      apiKey: env.OPENAI_API_KEY,
+      model: env.OPENAI_MODEL ?? 'gpt-4o-mini',
+      source: 'env',
+    };
+  }
+  return null;
+};
+
+export const getAiConfigView = async (): Promise<AiConfigView> => {
+  const settings = await getFirmSettings();
+  const ai = settings.aiConfig;
+  const dbKeyFor = (provider: AiProviderName): boolean =>
+    provider === 'gemini' ? secretSet(ai.geminiApiKey) : secretSet(ai.openaiApiKey);
+
+  const resolved = await resolveAiProvider();
+  const hasKey =
+    dbKeyFor('gemini') ||
+    dbKeyFor('openai') ||
+    env.GEMINI_API_KEY !== undefined ||
+    env.OPENAI_API_KEY !== undefined;
+
+  return {
+    provider: ai.provider,
+    enabled: ai.enabled,
+    activeModel: resolved?.model ?? null,
+    gemini: { keySet: dbKeyFor('gemini'), model: ai.geminiModel },
+    openai: { keySet: dbKeyFor('openai'), model: ai.openaiModel },
+    hasKey,
+    source: resolved === null ? 'none' : resolved.source,
+    configuredAt: ai.configuredAt ? ai.configuredAt.toISOString() : null,
+  };
+};
+
+const encryptSecret = (plaintext: string): EncryptedField =>
+  encryptField(plaintext, env.FIELD_ENCRYPTION_KEY, env.FIELD_ENCRYPTION_KEY_VERSION);
+
+export const updateAiConfig = async (
+  update: AiConfigUpdate,
+  actor: RequestActor,
+): Promise<AiConfigView> => {
+  const doc = await loadSettingsDoc();
+
+  const ai = doc.aiConfig;
+  let touched = false;
+
+  if (update.provider !== undefined) {
+    ai.provider = update.provider;
+    touched = true;
+  }
+  if (update.enabled !== undefined) {
+    ai.enabled = update.enabled;
+    touched = true;
+  }
+  if (update.geminiApiKey !== undefined) {
+    ai.geminiApiKey =
+      update.geminiApiKey === null ? null : encryptSecret(update.geminiApiKey);
+    touched = true;
+  }
+  if (update.geminiModel !== undefined && update.geminiModel.trim().length > 0) {
+    ai.geminiModel = update.geminiModel.trim();
+    touched = true;
+  }
+  if (update.openaiApiKey !== undefined) {
+    ai.openaiApiKey =
+      update.openaiApiKey === null ? null : encryptSecret(update.openaiApiKey);
+    touched = true;
+  }
+  if (update.openaiModel !== undefined && update.openaiModel.trim().length > 0) {
+    ai.openaiModel = update.openaiModel.trim();
+    touched = true;
+  }
+
+  // Enabling requires a usable key for the selected provider.
+  if (ai.enabled) {
+    if (ai.provider === null) {
+      throw conflict('Choose Gemini or OpenAI as the provider before enabling the copilot.');
+    }
+    const hasDbKey = ai.provider === 'gemini' ? secretSet(ai.geminiApiKey) : secretSet(ai.openaiApiKey);
+    const hasEnvKey =
+      ai.provider === 'gemini' ? env.GEMINI_API_KEY !== undefined : env.OPENAI_API_KEY !== undefined;
+    if (!hasDbKey && !hasEnvKey) {
+      throw conflict('Save an API key for the selected provider before enabling the copilot.');
+    }
+  }
+
+  if (touched) {
+    ai.configuredBy = actor.id;
+    ai.configuredAt = new Date();
+  }
+
+  await doc.save();
+  cache.invalidate('settings');
+
+  if (touched) {
+    await recordAudit({
+      actor,
+      action: 'update',
+      entityKind: 'firmSettings',
+      entityId: FIRM_SETTINGS_ID,
+      summary: `AI copilot configuration updated (provider: ${ai.provider ?? 'none'}, enabled: ${String(ai.enabled)})`,
+    });
+  }
+
+  return getAiConfigView();
 };

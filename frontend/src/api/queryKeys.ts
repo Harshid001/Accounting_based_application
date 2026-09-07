@@ -96,6 +96,7 @@ export const queryKeys = {
   settings: {
     all: ['settings'] as const,
     firm: ['settings', 'firm'] as const,
+    aiConfig: ['settings', 'ai-config'] as const,
   },
 
   audit: {

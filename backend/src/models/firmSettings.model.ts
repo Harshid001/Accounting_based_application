@@ -6,6 +6,26 @@ import type { AddressAttributes } from './client.model.js';
 
 export const FIRM_SETTINGS_ID = new MongooseTypes.ObjectId('000000000000000000000001');
 
+export interface EncryptedSecretAttributes {
+  ciphertext: string;
+  iv: string;
+  tag: string;
+  keyVersion: number;
+}
+
+export type AiProviderName = 'gemini' | 'openai';
+
+export interface AiConfigAttributes {
+  provider: AiProviderName | null;
+  enabled: boolean;
+  geminiApiKey?: EncryptedSecretAttributes | null;
+  geminiModel: string;
+  openaiApiKey?: EncryptedSecretAttributes | null;
+  openaiModel: string;
+  configuredBy?: Types.ObjectId | null;
+  configuredAt?: Date | null;
+}
+
 export interface FirmSettingsAttributes {
   _id: Types.ObjectId;
   firmName: string;
@@ -16,6 +36,7 @@ export interface FirmSettingsAttributes {
   defaultReminderOffsetsDays: number[];
   complianceHorizonDays: number;
   financialYearStartMonth: number;
+  aiConfig: AiConfigAttributes;
   updatedBy?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
@@ -38,6 +59,45 @@ const addressSchema = new Schema<AddressAttributes>(
         message: 'A pincode is six digits and does not start with zero.',
       },
     },
+  },
+  { _id: false },
+);
+
+const encryptedSecretSchema = new Schema<EncryptedSecretAttributes>(
+  {
+    ciphertext: { type: String, required: true },
+    iv: { type: String, required: true },
+    tag: { type: String, required: true },
+    keyVersion: { type: Number, required: true, min: 1 },
+  },
+  { _id: false },
+);
+
+const DEFAULT_AI_MODELS: Record<AiProviderName, string> = {
+  gemini: 'gemini-2.5-flash',
+  openai: 'gpt-4o-mini',
+};
+
+const aiConfigSchema = new Schema<AiConfigAttributes>(
+  {
+    provider: { type: String, default: null, enum: [null, 'gemini', 'openai'] },
+    enabled: { type: Boolean, default: false },
+    geminiApiKey: { type: encryptedSecretSchema, default: null },
+    geminiModel: {
+      type: String,
+      default: DEFAULT_AI_MODELS.gemini,
+      trim: true,
+      maxlength: 100,
+    },
+    openaiApiKey: { type: encryptedSecretSchema, default: null },
+    openaiModel: {
+      type: String,
+      default: DEFAULT_AI_MODELS.openai,
+      trim: true,
+      maxlength: 100,
+    },
+    configuredBy: { type: Schema.Types.ObjectId, default: null, ref: 'user' },
+    configuredAt: { type: Date, default: null },
   },
   { _id: false },
 );
@@ -69,6 +129,7 @@ const firmSettingsSchema = new Schema<FirmSettingsAttributes>(
     },
     complianceHorizonDays: { type: Number, default: 120, min: 1, max: 1095 },
     financialYearStartMonth: { type: Number, default: 4, min: 4, max: 4, immutable: true },
+    aiConfig: { type: aiConfigSchema, default: () => ({}) },
   },
   { timestamps: true, collection: 'firmSettings', _id: false, minimize: false },
 );

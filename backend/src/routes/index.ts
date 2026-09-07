@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { requireAuth } from '../middleware/requireAuth.js';
+import { aiRouter } from './ai.routes.js';
 import { clientRouter, clientServiceRouter } from './client.routes.js';
 import { complianceRouter } from './compliance.routes.js';
 import { complianceTypeRouter } from './complianceType.routes.js';
@@ -30,6 +31,7 @@ apiRouter.use(storageRouter);
 apiRouter.use(requireAuth);
 
 apiRouter.use('/me', meRouter);
+apiRouter.use('/ai', aiRouter);
 apiRouter.use('/users', userRouter);
 apiRouter.use('/clients', clientRouter);
 apiRouter.use('/client-services', clientServiceRouter);

@@ -29,6 +29,8 @@ process.env.R2_BUCKET_NAME = 'test-r2-bucket';
 delete process.env.GOOGLE_CLIENT_ID;
 delete process.env.GOOGLE_CLIENT_SECRET;
 delete process.env.BOOTSTRAP_ADMIN_EMAIL;
+delete process.env.GEMINI_API_KEY;
+delete process.env.OPENAI_API_KEY;
 
 const { connectDatabase, disconnectDatabase, mongoose } = await import('../src/config/db.js');
 const { initAuth, resetAuthForTests } = await import('../src/config/auth.js');
