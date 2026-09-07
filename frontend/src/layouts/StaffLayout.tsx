@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/skeleton';
 import { MobileDrawer } from '@/layouts/components/MobileDrawer';
 import { Sidebar } from '@/layouts/components/Sidebar';
 import { Topbar } from '@/layouts/components/Topbar';
+import { AiChatSidebar } from '@/components/domain/AiChatDropdown';
 import { SIDEBAR_STORAGE_KEY } from '@/lib/constants';
 import { useHotkey } from '@/hooks/useHotkey';
 import { useFeatureGuide } from '@/context/FeatureGuideContext';
@@ -78,23 +79,27 @@ export function StaffLayout() {
           }}
         />
 
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-5 outline-none sm:px-6"
-        >
-          <div className="mx-auto w-full max-w-[1440px]">
-            <Suspense
-              fallback={
-                <div className="flex justify-center py-16">
-                  <Spinner size={22} label="Loading this screen" />
-                </div>
-              }
-            >
-              <Outlet />
-            </Suspense>
-          </div>
-        </main>
+        <div className="relative flex min-h-0 flex-1 overflow-hidden">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 outline-none sm:px-6 transition-all duration-300 ease-in-out"
+          >
+            <div className="mx-auto w-full max-w-[1440px]">
+              <Suspense
+                fallback={
+                  <div className="flex justify-center py-16">
+                    <Spinner size={22} label="Loading this screen" />
+                  </div>
+                }
+              >
+                <Outlet />
+              </Suspense>
+            </div>
+          </main>
+
+          <AiChatSidebar />
+        </div>
       </div>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />

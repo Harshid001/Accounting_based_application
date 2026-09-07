@@ -11,6 +11,7 @@ import { SessionProvider } from '@/context/SessionContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider, useToast } from '@/context/ToastContext';
 import { FeatureGuideProvider } from '@/context/FeatureGuideContext';
+import { AiChatProvider } from '@/context/AiChatContext';
 import { FeatureGuideModal } from '@/components/domain/FeatureGuideModal';
 import { InteractiveTourOverlay } from '@/components/domain/InteractiveTourOverlay';
 import { PUBLIC_PATHS } from '@/lib/constants';
@@ -131,9 +132,11 @@ export function Providers({ children }: { children: ReactNode }) {
               <SessionProvider>
                 <ActiveClientProvider>
                   <FeatureGuideProvider>
-                    {children}
-                    <FeatureGuideModal />
-                    <InteractiveTourOverlay />
+                    <AiChatProvider>
+                      {children}
+                      <FeatureGuideModal />
+                      <InteractiveTourOverlay />
+                    </AiChatProvider>
                   </FeatureGuideProvider>
                 </ActiveClientProvider>
               </SessionProvider>

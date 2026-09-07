@@ -141,4 +141,48 @@ describe('AiChatDropdown Component', () => {
       expect(screen.getByText(/Test Header/i)).toBeInTheDocument();
     });
   });
+
+  it('allows expanding width and closing the relative sidebar', async () => {
+    const user = userEvent.setup();
+    renderDropdown();
+
+    const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
+    await user.click(triggerBtn);
+
+    const sidebar = screen.getByTestId('ai-chat-sidebar');
+    expect(sidebar).toBeInTheDocument();
+
+    // Check expand button exists and works
+    const expandBtn = screen.getByRole('button', { name: /Expand width/i });
+    expect(expandBtn).toBeInTheDocument();
+    await user.click(expandBtn);
+
+    const collapseBtn = screen.getByRole('button', { name: /Collapse width/i });
+    expect(collapseBtn).toBeInTheDocument();
+
+    // Check close button
+    const closeBtn = screen.getByRole('button', { name: /Close AI Chat/i });
+    await user.click(closeBtn);
+
+    expect(screen.queryByTestId('ai-chat-sidebar')).not.toBeInTheDocument();
+  });
+
+  it('resets conversation when reset button is clicked', async () => {
+    const user = userEvent.setup();
+    renderDropdown();
+
+    const triggerBtn = screen.getByRole('button', { name: /FirmDesk AI Assistant Chat/i });
+    await user.click(triggerBtn);
+
+    const input = screen.getByPlaceholderText(/Ask to create tasks/i);
+    await user.type(input, 'Hello{enter}');
+
+    await screen.findByText(/Test Header/i);
+
+    const resetBtn = screen.getByRole('button', { name: /Reset conversation/i });
+    await user.click(resetBtn);
+
+    expect(screen.queryByText(/Test Header/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/I am your/i)).toBeInTheDocument();
+  });
 });

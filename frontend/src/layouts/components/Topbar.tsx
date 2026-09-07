@@ -5,7 +5,7 @@ import { IconButton } from '@/components/ui/icon-button';
 import { NotificationBell } from '@/components/domain/NotificationBell';
 import { ThemeToggle } from '@/components/domain/ThemeToggle';
 import { LanguageSwitcher } from '@/components/domain/LanguageSwitcher';
-import { AiChatDropdown } from '@/components/domain/AiChatDropdown';
+import { AiChatTrigger } from '@/components/domain/AiChatDropdown';
 
 export interface TopbarProps {
   onOpenDrawer: () => void;
@@ -39,7 +39,7 @@ export function Topbar({ onOpenDrawer, onOpenPalette }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-1.5">
-        <AiChatDropdown />
+        <AiChatTrigger />
         <LanguageSwitcher compact />
         <ThemeToggle />
         <NotificationBell enabled />
