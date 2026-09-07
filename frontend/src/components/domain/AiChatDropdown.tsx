@@ -400,6 +400,10 @@ export function AiChatSidebar({ className }: { className?: string }) {
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => crypto.randomUUID());
   const [showHistory, setShowHistory] = useState(false);
   const [sessions, setSessions] = useState<StoredSession[]>(() => loadStoredSessions());
+  const hasUserInteracted = useMemo(
+    () => messages.some((m) => m.sender === 'user'),
+    [messages],
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -638,7 +642,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
         style={{ width: `${chatWidth}px` }}
         className={cn(
           'relative flex flex-col h-full shrink-0 border-l border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-xl z-20 drawer-right-in',
-          isDragging ? 'transition-none select-none' : 'transition-[width] duration-300 ease-in-out',
+          isDragging ? 'transition-none select-none' : 'transition-[width] duration-500 ease-in-out',
           // Mobile responsive: converts to fixed drawer on mobile so narrow screens are not crushed
           'max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-50 max-md:w-full max-md:sm:w-[480px]',
           className,
@@ -670,20 +674,72 @@ export function AiChatSidebar({ className }: { className?: string }) {
         )}
 
         {/* Sidebar Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--fd-border-subtle)] bg-gradient-to-r from-[var(--fd-surface-2)] via-[var(--fd-surface-1)] to-[var(--fd-surface-2)] px-4 py-3 sm:px-5">
-          <div className="flex items-center">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--fd-border-subtle)] bg-gradient-to-r from-[var(--fd-surface-2)] via-[var(--fd-surface-1)] to-[var(--fd-surface-2)] px-3.5 py-2.5 sm:px-4">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Unified Logo + Text Pill Box: compresses from right to left till logo only when user enters something */}
             <div
               className={cn(
-                'flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm transition-all duration-300',
-                isTyping && 'ai-logo-processing ring-2 ring-indigo-400/50',
+                'flex items-center rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 p-1 shadow-2xs transition-all duration-500 ease-in-out overflow-hidden',
+                isTyping
+                  ? 'max-w-[46px] border-indigo-500/40 bg-indigo-500/10 ring-2 ring-indigo-400/30'
+                  : 'max-w-[220px]',
               )}
-              aria-label="FirmDesk AI Logo"
             >
-              <Bot className={cn('h-5 w-5 transition-transform duration-300', isTyping && 'ai-bot-thinking text-purple-100')} />
+              <div
+                className={cn(
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm transition-all duration-300',
+                  isTyping && 'ai-logo-processing',
+                )}
+                aria-label="FirmDesk AI Logo"
+              >
+                <Bot
+                  className={cn(
+                    'h-5 w-5 transition-transform duration-300',
+                    isTyping && 'ai-bot-thinking text-purple-100',
+                  )}
+                />
+              </div>
+
+              {/* Text area that collapses right-to-left into the logo */}
+              <div
+                className={cn(
+                  'flex items-center whitespace-nowrap overflow-hidden transition-all duration-500 ease-in-out',
+                  isTyping
+                    ? 'max-w-0 opacity-0 -translate-x-3 pointer-events-none ml-0 mr-0'
+                    : 'max-w-[170px] opacity-100 translate-x-0 ml-2.5 mr-2',
+                )}
+              >
+                <div className="flex flex-col justify-center min-w-0">
+                  <span className="text-xs font-bold text-[var(--fd-text-primary)] tracking-tight">
+                    AI Copilot
+                  </span>
+                  {hasUserInteracted ? (
+                    <span className="flex items-center gap-1.5 text-[10px] text-[var(--fd-text-secondary)] font-medium">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Ready</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-[var(--fd-text-tertiary)] font-medium">
+                      Practice Copilot
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Generating badge that animates while processing */}
+            {isTyping && (
+              <div
+                data-testid="ai-header-generating"
+                className="flex items-center gap-1.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 text-[11px] font-semibold text-indigo-400 animate-in fade-in zoom-in-95 duration-400 shadow-xs"
+              >
+                <Sparkles className="h-3 w-3 animate-spin text-purple-400" />
+                <span className="animate-pulse">Generating...</span>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onClick={() => {

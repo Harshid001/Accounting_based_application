@@ -128,7 +128,7 @@ export function StaffLayout() {
           <main
             id="main-content"
             tabIndex={-1}
-            className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 outline-none sm:px-6 transition-all duration-300 ease-in-out"
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 outline-none sm:px-6 transition-all duration-400 ease-in-out"
           >
             <div className="mx-auto w-full max-w-[1440px]">
               <Suspense

@@ -240,7 +240,7 @@
 }
 
 @utility page-transition {
-  animation: fd-page-enter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fd-page-enter 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Slide drawers animations */
@@ -272,15 +272,15 @@
 }
 
 @utility drawer-left-in {
-  animation: fd-drawer-in-left 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fd-drawer-in-left 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @utility drawer-right-in {
-  animation: fd-drawer-in-right 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fd-drawer-in-right 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @utility drawer-bottom-in {
-  animation: fd-drawer-in-bottom 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fd-drawer-in-bottom 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* AI Processing animations */
@@ -347,7 +347,7 @@
 }
 
 @utility overlay-fade-in {
-  animation: fd-fade-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fd-fade-in 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
