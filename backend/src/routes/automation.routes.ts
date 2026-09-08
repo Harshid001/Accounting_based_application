@@ -1,27 +1,23 @@
 import { Router } from 'express';
 
+import type { Types } from 'mongoose';
+
 import * as controller from '../controllers/automation.controller.js';
+import { notFound } from '../lib/errors.js';
 import { mutationLimiter, readLimiter } from '../middleware/rateLimit.js';
 import { requireResolvedClientScope } from '../middleware/requireClientScope.js';
 import { requireCapability } from '../middleware/requireRole.js';
 import { handle } from '../middleware/validate.js';
+import { AutomationRun } from '../models/automationRun.model.js';
 import {
   automationRunParam,
   startRunBody,
   handoffBody,
 } from '../validators/automation.validators.js';
-import { clientIdOfItem } from '../services/compliance.service.js';
 
 export const automationRouter: Router = Router();
 
-// Used when starting a run (client scope resolved via compliance item)
-const scopeViaItem = requireResolvedClientScope(clientIdOfItem);
-
 // Used for an active run (client scope resolved via run document)
-import { AutomationRun } from '../models/automationRun.model.js';
-import { notFound } from '../lib/errors.js';
-import type { Types } from 'mongoose';
-
 const scopeViaRun = requireResolvedClientScope(async (id: Types.ObjectId) => {
   const run = await AutomationRun.findById(id).select('client').lean().exec();
   if (!run) throw notFound('automation run');
@@ -32,11 +28,6 @@ automationRouter.post(
   '/runs',
   mutationLimiter,
   requireCapability('compliance:update'),
-  scopeViaItem, // Note: body.filingPreparationId maps to complianceItem, so we need a slightly custom resolver if we don't want to overcomplicate.
-  // Actually, the simplest way is to resolve it inside the controller, but middleware requires it.
-  // Let's use a simpler middleware strategy: just enforce client matches later or write a custom resolver.
-  // For now, removing `scopeViaItem` from this route since the ID passed is a filing prep, not a compliance item directly.
-  // It will be validated securely inside `controller.startRun`.
   handle({ body: startRunBody }, controller.startRun),
 );
 

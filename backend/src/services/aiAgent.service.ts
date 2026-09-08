@@ -7,6 +7,7 @@ import type {
 import OpenAI from 'openai';
 import { Types } from 'mongoose';
 
+import { isTest } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { addDays, formatDisplayDate, todayIST } from '../lib/date.js';
 import {
@@ -56,6 +57,8 @@ import {
 } from './compliance.service.js';
 import { getPreparation, prepareFiling, updateGuideStep } from './filingPreparation.service.js';
 import { requestFilingOtp, submitReturnWithOtp } from './governmentGateway.service.js';
+import { executePortalAutomation } from './portalAutomation/automationRun.service.js';
+import { serializeAutomationRun } from '../serializers/automationRun.serializer.js';
 import {
   createClientService,
   listClientServices,
@@ -139,6 +142,9 @@ const TOOL_NAMES = {
   requestPortalOtp: 'request_portal_otp',
   submitReturnToGovernmentPortal: 'submit_return_to_government_portal',
 
+  // Autonomous Portal Automation Runner
+  runPortalAutomation: 'run_portal_automation',
+
   // Autonomous Practice Automation Runner
   runAutonomousPracticeAutomation: 'run_autonomous_practice_automation',
 
@@ -202,7 +208,7 @@ You can perform and automate all the following operations directly via tools:
 2. **Client Management**: Search clients, fetch full profiles, create new clients (individual/business with PAN, GSTIN, contacts, address), update existing client details, and archive/restore clients.
 3. **Client Services**: Attach recurring statutory services (GSTR-1, GSTR-3B, TDS, ITR) with add_client_service, inspect with list_client_services, or delete with delete_client_service.
 4. **Statutory Compliance & Filings**: Track statutory filings (GST, TDS, Income Tax, ROC/MCA), update filing statuses (mark as filed, in_progress, awaiting_client, acknowledged, not_applicable), record ARN / challan / acknowledgement numbers and filed dates, update filing notes/due dates, bulk-generate statutory filings for periods, create custom filings, and inspect compliance types.
-   **Return preparation & filing (accountant work)**: Prepare returns end-to-end with prepare_filing_return — it aggregates the documents uploaded against the filing, computes the tax liability (output tax/ITC for GST, slab tax for ITR, TDS for 24Q/26Q), and lists any missing inputs. Then guide the filing on the actual government portal with get_filing_guide (exact portal login, data entry, payment and ARN steps for the GST Portal, Income Tax Portal, TRACES and MCA V3) and track progress with update_filing_guide_step. When asked to "file GSTR-3B for a client", first find the filing with get_compliance_filings, prepare it, raise document requests for anything missing, then walk the user through the portal steps and record the ARN with update_filing_status.
+   **Return preparation & filing (accountant work)**: Prepare returns end-to-end with prepare_filing_return — it aggregates the documents uploaded against the filing, computes the tax liability (output tax/ITC for GST, slab tax for ITR, TDS for 24Q/26Q), and lists any missing inputs. When asked to "file GSTR-3B for a client" (or any return), first find the filing with get_compliance_filings, prepare it with prepare_filing_return, and raise document requests for anything missing. AUTONOMOUS PORTAL FILING: if the preparation status is ready or locked, immediately launch the headless browser worker with run_portal_automation (passing the preparationId from prepare_filing_return) — do NOT walk the user through the manual portal guide. After the run launches, tell the user the browser worker is filing on the official portal and direct them to the live browser feed to watch progress and handle OTP/Captcha handoffs (e.g. "[ACTION] Watch the live browser feed | /compliance/<complianceItemId>"). Only fall back to the manual get_filing_guide steps when the user explicitly asks for manual instructions or run_portal_automation reports an error (report the error faithfully, e.g. worker capacity — suggest retrying shortly). Record the ARN with update_filing_status once the run succeeds.
 5. **Tasks & Workflow**: Create tasks, search/list tasks by status/priority/assignee, update task status (not_started, in_progress, review, done), update due dates/priorities, reassign tasks to team members, add internal task comments/notes, and delete tasks.
 6. **Document Requests & Files**: Raise document requests to clients, list open/fulfilled requests, cancel requests, trigger reminder emails to clients, and inspect client uploaded documents.
 7. **Client Communications**: Post messages and official notices directly into client portal threads, and inspect message history.
@@ -218,6 +224,7 @@ You can perform and automate all the following operations directly via tools:
 - Client resolution: When asked to perform an action for a client by name (e.g., "for Mayur Bhai"), first call search_clients with their name to obtain their 24-character clientId. If found, use that clientId.
 - Dates: All date parameters must be YYYY-MM-DD.
 - Be proactive, decisive, and helpful: execute requested operations cleanly, summarize the result, and mention what was updated or created.
+- Portal automation runs: after a successful run_portal_automation call, always offer the live feed link as a follow-up action pointing at /compliance/<complianceItemId> so the user can watch the browser and handle handoffs.
 - At the very end you may suggest up to 3 follow-up navigation actions, one per line:
   [ACTION] label | route
   Allowed base routes: /dashboard /clients /tasks /my-work /compliance /compliance/generate /requests /messages /reports /settings (or subroutes like /clients/<id>, /tasks/<id>)`;
@@ -949,6 +956,51 @@ const tool_submitReturnToGovernmentPortal = async (
         error instanceof Error
           ? error.message
           : 'Could not submit return to government portal.',
+    };
+  }
+};
+
+// 2c. Autonomous portal automation (headless browser runner)
+const tool_runPortalAutomation = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot run portal automation.' };
+  }
+  const filingPreparationId = asString(args.filingPreparationId);
+  if (!filingPreparationId || !OBJECT_ID_PATTERN.test(filingPreparationId)) {
+    return {
+      error:
+        'A valid 24-character filingPreparationId is required. Call prepare_filing_return first and use the preparationId it returns.',
+    };
+  }
+  try {
+    const run = await executePortalAutomation({
+      filingPreparationId,
+      user,
+      actor: context.actor,
+      mode: 'recipe',
+    });
+    const view = serializeAutomationRun(run);
+    return {
+      success: true,
+      runId: view.id,
+      filingPreparationId,
+      complianceItemId: view.complianceItemId,
+      clientId: view.clientId,
+      form: view.form,
+      portal: view.portal,
+      status: view.status,
+      totalSteps: view.totalSteps,
+      watchUrl: `/compliance/${view.complianceItemId}`,
+      message:
+        'The browser worker has been dispatched and is navigating the official portal. Open the live feed to watch progress and handle OTP/Captcha handoffs.',
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not start portal automation.',
     };
   }
 };
@@ -2074,6 +2126,7 @@ const CLIENT_ROUTE_TOOLS = new Set<string>([
   TOOL_NAMES.updateFilingGuideStep,
   TOOL_NAMES.requestPortalOtp,
   TOOL_NAMES.submitReturnToGovernmentPortal,
+  TOOL_NAMES.runPortalAutomation,
 ]);
 
 const withRouteContext = (
@@ -2480,6 +2533,27 @@ const TOOLS: readonly ToolSpec[] = [
         ? `Filed return on portal (ARN: ${result.arn})`
         : 'Attempted government portal return submission',
     run: (context, args) => tool_submitReturnToGovernmentPortal(context, args),
+  },
+  {
+    name: TOOL_NAMES.runPortalAutomation,
+    description:
+      'Launch the headless browser worker that files a prepared return on its government portal (GST Portal, Income Tax Portal, TRACES, MCA V3). The return must already be prepared with prepare_filing_return and have status ready (or locked). The worker navigates the portal, fills the figures from the preparation payload, and pauses for human handoffs (password, captcha, OTP, final submit confirmation) which the user completes via the live browser feed.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filingPreparationId: {
+          type: 'string',
+          description:
+            'The 24-character filing preparation id returned by prepare_filing_return.',
+        },
+      },
+      required: ['filingPreparationId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true && typeof result.form === 'string'
+        ? `Launched browser automation for ${result.form}`
+        : 'Attempted to launch portal automation',
+    run: (context, args) => tool_runPortalAutomation(context, args),
   },
 
   // 3. Tasks & Workflow
@@ -3297,6 +3371,8 @@ const runOpenAIAgent = async (
   const client = new OpenAI({
     apiKey: credentials.apiKey,
     baseURL: credentials.baseURL,
+    timeout: isTest ? 4_000 : 25_000,
+    maxRetries: isTest ? 0 : 1,
   });
   const model = credentials.model;
   const badges: AgentToolBadge[] = [];

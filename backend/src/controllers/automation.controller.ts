@@ -1,87 +1,27 @@
-import { Types } from 'mongoose';
 import type { Request, Response } from 'express';
 
-import { logger } from '../config/logger.js';
 import { sendData } from '../lib/http.js';
 import { notFound, conflict, validationFailed } from '../lib/errors.js';
 import type { RouteContext } from '../middleware/validate.js';
 import { AutomationRun } from '../models/automationRun.model.js';
-import { FilingPreparation } from '../models/filingPreparation.model.js';
 import { serializeAutomationRun } from '../serializers/automationRun.serializer.js';
 import { automationWorker } from '../services/portalAutomation/worker.js';
-import { loadRecipe } from '../services/portalAutomation/recipeEngine.js';
+import { executePortalAutomation } from '../services/portalAutomation/automationRun.service.js';
 import { buildEvidencePack } from '../services/portalAutomation/evidencePack.js';
 import { recordAudit } from '../services/audit.service.js';
 import type { StartRunBody, HandoffBody } from '../validators/automation.validators.js';
-import { getPreparation } from '../services/filingPreparation.service.js';
 import type { RunEvent } from '../services/portalAutomation/types.js';
 
 export const startRun = async (
   input: { body: StartRunBody },
   ctx: RouteContext,
 ): Promise<void> => {
-  const prepId = new Types.ObjectId(input.body.filingPreparationId);
-  const prep = await FilingPreparation.findById(prepId).exec();
-  if (!prep) throw notFound('filing preparation');
-
-  if (prep.status !== 'ready' && prep.status !== 'locked') {
-    throw conflict('Filing is not ready. Resolve missing inputs first.');
-  }
-
-  // Load recipe
-  const recipe = await loadRecipe(prep.portalName ?? 'gst', prep.formCode);
-
-  // Re-fetch fully populated prep
-  const fullPrep = await getPreparation(ctx.user, prep.complianceItem);
-
-  // Check worker capacity
-  if (automationWorker.getActiveRunCount() >= 2) {
-    throw conflict('Worker is at capacity. Please wait for an active run to finish.');
-  }
-
-  const run = await AutomationRun.create({
-    client: prep.client,
-    complianceItem: prep.complianceItem,
-    filingPreparation: prep._id,
-    portal: recipe.portal,
-    form: recipe.form,
-    mode: input.body.mode ?? 'recipe',
-    status: 'queued',
-    recipeVersion: recipe.version,
-    initiatedBy: ctx.user.id,
-    actorRole: ctx.user.role,
-    steps: recipe.steps.map((s) => ({
-      key: s.key,
-      label: s.label ?? s.key,
-      status: 'pending',
-    })),
-  });
-
-  const runId = run._id.toString();
-
-  await recordAudit({
+  const run = await executePortalAutomation({
+    filingPreparationId: input.body.filingPreparationId,
+    user: ctx.user,
     actor: ctx.actor,
-    action: 'automation_start',
-    entityKind: 'automationRun',
-    entityId: run._id,
-    client: prep.client,
-    summary: `Started automation run for ${recipe.form} on ${recipe.portal}`,
+    mode: input.body.mode,
   });
-
-  // Start worker in background
-  automationWorker
-    .startRun({
-      runId,
-      clientId: prep.client.toString(),
-      filingPreparationId: prep._id.toString(),
-      recipe,
-      portalPayload: fullPrep.portalPayload ?? {},
-      computed: fullPrep.computed,
-      mode: run.mode,
-    })
-    .catch((err) => {
-      logger.error({ event: 'automation.start_failed', err }, 'failed to start worker run');
-    });
 
   sendData(ctx.res, serializeAutomationRun(run));
 };
