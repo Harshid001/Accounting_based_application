@@ -16,6 +16,15 @@ export interface AutomationRunnerProps {
   onDone?: () => void;
 }
 
+interface SseEvent {
+  kind: string;
+  frameData?: string;
+  handoffId?: string;
+  handoffType?: string;
+  handoffPrompt?: string;
+  error?: string;
+}
+
 export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
   const queryClient = useQueryClient();
   const { success, errorToast } = useToast();
@@ -32,19 +41,22 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
     queryFn: () => getAutomationRun(runId),
   });
 
+  const runStatus = run?.status;
+
   // SSE stream
   useEffect(() => {
-    if (!run) return;
-    if (run.status === 'succeeded' || run.status === 'failed' || run.status === 'aborted') return;
+    if (!runStatus) return;
+    if (runStatus === 'succeeded' || runStatus === 'failed' || runStatus === 'aborted') return;
 
     const source = new EventSource(createSseUrl(runId), { withCredentials: true });
 
-    source.onmessage = (e) => {
-      const event = JSON.parse(e.data);
+    source.onmessage = (e: MessageEvent) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const event: SseEvent = JSON.parse(String(e.data));
 
       switch (event.kind) {
         case 'frame':
-          setFrame(event.frameData);
+          setFrame(event.frameData ?? null);
           break;
         case 'step_start':
         case 'step_done':
@@ -53,9 +65,9 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
           break;
         case 'handoff_required':
           setHandoff({
-            id: event.handoffId,
-            type: event.handoffType,
-            prompt: event.handoffPrompt
+            id: event.handoffId ?? '',
+            type: event.handoffType ?? '',
+            prompt: event.handoffPrompt ?? ''
           });
           void refetch();
           break;
@@ -84,7 +96,7 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
     return () => {
       source.close();
     };
-  }, [runId, run?.status, refetch, queryClient, success, errorToast, onDone]);
+  }, [runId, runStatus, refetch, queryClient, success, errorToast, onDone]);
 
   const abortMutation = useMutation({
     mutationFn: () => abortAutomationRun(runId),
@@ -208,6 +220,7 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
                   onChange={(e) => setHandoffValue(e.target.value)}
                   placeholder="Enter required value..."
                   className="flex-1"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && handoffValue) {
