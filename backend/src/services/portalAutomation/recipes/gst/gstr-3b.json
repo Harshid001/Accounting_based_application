@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "portal": "gst",
+  "form": "GSTR-3B",
+  "steps": [
+    {
+      "key": "login-navigate",
+      "action": "navigate",
+      "url": "https://services.gst.gov.in/services/login"
+    },
+    {
+      "key": "login-username",
+      "action": "fill",
+      "map": "portalPayload.username",
+      "selector": "#username"
+    },
+    {
+      "key": "login-password",
+      "action": "handoff",
+      "type": "password",
+      "prompt": "Enter the portal password for the client.",
+      "selector": "#user_pass"
+    },
+    {
+      "key": "login-captcha",
+      "action": "handoff",
+      "type": "captcha",
+      "prompt": "Please solve the Captcha shown on the screen.",
+      "selector": "#captcha"
+    },
+    {
+      "key": "login-submit",
+      "action": "click",
+      "selector": "button[type='submit']"
+    },
+    {
+      "key": "wait-for-dashboard",
+      "action": "wait",
+      "timeoutMs": 5000
+    },
+    {
+      "key": "nav-returns-dashboard",
+      "action": "click",
+      "selector": "#returns_dashboard_link"
+    },
+    {
+      "key": "select-financial-year",
+      "action": "fill",
+      "map": "portalPayload.financialYear",
+      "selector": "#fin_year"
+    },
+    {
+      "key": "select-period",
+      "action": "fill",
+      "map": "portalPayload.period",
+      "selector": "#month"
+    },
+    {
+      "key": "search-returns",
+      "action": "click",
+      "selector": "#search_btn"
+    },
+    {
+      "key": "prepare-online-gstr3b",
+      "action": "click",
+      "selector": "#gstr3b_prepare_online"
+    },
+    {
+      "key": "nil-return-question",
+      "action": "click",
+      "selector": "#nil_return_no_radio"
+    },
+    {
+      "key": "next-questionnaire",
+      "action": "click",
+      "selector": "#next_btn"
+    },
+    {
+      "key": "fill-taxable-value",
+      "action": "fill",
+      "map": "computed.section3A.taxableValue",
+      "selector": "#taxable_value_field"
+    },
+    {
+      "key": "fill-itc-available",
+      "action": "fill",
+      "map": "computed.section4.itcAvailable",
+      "selector": "#itc_available_field"
+    },
+    {
+      "key": "save-gstr3b",
+      "action": "click",
+      "selector": "#save_gstr3b_btn"
+    },
+    {
+      "key": "wait-for-save",
+      "action": "wait",
+      "timeoutMs": 5000
+    },
+    {
+      "key": "make-payment",
+      "action": "handoff",
+      "type": "confirm",
+      "prompt": "The GSTR-3B return is saved. Please verify the liability offset and proceed to payment manually if required, then confirm to file."
+    },
+    {
+      "key": "request-evc",
+      "action": "click",
+      "selector": "#file_with_evc"
+    },
+    {
+      "key": "submit-evc",
+      "action": "handoff",
+      "type": "otp",
+      "prompt": "An OTP has been sent to the client's registered mobile/email. Please enter it here.",
+      "selector": "#evc_otp_field"
+    },
+    {
+      "key": "verify-and-file",
+      "action": "click",
+      "selector": "#verify_btn",
+      "confirm": "human",
+      "typed": "FILE"
+    },
+    {
+      "key": "capture-arn",
+      "action": "extract",
+      "regex": "ARN:\\s?([A-Z0-9]{15})",
+      "map": "result.arn"
+    }
+  ]
+}

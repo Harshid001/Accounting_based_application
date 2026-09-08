@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "portal": "gst",
+  "form": "GSTR-1",
+  "steps": [
+    {
+      "key": "login-navigate",
+      "action": "navigate",
+      "url": "https://services.gst.gov.in/services/login"
+    },
+    {
+      "key": "login-username",
+      "action": "fill",
+      "map": "portalPayload.username",
+      "selector": "#username"
+    },
+    {
+      "key": "login-password",
+      "action": "handoff",
+      "type": "password",
+      "prompt": "Enter the portal password for the client.",
+      "selector": "#user_pass"
+    },
+    {
+      "key": "login-captcha",
+      "action": "handoff",
+      "type": "captcha",
+      "prompt": "Please solve the Captcha shown on the screen.",
+      "selector": "#captcha"
+    },
+    {
+      "key": "login-submit",
+      "action": "click",
+      "selector": "button[type='submit']"
+    },
+    {
+      "key": "wait-for-dashboard",
+      "action": "wait",
+      "timeoutMs": 5000
+    },
+    {
+      "key": "nav-returns-dashboard",
+      "action": "click",
+      "selector": "#returns_dashboard_link"
+    },
+    {
+      "key": "select-financial-year",
+      "action": "fill",
+      "map": "portalPayload.financialYear",
+      "selector": "#fin_year"
+    },
+    {
+      "key": "select-period",
+      "action": "fill",
+      "map": "portalPayload.period",
+      "selector": "#month"
+    },
+    {
+      "key": "search-returns",
+      "action": "click",
+      "selector": "#search_btn"
+    },
+    {
+      "key": "prepare-online-gstr1",
+      "action": "click",
+      "selector": "#gstr1_prepare_online"
+    },
+    {
+      "key": "fill-b2b-invoices",
+      "action": "fill",
+      "map": "computed.tables.b2bTotal",
+      "selector": "#b2b_total_val"
+    },
+    {
+      "key": "generate-summary",
+      "action": "click",
+      "selector": "#generate_summary_btn"
+    },
+    {
+      "key": "wait-for-summary",
+      "action": "wait",
+      "timeoutMs": 60000
+    },
+    {
+      "key": "confirm-summary",
+      "action": "handoff",
+      "type": "confirm",
+      "prompt": "The summary has been generated. Please confirm it is correct before proceeding to file."
+    },
+    {
+      "key": "request-otp",
+      "action": "click",
+      "selector": "#file_with_evc"
+    },
+    {
+      "key": "submit-otp",
+      "action": "handoff",
+      "type": "otp",
+      "prompt": "An OTP has been sent to the client's registered mobile/email. Please enter it here.",
+      "selector": "#otp_field"
+    },
+    {
+      "key": "verify-and-file",
+      "action": "click",
+      "selector": "#verify_btn",
+      "confirm": "human",
+      "typed": "FILE"
+    },
+    {
+      "key": "capture-arn",
+      "action": "extract",
+      "regex": "ARN:\\s?([A-Z0-9]{15})",
+      "map": "result.arn"
+    }
+  ]
+}
