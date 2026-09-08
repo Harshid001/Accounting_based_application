@@ -99,7 +99,9 @@ export const getFirmSettings = async (): Promise<FirmSettingsAttributes> => {
       void FirmSettings.updateOne(
         { _id: FIRM_SETTINGS_ID, aiConfig: { $exists: false } },
         { $set: { aiConfig: DEFAULT_AI_CONFIG } },
-      ).exec().catch(() => {});
+      )
+        .exec()
+        .catch(() => {});
     }
     cache.set(cacheKey, normalised, 60);
     return normalised;
@@ -424,8 +426,7 @@ export const updateAiConfig = async (
     touched = true;
   }
   if (update.geminiApiKey !== undefined) {
-    ai.geminiApiKey =
-      update.geminiApiKey === null ? null : encryptSecret(update.geminiApiKey);
+    ai.geminiApiKey = update.geminiApiKey === null ? null : encryptSecret(update.geminiApiKey);
     touched = true;
   }
   if (update.geminiModel !== undefined && update.geminiModel.trim().length > 0) {
@@ -433,8 +434,7 @@ export const updateAiConfig = async (
     touched = true;
   }
   if (update.openaiApiKey !== undefined) {
-    ai.openaiApiKey =
-      update.openaiApiKey === null ? null : encryptSecret(update.openaiApiKey);
+    ai.openaiApiKey = update.openaiApiKey === null ? null : encryptSecret(update.openaiApiKey);
     touched = true;
   }
   if (update.openaiModel !== undefined && update.openaiModel.trim().length > 0) {
@@ -442,8 +442,7 @@ export const updateAiConfig = async (
     touched = true;
   }
   if (update.customApiKey !== undefined) {
-    ai.customApiKey =
-      update.customApiKey === null ? null : encryptSecret(update.customApiKey);
+    ai.customApiKey = update.customApiKey === null ? null : encryptSecret(update.customApiKey);
     touched = true;
   }
   if (update.customBaseUrl !== undefined && update.customBaseUrl.trim().length > 0) {
@@ -458,7 +457,9 @@ export const updateAiConfig = async (
   // Enabling requires a usable key for the selected provider.
   if (ai.enabled) {
     if (ai.provider === null) {
-      throw conflict('Choose Gemini, OpenAI, or Custom as the provider before enabling the copilot.');
+      throw conflict(
+        'Choose Gemini, OpenAI, or Custom as the provider before enabling the copilot.',
+      );
     }
     const hasDbKey =
       ai.provider === 'gemini'
@@ -475,7 +476,9 @@ export const updateAiConfig = async (
           : customEnvKey !== undefined;
     if (!hasDbKey && !hasEnvKey) {
       if (update.enabled === true) {
-        throw conflict('Save an API key for the selected provider before enabling the copilot.');
+        throw conflict(
+          'Save an API key for the selected provider before enabling the copilot.',
+        );
       }
       ai.enabled = false;
     }

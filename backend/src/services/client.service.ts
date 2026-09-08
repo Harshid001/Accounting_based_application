@@ -25,7 +25,6 @@ import type { AuthenticatedUser, RequestActor } from '../types/context.js';
 import type { Lean } from '../types/lean.js';
 import { buildDiff, recordAudit } from './audit.service.js';
 
-
 export const CLIENT_SORT_FIELDS = ['displayName', 'createdAt', 'status'] as const;
 
 export interface ClientListQuery {
@@ -191,7 +190,9 @@ export const getClientOrThrow = async (clientId: Types.ObjectId): Promise<Client
   return record;
 };
 
-export const getClientDetail = async (clientId: Types.ObjectId): Promise<Lean<ClientAttributes>> => {
+export const getClientDetail = async (
+  clientId: Types.ObjectId,
+): Promise<Lean<ClientAttributes>> => {
   const cacheKey = createCacheKey('client', clientId.toString());
   const cached = cache.get<Lean<ClientAttributes>>(cacheKey);
   if (cached) return cached;
@@ -401,7 +402,9 @@ export const permanentlyDeleteClient = async (
     ClientService.deleteMany({ client: clientId }).exec(),
     ComplianceItem.deleteMany({ client: clientId }).exec(),
     Task.deleteMany({ client: clientId }).exec(),
-    taskIds.length > 0 ? TaskComment.deleteMany({ task: { $in: taskIds } }).exec() : Promise.resolve(),
+    taskIds.length > 0
+      ? TaskComment.deleteMany({ task: { $in: taskIds } }).exec()
+      : Promise.resolve(),
     DocumentModel.deleteMany({ client: clientId }).exec(),
     DocumentRequest.deleteMany({ client: clientId }).exec(),
     Message.deleteMany({ client: clientId }).exec(),
@@ -467,7 +470,9 @@ export const setPinned = async (
 ): Promise<void> => {
   await User.updateOne(
     { _id: user.id },
-    pinned ? { $addToSet: { pinnedClients: clientId } } : { $pull: { pinnedClients: clientId } },
+    pinned
+      ? { $addToSet: { pinnedClients: clientId } }
+      : { $pull: { pinnedClients: clientId } },
   ).exec();
 };
 
@@ -576,7 +581,10 @@ export const submitClientOnboarding = async (
     await initialMsg.save();
   }
 
-  const admins = await User.find({ role: 'admin', status: 'active' }).select('_id').lean().exec();
+  const admins = await User.find({ role: 'admin', status: 'active' })
+    .select('_id')
+    .lean()
+    .exec();
   if (admins.length > 0) {
     const notifications = admins.map((admin) => ({
       recipient: admin._id,

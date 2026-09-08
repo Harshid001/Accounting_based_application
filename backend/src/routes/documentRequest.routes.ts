@@ -41,7 +41,11 @@ documentRequestRouter.patch(
   requireCapability('document_request:write'),
   scopeViaRequest,
   handle(
-    { params: idParam, body: updateDocumentRequestBody, rejectBodyKeys: ['status', 'clientId'] },
+    {
+      params: idParam,
+      body: updateDocumentRequestBody,
+      rejectBodyKeys: ['status', 'clientId'],
+    },
     controller.update,
   ),
 );

@@ -143,7 +143,7 @@ export const requestFilingOtp = async (
     client?.primaryContact?.phone || client?.primaryContact?.email,
   );
   const transactionId = `tx_portal_${Date.now()}_${randomBytes(4).toString('hex')}`;
-  const generatedOtp = (Math.floor(100000 + Math.random() * 900000)).toString();
+  const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
   challengeStore.set(filingIdStr, {
     filingId: filingIdStr,
@@ -202,7 +202,8 @@ export const submitReturnWithOtp = async (
 
   const isValidOtp =
     (challenge && challenge.otp === input.otp.trim() && challenge.expiresAt > now) ||
-    (isSandbox && (input.otp.trim() === '123456' || (challenge && challenge.otp === input.otp.trim())));
+    (isSandbox &&
+      (input.otp.trim() === '123456' || (challenge && challenge.otp === input.otp.trim())));
 
   if (!isValidOtp) {
     throw validationFailed(

@@ -37,8 +37,9 @@ export const sendDeadlineReminders = async (): Promise<JobOutcome> =>
 
     for (const item of items) {
       if (!item.assignedStaff) continue;
-      const offsets = (item.complianceType as unknown as { reminderOffsetsDays?: number[] })
-        .reminderOffsetsDays ?? fallbackOffsets;
+      const offsets =
+        (item.complianceType as unknown as { reminderOffsetsDays?: number[] })
+          .reminderOffsetsDays ?? fallbackOffsets;
       const daysRemaining = differenceInDays(item.dueDate, today);
       if (!offsets.includes(daysRemaining)) continue;
 

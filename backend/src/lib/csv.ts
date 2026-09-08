@@ -15,7 +15,10 @@ export const escapeCsvCell = (raw: string | number | boolean | null | undefined)
   return guarded;
 };
 
-export const buildCsv = <T>(rows: readonly T[], columns: ReadonlyArray<CsvColumn<T>>): string => {
+export const buildCsv = <T>(
+  rows: readonly T[],
+  columns: ReadonlyArray<CsvColumn<T>>,
+): string => {
   const lines: string[] = [columns.map((column) => escapeCsvCell(column.header)).join(',')];
   for (const row of rows) {
     lines.push(columns.map((column) => escapeCsvCell(column.value(row))).join(','));

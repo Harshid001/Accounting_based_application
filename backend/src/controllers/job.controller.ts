@@ -12,10 +12,7 @@ import type { jobListQuery, jobNameParam } from '../validators/user.validators.j
 type ListQuery = z.infer<typeof jobListQuery>;
 type NameParam = z.infer<typeof jobNameParam>;
 
-export const list = async (
-  input: { query: ListQuery },
-  ctx: RouteContext,
-): Promise<void> => {
+export const list = async (input: { query: ListQuery }, ctx: RouteContext): Promise<void> => {
   const page = toPageRequest(input.query.page, input.query.limit);
   const filter = input.query.jobName ? { jobName: input.query.jobName } : {};
   const [items, total] = await Promise.all([
@@ -38,10 +35,7 @@ export const list = async (
   );
 };
 
-export const run = async (
-  input: { params: NameParam },
-  ctx: RouteContext,
-): Promise<void> => {
+export const run = async (input: { params: NameParam }, ctx: RouteContext): Promise<void> => {
   const jobName = input.params.name;
   if (await jobIsLocked(jobName)) {
     throw conflict('That job is already running. Wait for it to finish, then try again.');

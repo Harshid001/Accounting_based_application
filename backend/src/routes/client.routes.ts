@@ -4,7 +4,12 @@ import { z } from 'zod';
 import * as controller from '../controllers/client.controller.js';
 import * as services from '../controllers/clientService.controller.js';
 import * as messages from '../controllers/message.controller.js';
-import { exportLimiter, mutationLimiter, readLimiter, revealLimiter } from '../middleware/rateLimit.js';
+import {
+  exportLimiter,
+  mutationLimiter,
+  readLimiter,
+  revealLimiter,
+} from '../middleware/rateLimit.js';
 import {
   requireClientScope,
   requireResolvedClientScope,
@@ -61,7 +66,10 @@ clientRouter.post(
   '/',
   mutationLimiter,
   requireCapability('client:create'),
-  handle({ body: createClientBody, rejectBodyKeys: ['archived', 'createdBy'] }, controller.create),
+  handle(
+    { body: createClientBody, rejectBodyKeys: ['archived', 'createdBy'] },
+    controller.create,
+  ),
 );
 
 clientRouter.get(
@@ -189,10 +197,7 @@ clientRouter.delete(
   mutationLimiter,
   requireCapability('message:write'),
   requireClientScope('param:id'),
-  handle(
-    { params: z.object({ id: objectId, messageId: objectId }) },
-    messages.remove,
-  ),
+  handle({ params: z.object({ id: objectId, messageId: objectId }) }, messages.remove),
 );
 
 export const clientServiceRouter: Router = Router();

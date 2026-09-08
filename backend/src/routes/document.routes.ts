@@ -37,7 +37,10 @@ documentRouter.post(
   mutationLimiter,
   requireCapability('document:write'),
   requireClientScope('body:clientId'),
-  handle({ body: finaliseBody, rejectBodyKeys: ['uploadedByRole', 'versions'] }, controller.finalise),
+  handle(
+    { body: finaliseBody, rejectBodyKeys: ['uploadedByRole', 'versions'] },
+    controller.finalise,
+  ),
 );
 
 documentRouter.get(

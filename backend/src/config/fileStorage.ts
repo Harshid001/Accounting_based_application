@@ -77,9 +77,7 @@ export const presignGet = async (
 
 export const headObject = async (storageKey: string): Promise<StoredObjectFacts | null> => {
   try {
-    const result = await s3.send(
-      new HeadObjectCommand({ Bucket: bucket, Key: storageKey }),
-    );
+    const result = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: storageKey }));
     return {
       contentType: result.ContentType,
       contentLength: result.ContentLength,
@@ -127,9 +125,13 @@ export const closeStorage = (): void => {
 };
 
 export const verifyUploadTicket = (): never => {
-  throw new Error('verifyUploadTicket is no longer needed; clients use presigned URLs directly.');
+  throw new Error(
+    'verifyUploadTicket is no longer needed; clients use presigned URLs directly.',
+  );
 };
 
 export const verifyDownloadTicket = (): never => {
-  throw new Error('verifyDownloadTicket is no longer needed; clients use presigned URLs directly.');
+  throw new Error(
+    'verifyDownloadTicket is no longer needed; clients use presigned URLs directly.',
+  );
 };

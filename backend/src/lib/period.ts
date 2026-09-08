@@ -1,10 +1,4 @@
-import {
-  addDays,
-  daysInMonth,
-  financialYearOf,
-  startOfMonth,
-  utcMidnight,
-} from './date.js';
+import { addDays, daysInMonth, financialYearOf, startOfMonth, utcMidnight } from './date.js';
 import type { Frequency, PeriodType } from './enums.js';
 
 export interface Period {

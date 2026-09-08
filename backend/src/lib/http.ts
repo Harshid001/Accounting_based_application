@@ -43,4 +43,3 @@ export const sendJsonFile = (res: Response, filename: string, data: unknown): vo
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.send(JSON.stringify(data, null, 2));
 };
-

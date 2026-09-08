@@ -12,7 +12,10 @@ import {
 } from './common.validators.js';
 
 const phone = z
-  .union([z.string().trim().regex(PHONE_PATTERN, 'Enter a 10-digit Indian mobile number.'), z.null()])
+  .union([
+    z.string().trim().regex(PHONE_PATTERN, 'Enter a 10-digit Indian mobile number.'),
+    z.null(),
+  ])
   .optional();
 
 export const updateMeBody = z.object({

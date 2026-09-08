@@ -32,7 +32,10 @@ export const contactSchema = z.object({
   role: nullableText(80),
   email: emailAddress,
   phone: z
-    .union([z.string().trim().regex(PHONE_PATTERN, 'Enter a 10-digit Indian mobile number.'), z.null()])
+    .union([
+      z.string().trim().regex(PHONE_PATTERN, 'Enter a 10-digit Indian mobile number.'),
+      z.null(),
+    ])
     .optional(),
 });
 
@@ -43,7 +46,10 @@ export const addressSchema = z.object({
   state: nullableText(80),
   pincode: z
     .union([
-      z.string().trim().regex(PINCODE_PATTERN, 'A pincode is six digits and cannot start with zero.'),
+      z
+        .string()
+        .trim()
+        .regex(PINCODE_PATTERN, 'A pincode is six digits and cannot start with zero.'),
       z.null(),
     ])
     .optional(),
@@ -185,4 +191,3 @@ export type CreateClientBody = z.infer<typeof createClientBody>;
 export type UpdateClientBody = z.infer<typeof updateClientBody>;
 export type ClientListQueryInput = z.infer<typeof clientListQuery>;
 export type PortalOnboardingBody = z.infer<typeof portalOnboardingBody>;
-

@@ -79,20 +79,27 @@ export const checkPassword = (password: string, context: string[] = []): Passwor
     };
   }
   if (password.length > MAX_PASSWORD_LENGTH) {
-    return { ok: false, message: `Keep your password under ${MAX_PASSWORD_LENGTH} characters.` };
+    return {
+      ok: false,
+      message: `Keep your password under ${MAX_PASSWORD_LENGTH} characters.`,
+    };
   }
   const lower = password.toLowerCase();
   if (COMMON_PASSWORDS.has(lower)) {
     return {
       ok: false,
-      message: 'That password appears on public breach lists. Choose something only you would write.',
+      message:
+        'That password appears on public breach lists. Choose something only you would write.',
     };
   }
   if (hasLongRun(password)) {
     return { ok: false, message: 'Avoid repeating the same character six or more times.' };
   }
   if (hasLongSequence(password)) {
-    return { ok: false, message: 'Avoid long keyboard or alphabet runs such as abcdefg or 1234567.' };
+    return {
+      ok: false,
+      message: 'Avoid long keyboard or alphabet runs such as abcdefg or 1234567.',
+    };
   }
   if (distinctCharacters(password) < 5) {
     return { ok: false, message: 'Use a wider mix of characters — this one repeats too few.' };

@@ -33,10 +33,7 @@ export interface ComplianceListQuery {
   sort?: string;
 }
 
-export const isOverdue = (item: {
-  dueDate: Date;
-  status: ComplianceStatus;
-}): boolean =>
+export const isOverdue = (item: { dueDate: Date; status: ComplianceStatus }): boolean =>
   item.dueDate.getTime() < todayIST().getTime() &&
   !CLOSED_COMPLIANCE_STATUSES.includes(item.status);
 
@@ -101,7 +98,9 @@ export const listCompliance = async (
 ): Promise<{ items: Lean<ComplianceItemAttributes>[]; total: number }> => {
   const filter = await buildComplianceFilter(user, query);
   const cacheKey = createCacheKey('compliance-list', JSON.stringify({ filter, page }));
-  const cached = cache.get<{ items: Lean<ComplianceItemAttributes>[]; total: number }>(cacheKey);
+  const cached = cache.get<{ items: Lean<ComplianceItemAttributes>[]; total: number }>(
+    cacheKey,
+  );
   if (cached) return cached;
 
   const sort = withTiebreak(
@@ -285,7 +284,9 @@ export const updateComplianceItem = async (
       entityKind: 'complianceItem',
       entityId: doc._id,
       client: doc.client,
-      summary: doc.dueDateOverridden ? 'Updated a filing, due date overridden' : 'Updated a filing',
+      summary: doc.dueDateOverridden
+        ? 'Updated a filing, due date overridden'
+        : 'Updated a filing',
       diff,
     });
   }

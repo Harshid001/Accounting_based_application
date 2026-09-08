@@ -28,7 +28,6 @@ portalRouter.get(
   handle({}, controller.listLinkedClients),
 );
 
-
 portalRouter.get(
   '/overview',
   readLimiter,
@@ -109,3 +108,49 @@ portalRouter.get(
   activeClient,
   handle({}, controller.aadhaar),
 );
+
+// ---------------------------------------------------------------------------
+// Automation Fixture Routes (for local testing without real portals)
+// ---------------------------------------------------------------------------
+
+portalRouter.get('/fixture/login', (_req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head><title>Mock Portal Login</title></head>
+      <body>
+        <h1>Login</h1>
+        <input type="password" id="password-input" placeholder="Password" />
+        <button id="login-btn" onclick="window.location.href='/api/v1/portal/fixture/form'">Login</button>
+      </body>
+    </html>
+  `);
+});
+
+portalRouter.get('/fixture/form', (_req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head><title>Mock Form</title></head>
+      <body>
+        <h1>Form</h1>
+        <input type="text" id="taxable-value" placeholder="Taxable Value" />
+        <button id="file-btn" onclick="window.location.href='/api/v1/portal/fixture/success'">FILE</button>
+      </body>
+    </html>
+  `);
+});
+
+portalRouter.get('/fixture/success', (_req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head><title>Mock Success</title></head>
+      <body>
+        <h1>Success</h1>
+        <p>Your return has been filed.</p>
+        <div>ARN: AA2707231234567</div>
+      </body>
+    </html>
+  `);
+});

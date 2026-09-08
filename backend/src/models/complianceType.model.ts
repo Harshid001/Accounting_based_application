@@ -66,7 +66,10 @@ const complianceTypeSchema = new Schema<ComplianceTypeAttributes>(
       trim: true,
       uppercase: true,
       immutable: true,
-      match: [/^[A-Z0-9_-]{2,40}$/, 'A code is uppercase letters, digits, hyphens or underscores.'],
+      match: [
+        /^[A-Z0-9_-]{2,40}$/,
+        'A code is uppercase letters, digits, hyphens or underscores.',
+      ],
     },
     category: { type: String, enum: COMPLIANCE_CATEGORIES, required: true },
     isRecurring: { type: Boolean, default: true },
@@ -85,8 +88,10 @@ const complianceTypeSchema = new Schema<ComplianceTypeAttributes>(
       default: [7, 3, 1],
       validate: {
         validator: (value: number[]) =>
-          value.length <= 6 && value.every((day) => Number.isInteger(day) && day >= 0 && day <= 90),
-        message: 'Reminder offsets are whole numbers of days between 0 and 90, at most six of them.',
+          value.length <= 6 &&
+          value.every((day) => Number.isInteger(day) && day >= 0 && day <= 90),
+        message:
+          'Reminder offsets are whole numbers of days between 0 and 90, at most six of them.',
       },
     },
     isSeeded: { type: Boolean, default: false },

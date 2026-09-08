@@ -17,7 +17,11 @@ import { betterAuth } from 'better-auth';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 
-import { checkPassword, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '../lib/passwordPolicy.js';
+import {
+  checkPassword,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+} from '../lib/passwordPolicy.js';
 import { appLink } from '../email/send.js';
 import { recordAudit } from '../services/audit.service.js';
 import { renderResetPassword } from '../email/templates/resetPassword.js';
@@ -195,9 +199,12 @@ const buildAuth = () =>
       user: {
         create: {
           before: async (user) => {
-            const normalizedEmail = typeof user.email === 'string' ? user.email.toLowerCase().trim() : '';
+            const normalizedEmail =
+              typeof user.email === 'string' ? user.email.toLowerCase().trim() : '';
             if (normalizedEmail) {
-              const existing = await getDb().collection('user').findOne({ email: normalizedEmail });
+              const existing = await getDb()
+                .collection('user')
+                .findOne({ email: normalizedEmail });
               if (existing) {
                 throw new APIError('CONFLICT', {
                   message: 'That email address is already in use.',

@@ -3,9 +3,7 @@ import { z } from 'zod';
 import { parseDateOnly } from '../lib/date.js';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../lib/pagination.js';
 
-export const objectId = z
-  .string()
-  .regex(/^[a-f\d]{24}$/i, 'This is not a valid identifier.');
+export const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'This is not a valid identifier.');
 
 export const idParam = z.object({ id: objectId });
 
@@ -16,13 +14,9 @@ export const dateOnlyString = z
 
 export const optionalDateOnly = dateOnlyString.optional();
 
-export const nullableDateOnly = z
-  .union([dateOnlyString, z.null()])
-  .optional();
+export const nullableDateOnly = z.union([dateOnlyString, z.null()]).optional();
 
-export const booleanQuery = z
-  .enum(['true', 'false'])
-  .transform((value) => value === 'true');
+export const booleanQuery = z.enum(['true', 'false']).transform((value) => value === 'true');
 
 export const optionalBooleanQuery = booleanQuery.optional();
 
@@ -39,10 +33,11 @@ export const sortParam = z
   .optional();
 
 export const trimmedString = (min: number, max: number) =>
-  z.string().trim().min(min, `Use at least ${min} character${min === 1 ? '' : 's'}.`).max(
-    max,
-    `Keep this under ${max} characters.`,
-  );
+  z
+    .string()
+    .trim()
+    .min(min, `Use at least ${min} character${min === 1 ? '' : 's'}.`)
+    .max(max, `Keep this under ${max} characters.`);
 
 export const nullableText = (max: number) =>
   z

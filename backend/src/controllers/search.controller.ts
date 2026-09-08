@@ -7,9 +7,6 @@ import type { searchQuery } from '../validators/report.validators.js';
 
 type SearchQuery = z.infer<typeof searchQuery>;
 
-export const run = async (
-  input: { query: SearchQuery },
-  ctx: RouteContext,
-): Promise<void> => {
+export const run = async (input: { query: SearchQuery }, ctx: RouteContext): Promise<void> => {
   sendData(ctx.res, await search(ctx.user, input.query.q));
 };

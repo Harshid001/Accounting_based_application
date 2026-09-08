@@ -16,11 +16,11 @@ services:
   - type: web
     name: firmdesk-api
     runtime: node
-    plan: free
+    plan: standard
     region: singapore
     branch: main
     rootDir: backend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci && npm run build && npx playwright install --with-deps chromium
     startCommand: npm run start
     healthCheckPath: /api/v1/health
     autoDeploy: true

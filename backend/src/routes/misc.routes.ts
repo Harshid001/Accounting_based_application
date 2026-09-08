@@ -78,14 +78,24 @@ userRouter.get(
   requireCapability('client:read'),
   handle({ query: pageQuery }, users.staffOptions),
 );
-userRouter.get('/', readLimiter, requireCapability('user:manage'), handle({ query: userListQuery }, users.list));
+userRouter.get(
+  '/',
+  readLimiter,
+  requireCapability('user:manage'),
+  handle({ query: userListQuery }, users.list),
+);
 userRouter.delete(
   '/unlinked',
   bulkLimiter,
   requireCapability('user:manage'),
   handle({ body: purgeUnlinkedBody }, users.purgeUnlinked),
 );
-userRouter.get('/:id', readLimiter, requireCapability('user:manage'), handle({ params: idParam }, users.detail));
+userRouter.get(
+  '/:id',
+  readLimiter,
+  requireCapability('user:manage'),
+  handle({ params: idParam }, users.detail),
+);
 userRouter.patch(
   '/:id',
   mutationLimiter,
@@ -158,7 +168,12 @@ notificationRouter.post(
 
 export const reportRouter: Router = Router();
 
-reportRouter.get('/dashboard', readLimiter, requireCapability('report:read'), handle({}, reports.dashboard));
+reportRouter.get(
+  '/dashboard',
+  readLimiter,
+  requireCapability('report:read'),
+  handle({}, reports.dashboard),
+);
 reportRouter.get(
   '/compliance',
   readLimiter,
@@ -186,7 +201,12 @@ reportRouter.get(
 
 export const settingsRouter: Router = Router();
 
-settingsRouter.get('/firm', readLimiter, requireCapability('settings:read'), handle({}, settings.read));
+settingsRouter.get(
+  '/firm',
+  readLimiter,
+  requireCapability('settings:read'),
+  handle({}, settings.read),
+);
 settingsRouter.patch(
   '/firm',
   mutationLimiter,
@@ -196,11 +216,21 @@ settingsRouter.patch(
 
 export const auditRouter: Router = Router();
 
-auditRouter.get('/', readLimiter, requireCapability('audit:read'), handle({ query: auditListQuery }, audit.list));
+auditRouter.get(
+  '/',
+  readLimiter,
+  requireCapability('audit:read'),
+  handle({ query: auditListQuery }, audit.list),
+);
 
 export const jobRouter: Router = Router();
 
-jobRouter.get('/', readLimiter, requireCapability('job:manage'), handle({ query: jobListQuery }, jobs.list));
+jobRouter.get(
+  '/',
+  readLimiter,
+  requireCapability('job:manage'),
+  handle({ query: jobListQuery }, jobs.list),
+);
 jobRouter.post(
   '/:name/run',
   bulkLimiter,
@@ -210,7 +240,12 @@ jobRouter.post(
 
 export const searchRouter: Router = Router();
 
-searchRouter.get('/', searchLimiter, requireCapability('search:run'), handle({ query: searchQuery }, search.run));
+searchRouter.get(
+  '/',
+  searchLimiter,
+  requireCapability('search:run'),
+  handle({ query: searchQuery }, search.run),
+);
 
 export const publicRouter: Router = Router();
 

@@ -223,79 +223,83 @@ const gstr3bEngine: FormEngine = (inputs, { gstin }) => {
   };
 };
 
-const itrEngine = (isCompany: boolean): FormEngine => (inputs) => {
-  const missing: string[] = [];
-  if (inputs.bankStatementCount === 0) missing.push('Bank statement for the full financial year');
-  if (inputs.incomeProofCount === 0) {
-    missing.push('Income proofs (Form 16, interest certificates, rent receipts)');
-  }
-  if (inputs.expenseDocumentCount === 0 && inputs.taxDocumentCount === 0) {
-    missing.push('Investment / deduction proofs (80C, 80D etc.)');
-  }
+const itrEngine =
+  (isCompany: boolean): FormEngine =>
+  (inputs) => {
+    const missing: string[] = [];
+    if (inputs.bankStatementCount === 0)
+      missing.push('Bank statement for the full financial year');
+    if (inputs.incomeProofCount === 0) {
+      missing.push('Income proofs (Form 16, interest certificates, rent receipts)');
+    }
+    if (inputs.expenseDocumentCount === 0 && inputs.taxDocumentCount === 0) {
+      missing.push('Investment / deduction proofs (80C, 80D etc.)');
+    }
 
-  const grossReceipts = roundTo2(inputs.salesTotal + inputs.incomeProofCount * 50000);
-  const businessIncome = roundTo2(inputs.salesTotal * 0.88);
-  const otherIncome = roundTo2(inputs.incomeProofCount * 50000);
-  const deductions80C = roundTo2(Math.min(150000, inputs.expenseDocumentCount * 25000));
-  const grossTotalIncome = roundTo2(businessIncome + otherIncome);
-  const taxableIncome = Math.max(0, roundTo2(grossTotalIncome - deductions80C));
+    const grossReceipts = roundTo2(inputs.salesTotal + inputs.incomeProofCount * 50000);
+    const businessIncome = roundTo2(inputs.salesTotal * 0.88);
+    const otherIncome = roundTo2(inputs.incomeProofCount * 50000);
+    const deductions80C = roundTo2(Math.min(150000, inputs.expenseDocumentCount * 25000));
+    const grossTotalIncome = roundTo2(businessIncome + otherIncome);
+    const taxableIncome = Math.max(0, roundTo2(grossTotalIncome - deductions80C));
 
-  const slabs = isCompany
-    ? [{ upto: Number.POSITIVE_INFINITY, rate: 0.26 }]
-    : [
-        { upto: 400000, rate: 0 },
-        { upto: 800000, rate: 0.05 },
-        { upto: 1200000, rate: 0.1 },
-        { upto: 1600000, rate: 0.15 },
-        { upto: 2000000, rate: 0.2 },
-        { upto: 2400000, rate: 0.25 },
-        { upto: Number.POSITIVE_INFINITY, rate: 0.3 },
-      ];
-  let tax = 0;
-  let lastUpto = 0;
-  for (const slab of slabs) {
-    const taxableHere = Math.min(taxableIncome, slab.upto) - lastUpto;
-    if (taxableHere > 0) tax += taxableHere * slab.rate;
-    lastUpto = slab.upto;
-    if (taxableIncome <= slab.upto) break;
-  }
-  tax = roundTo2(tax);
-  const cess = roundTo2(tax * 0.04);
-  const totalTax = roundTo2(tax + cess);
+    const slabs = isCompany
+      ? [{ upto: Number.POSITIVE_INFINITY, rate: 0.26 }]
+      : [
+          { upto: 400000, rate: 0 },
+          { upto: 800000, rate: 0.05 },
+          { upto: 1200000, rate: 0.1 },
+          { upto: 1600000, rate: 0.15 },
+          { upto: 2000000, rate: 0.2 },
+          { upto: 2400000, rate: 0.25 },
+          { upto: Number.POSITIVE_INFINITY, rate: 0.3 },
+        ];
+    let tax = 0;
+    let lastUpto = 0;
+    for (const slab of slabs) {
+      const taxableHere = Math.min(taxableIncome, slab.upto) - lastUpto;
+      if (taxableHere > 0) tax += taxableHere * slab.rate;
+      lastUpto = slab.upto;
+      if (taxableIncome <= slab.upto) break;
+    }
+    tax = roundTo2(tax);
+    const cess = roundTo2(tax * 0.04);
+    const totalTax = roundTo2(tax + cess);
 
-  return {
-    summary: {
-      grossReceipts,
-      grossTotalIncome,
-      deductionsClaimed: deductions80C,
-      taxableIncome,
-      taxBeforeCess: tax,
-      healthAndEducationCess: cess,
-      totalTaxLiability: totalTax,
-      regime: isCompany ? 'Corporate slab (flat 26%)' : 'New regime slabs',
-    },
-    computed: {
-      businessIncome,
-      otherIncome,
-      formRecommended: isCompany ? 'ITR-6' : 'ITR-1 (Sahaj) or ITR-4 (Presumptive)',
-    },
-    payload: {
-      form: isCompany ? 'ITR-CO' : 'ITR-IND',
-      grossTotalIncome,
-      deductions: { section80C: deductions80C },
-      taxableIncome,
-      totalTaxLiability: totalTax,
-    },
-    missingInputs: missing,
+    return {
+      summary: {
+        grossReceipts,
+        grossTotalIncome,
+        deductionsClaimed: deductions80C,
+        taxableIncome,
+        taxBeforeCess: tax,
+        healthAndEducationCess: cess,
+        totalTaxLiability: totalTax,
+        regime: isCompany ? 'Corporate slab (flat 26%)' : 'New regime slabs',
+      },
+      computed: {
+        businessIncome,
+        otherIncome,
+        formRecommended: isCompany ? 'ITR-6' : 'ITR-1 (Sahaj) or ITR-4 (Presumptive)',
+      },
+      payload: {
+        form: isCompany ? 'ITR-CO' : 'ITR-IND',
+        grossTotalIncome,
+        deductions: { section80C: deductions80C },
+        taxableIncome,
+        totalTaxLiability: totalTax,
+      },
+      missingInputs: missing,
+    };
   };
-};
 
 const advanceTaxEngine: FormEngine = (inputs) => {
   const missing: string[] = [];
   if (inputs.bankStatementCount === 0) {
     missing.push('Bank statement to estimate income and TDS credits');
   }
-  if (inputs.taxDocumentCount === 0) missing.push('Form 26AS / TDS certificates for credit set-off');
+  if (inputs.taxDocumentCount === 0)
+    missing.push('Form 26AS / TDS certificates for credit set-off');
 
   const estimatedIncome = roundTo2(inputs.salesTotal * 0.9 + inputs.incomeProofCount * 50000);
   const estimatedTax = roundTo2(estimatedIncome * 0.12);
@@ -323,48 +327,55 @@ const advanceTaxEngine: FormEngine = (inputs) => {
   };
 };
 
-const tdsReturnEngine = (isSalary: boolean): FormEngine => (inputs) => {
-  const missing: string[] = [];
-  if (inputs.bankStatementCount === 0) {
-    missing.push('Bank statement showing TDS deposit challans (ITNS-281)');
-  }
-  if (inputs.taxDocumentCount === 0) {
-    missing.push(
-      isSalary
-        ? 'Salary register / payroll data for all deductees'
-        : 'Contract & professional payment register for all deductees',
+const tdsReturnEngine =
+  (isSalary: boolean): FormEngine =>
+  (inputs) => {
+    const missing: string[] = [];
+    if (inputs.bankStatementCount === 0) {
+      missing.push('Bank statement showing TDS deposit challans (ITNS-281)');
+    }
+    if (inputs.taxDocumentCount === 0) {
+      missing.push(
+        isSalary
+          ? 'Salary register / payroll data for all deductees'
+          : 'Contract & professional payment register for all deductees',
+      );
+    }
+
+    const deducteeCount = Math.max(
+      inputs.taxDocumentCount,
+      isSalary ? 12 : inputs.purchaseInvoiceCount,
     );
-  }
+    const totalPaid = roundTo2(inputs.salesTotal * 0.4 + deducteeCount * 20000);
+    const tdsDeducted = roundTo2(totalPaid * (isSalary ? 0.05 : 0.1));
 
-  const deducteeCount = Math.max(inputs.taxDocumentCount, isSalary ? 12 : inputs.purchaseInvoiceCount);
-  const totalPaid = roundTo2(inputs.salesTotal * 0.4 + deducteeCount * 20000);
-  const tdsDeducted = roundTo2(totalPaid * (isSalary ? 0.05 : 0.1));
-
-  return {
-    summary: {
-      deductees: deducteeCount,
-      totalPayments: totalPaid,
-      tdsDeducted,
-      formDue: 'Quarterly return (31 Jul / 31 Oct / 31 Jan / 31 May)',
-    },
-    computed: {
-      challanDetails: { challanCount: inputs.bankStatementCount, form: 'ITNS-281' },
-      deducteeEntries: deducteeCount,
-    },
-    payload: {
-      form: isSalary ? '24Q' : '26Q',
-      deducteeCount,
-      totalTdsDeposited: tdsDeducted,
-      totalPayments: totalPaid,
-    },
-    missingInputs: missing,
+    return {
+      summary: {
+        deductees: deducteeCount,
+        totalPayments: totalPaid,
+        tdsDeducted,
+        formDue: 'Quarterly return (31 Jul / 31 Oct / 31 Jan / 31 May)',
+      },
+      computed: {
+        challanDetails: { challanCount: inputs.bankStatementCount, form: 'ITNS-281' },
+        deducteeEntries: deducteeCount,
+      },
+      payload: {
+        form: isSalary ? '24Q' : '26Q',
+        deducteeCount,
+        totalTdsDeposited: tdsDeducted,
+        totalPayments: totalPaid,
+      },
+      missingInputs: missing,
+    };
   };
-};
 
 const rocEngine: FormEngine = (inputs) => {
   const missing: string[] = [];
-  if (inputs.bankStatementCount === 0) missing.push('Audited financial statements (Balance Sheet + P&L)');
-  if (inputs.auditDocumentCount === 0) missing.push('Auditor report and board resolutions for the AGM');
+  if (inputs.bankStatementCount === 0)
+    missing.push('Audited financial statements (Balance Sheet + P&L)');
+  if (inputs.auditDocumentCount === 0)
+    missing.push('Auditor report and board resolutions for the AGM');
 
   const revenue = roundTo2(inputs.salesTotal);
   return {
@@ -400,7 +411,8 @@ const engineFor = (code: string): FormEngine | null => {
         return {
           summary: {
             ...monthly.summary,
-            annualNote: 'GSTR-9 consolidates all monthly GSTR-1 and GSTR-3B filings for the financial year.',
+            annualNote:
+              'GSTR-9 consolidates all monthly GSTR-1 and GSTR-3B filings for the financial year.',
           },
           computed: monthly.computed,
           payload: { ...monthly.payload, form: 'GSTR9' },
@@ -420,8 +432,7 @@ const engineFor = (code: string): FormEngine | null => {
         },
         computed: { taxRate: '1% of turnover' },
         payload: { form: 'CMP08', turnoverBasedTax: roundTo2(inputs.salesTotal * 0.01) },
-        missingInputs:
-          inputs.salesInvoiceCount === 0 ? ['Sales turnover for the quarter'] : [],
+        missingInputs: inputs.salesInvoiceCount === 0 ? ['Sales turnover for the quarter'] : [],
       });
     case 'ITR-IND':
       return itrEngine(false);
@@ -474,7 +485,8 @@ const gstGuideSteps = (
     done: false,
   },
   {
-    title: netTaxPayable === 0 ? 'Review the summary and submit' : 'Pay the tax before submitting',
+    title:
+      netTaxPayable === 0 ? 'Review the summary and submit' : 'Pay the tax before submitting',
     detail:
       netTaxPayable === 0
         ? 'No net tax is payable for this period. Skip payment and go straight to filing.'
@@ -739,16 +751,25 @@ export const prepareFiling = async (
     .exec();
   if (!item) throw notFound('filing');
 
-  const type = item.complianceType as unknown as
-    | { _id: Types.ObjectId; code: string; name: string; category: string }
-    | null;
-  const client = item.client as unknown as
-    | { _id: Types.ObjectId; gstin: string | null; pan: string | null; clientType: string }
-    | null;
+  const type = item.complianceType as unknown as {
+    _id: Types.ObjectId;
+    code: string;
+    name: string;
+    category: string;
+  } | null;
+  const client = item.client as unknown as {
+    _id: Types.ObjectId;
+    gstin: string | null;
+    pan: string | null;
+    clientType: string;
+  } | null;
   if (!type || !client) throw notFound('filing');
 
   if (user.role !== 'admin') {
-    const clientRecord = await Client.findById(client._id).select('assignedStaff').lean().exec();
+    const clientRecord = await Client.findById(client._id)
+      .select('assignedStaff')
+      .lean()
+      .exec();
     if (
       !clientRecord ||
       !clientRecord.assignedStaff.some((id) => id.toString() === user.id.toString())
@@ -772,7 +793,11 @@ export const prepareFiling = async (
 
   const existing = await FilingPreparation.findOne({ complianceItem: filingId }).exec();
   const computedStatus =
-    missing.length > 0 ? 'draft' : existing !== null && existing.status === 'locked' ? 'locked' : 'ready';
+    missing.length > 0
+      ? 'draft'
+      : existing !== null && existing.status === 'locked'
+        ? 'locked'
+        : 'ready';
 
   const doc = await FilingPreparation.findOneAndUpdate(
     { complianceItem: filingId },
@@ -849,7 +874,10 @@ export const updateGuideStep = async (
   const step = doc.guideSteps[patch.stepIndex];
   if (!step) {
     throw validationFailed('That guide step does not exist.', [
-      { field: 'stepIndex', message: `There are ${doc.guideSteps.length} steps on this filing.` },
+      {
+        field: 'stepIndex',
+        message: `There are ${doc.guideSteps.length} steps on this filing.`,
+      },
     ]);
   }
   const before = step.done;

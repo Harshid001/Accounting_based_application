@@ -115,14 +115,7 @@ const sortGeminiModels = (models: DetectedAiModel[]): DetectedAiModel[] => {
 };
 
 const sortOpenAiModels = (models: DetectedAiModel[]): DetectedAiModel[] => {
-  const priorityOrder = [
-    'gpt-4o-mini',
-    'gpt-4o',
-    'o3-mini',
-    'o1',
-    'o1-mini',
-    'gpt-4-turbo',
-  ];
+  const priorityOrder = ['gpt-4o-mini', 'gpt-4o', 'o3-mini', 'o1', 'o1-mini', 'gpt-4-turbo'];
   return [...models].sort((a, b) => {
     const idxA = priorityOrder.indexOf(a.id);
     const idxB = priorityOrder.indexOf(b.id);
@@ -161,7 +154,8 @@ export const detectModels = async (
         const rawName = m.name ?? '';
         const id = rawName.replace(/^models\//, '');
         if (!id.toLowerCase().includes('gemini')) continue;
-        if (id.toLowerCase().includes('embedding') || id.toLowerCase().includes('aqa')) continue;
+        if (id.toLowerCase().includes('embedding') || id.toLowerCase().includes('aqa'))
+          continue;
         if (m.supportedActions && !m.supportedActions.includes('generateContent')) continue;
 
         discovered.push({
@@ -267,7 +261,8 @@ export const detectModels = async (
       { event: 'ai.detect_models_failed', provider, err: error },
       'Failed to fetch live model list from provider API',
     );
-    const message = error instanceof Error ? error.message : 'Failed to query provider models API';
+    const message =
+      error instanceof Error ? error.message : 'Failed to query provider models API';
     return {
       provider,
       detected: false,

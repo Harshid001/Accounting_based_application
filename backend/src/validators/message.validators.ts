@@ -1,7 +1,12 @@
 import { z } from 'zod';
 
 import { CONTEXT_REF_KINDS } from '../lib/enums.js';
-import { objectId, optionalBooleanQuery, pageQuery, trimmedString } from './common.validators.js';
+import {
+  objectId,
+  optionalBooleanQuery,
+  pageQuery,
+  trimmedString,
+} from './common.validators.js';
 
 export const postMessageBody = z.object({
   body: trimmedString(1, 8000),

@@ -51,7 +51,10 @@ export const bootstrapAdmin = async (): Promise<{ created: boolean }> => {
   try {
     await getAuth().api.signUpEmail({ body: { email, password, name } });
   } catch (error) {
-    logger.error({ event: 'bootstrap.failed', err: error }, 'the first admin could not be created');
+    logger.error(
+      { event: 'bootstrap.failed', err: error },
+      'the first admin could not be created',
+    );
     return { created: false };
   }
 
@@ -61,7 +64,10 @@ export const bootstrapAdmin = async (): Promise<{ created: boolean }> => {
   ).exec();
 
   if (result.modifiedCount === 0 && result.matchedCount === 0) {
-    logger.error({ event: 'bootstrap.missing' }, 'the bootstrap account vanished after creation');
+    logger.error(
+      { event: 'bootstrap.missing' },
+      'the bootstrap account vanished after creation',
+    );
     return { created: false };
   }
 

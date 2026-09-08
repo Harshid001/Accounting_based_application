@@ -75,10 +75,7 @@ export const finalise = async (
   sendCreated(ctx.res, serialiseDocumentDetail(document));
 };
 
-export const list = async (
-  input: { query: ListQuery },
-  ctx: RouteContext,
-): Promise<void> => {
+export const list = async (input: { query: ListQuery }, ctx: RouteContext): Promise<void> => {
   const page = toPageRequest(input.query.page, input.query.limit);
   const { items, total } = await listDocuments(ctx.user, input.query, page);
   sendList(ctx.res, items.map(serialiseDocumentRow), buildPageMeta(total, page));

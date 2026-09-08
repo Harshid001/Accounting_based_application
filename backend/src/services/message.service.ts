@@ -68,7 +68,10 @@ export const postMessage = async (
     }).exec();
     if (count !== new Set(attachmentIds).size) {
       throw validationFailed('Every attachment must belong to this client.', [
-        { field: 'attachmentIds', message: 'One of these documents belongs to another client.' },
+        {
+          field: 'attachmentIds',
+          message: 'One of these documents belongs to another client.',
+        },
       ]);
     }
   }
@@ -92,7 +95,10 @@ export const postMessage = async (
     summary: 'Posted a message on the client thread',
   });
 
-  const client = await Client.findById(clientId).select('displayName assignedStaff').lean().exec();
+  const client = await Client.findById(clientId)
+    .select('displayName assignedStaff')
+    .lean()
+    .exec();
   const preview = input.body.slice(0, 160);
 
   if (user.role === 'client') {
@@ -106,7 +112,10 @@ export const postMessage = async (
         entity: { kind: 'message', id: created._id },
       });
     }
-    const admins = await User.find({ role: 'admin', status: 'active' }).select('_id').lean().exec();
+    const admins = await User.find({ role: 'admin', status: 'active' })
+      .select('_id')
+      .lean()
+      .exec();
     for (const admin of admins) {
       await createNotification({
         recipient: admin._id,
@@ -170,7 +179,8 @@ export interface ThreadSummary {
 
 export const listThreads = async (user: AuthenticatedUser): Promise<ThreadSummary[]> => {
   const scoped = await accessibleClientIds(user);
-  const clientFilter = scoped === null ? { archived: false } : { _id: { $in: scoped }, archived: false };
+  const clientFilter =
+    scoped === null ? { archived: false } : { _id: { $in: scoped }, archived: false };
   const clients = await Client.find(clientFilter).select('displayName').lean().exec();
   if (clients.length === 0) return [];
 

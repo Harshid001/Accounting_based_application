@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, ExternalLink, Lock, Send, Wand2 } from 'lucide-react';
+import { Bot, Download, ExternalLink, Lock, Send, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { updateComplianceItem } from '@/api/compliance.api';
@@ -23,6 +23,8 @@ import { Input } from '@/components/ui/input';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/context/ToastContext';
+import { startAutomationRun } from '@/api/automation.api';
+import { AutomationRunner } from './AutomationRunner';
 import type { FilingPreparationView } from '@/types/models';
 
 export interface GuidedFilingProps {
@@ -66,6 +68,7 @@ export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFi
   const [customArn, setCustomArn] = useState<string | null>(null);
   const [otpValue, setOtpValue] = useState('');
   const [gatewayChallenge, setGatewayChallenge] = useState<GatewayOtpResponse | null>(null);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const arn = customArn ?? acknowledgementRef ?? '';
 
   const preparation = useQuery({
@@ -164,6 +167,17 @@ export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFi
     onError: (err: unknown) => {
       errorToast(err, 'Portal filing submission failed');
     },
+  });
+
+  const startAutomationMutation = useMutation({
+    mutationFn: () => startAutomationRun(filingId, 'recipe'),
+    onSuccess: (run) => {
+      setActiveRunId(run.id);
+      success('Automation started', 'The portal pilot is taking control of the browser.');
+    },
+    onError: (err: unknown) => {
+      errorToast(err, 'Could not start browser automation');
+    }
   });
 
   const data = preparation.data;
@@ -346,6 +360,38 @@ export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFi
                 </li>
               ))}
             </ol>
+          </div>
+
+          <div className="rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--fd-text-secondary)]">
+                Automated Run
+              </span>
+              <Badge tone="accent">Beta</Badge>
+            </div>
+            <p className="text-xs text-[var(--fd-text-secondary)]">
+              Let the copilot take over. It will launch a secure browser, navigate to the portal, and execute the steps automatically. You'll watch a live feed and provide OTPs when prompted.
+            </p>
+            {activeRunId ? (
+              <div className="mt-4">
+                <AutomationRunner runId={activeRunId} onDone={() => setActiveRunId(null)} />
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                iconLeft={<Bot size={14} aria-hidden="true" />}
+                loading={startAutomationMutation.isPending}
+                loadingLabel="Starting browser..."
+                disabled={!canEdit || data.missingInputs.length > 0 || !!acknowledgementRef || startAutomationMutation.isPending}
+                onClick={() => {
+                  startAutomationMutation.mutate();
+                }}
+              >
+                Run in browser
+              </Button>
+            )}
           </div>
 
           <div className="rounded-lg border border-[var(--fd-accent)]/30 bg-[var(--fd-surface-2)] p-3.5 space-y-3">

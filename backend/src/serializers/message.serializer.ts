@@ -33,10 +33,7 @@ const attachmentView = (value: unknown): MessageAttachmentView | null => {
   };
 };
 
-export const serialiseMessage = (
-  message: MessageRecord,
-  viewerId: string,
-): MessageView => ({
+export const serialiseMessage = (message: MessageRecord, viewerId: string): MessageView => ({
   id: message._id.toString(),
   body: message.body,
   author: personRef(message.author),

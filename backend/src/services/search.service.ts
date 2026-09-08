@@ -29,10 +29,7 @@ const named = (value: unknown, key: string): string | null => {
   return typeof candidate === 'string' ? candidate : null;
 };
 
-export const search = async (
-  user: AuthenticatedUser,
-  term: string,
-): Promise<SearchResults> => {
+export const search = async (user: AuthenticatedUser, term: string): Promise<SearchResults> => {
   const trimmed = term.trim();
   if (trimmed.length < 2) {
     return { clients: [], tasks: [], compliance: [], documents: [] };
@@ -40,12 +37,18 @@ export const search = async (
   const pattern = new RegExp(escapeRegex(trimmed), 'i');
   const scoped = await accessibleClientIds(user);
   const clientScope = scoped === null ? {} : { client: { $in: scoped } };
-  const clientFilter = scoped === null ? { archived: false } : { _id: { $in: scoped }, archived: false };
+  const clientFilter =
+    scoped === null ? { archived: false } : { _id: { $in: scoped }, archived: false };
 
   const [clients, tasks, compliance, documents] = await Promise.all([
     Client.find({
       ...clientFilter,
-      $or: [{ displayName: pattern }, { legalName: pattern }, { pan: pattern }, { gstin: pattern }],
+      $or: [
+        { displayName: pattern },
+        { legalName: pattern },
+        { pan: pattern },
+        { gstin: pattern },
+      ],
     })
       .select('displayName clientType pan gstin')
       .limit(PER_KIND)

@@ -19,10 +19,7 @@ import type {
 
 type ListQuery = z.infer<typeof complianceTypeListQuery>;
 
-export const list = async (
-  input: { query: ListQuery },
-  ctx: RouteContext,
-): Promise<void> => {
+export const list = async (input: { query: ListQuery }, ctx: RouteContext): Promise<void> => {
   const items = await listComplianceTypes(input.query);
   sendData(ctx.res, items.map(serialiseComplianceType));
 };

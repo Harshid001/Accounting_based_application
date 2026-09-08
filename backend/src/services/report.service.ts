@@ -80,8 +80,7 @@ export const complianceReport = async (
   };
 
   const rows = items.map((item) => {
-    const isOverdue =
-      item.dueDate < today && !CLOSED_COMPLIANCE_STATUSES.includes(item.status);
+    const isOverdue = item.dueDate < today && !CLOSED_COMPLIANCE_STATUSES.includes(item.status);
     totals[item.status] += 1;
     if (isOverdue) totals.overdue += 1;
     return {
@@ -298,9 +297,16 @@ export const dashboardSummary = async (user: AuthenticatedUser): Promise<Dashboa
     openRequests,
     staff,
   ] = await Promise.all([
-    Client.countDocuments(scoped === null ? { archived: false } : { _id: { $in: scoped }, archived: false }).exec(),
+    Client.countDocuments(
+      scoped === null ? { archived: false } : { _id: { $in: scoped }, archived: false },
+    ).exec(),
     Task.aggregate<{ _id: string; count: number }>([
-      { $match: scoped === null ? {} : { $or: [{ client: { $in: scoped } }, { client: null, assignee: user.id }] } },
+      {
+        $match:
+          scoped === null
+            ? {}
+            : { $or: [{ client: { $in: scoped } }, { client: null, assignee: user.id }] },
+      },
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]).exec(),
     ComplianceItem.countDocuments(dueWithin(7)).exec(),

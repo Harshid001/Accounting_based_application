@@ -669,3 +669,28 @@ export interface PortalOnboardingResult {
   clientId: string;
 }
 
+export interface AutomationRunView {
+  id: string;
+  clientId: string;
+  complianceItemId: string;
+  portal: string;
+  form: string;
+  mode: string;
+  status: string;
+  stepsCompleted: number;
+  totalSteps: number;
+  result: Record<string, string | null>;
+  error: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+  steps: Array<{
+    key: string;
+    label: string;
+    status: string;
+    startedAt: string | null;
+    finishedAt: string | null;
+    hasScreenshot: boolean;
+    error: string | null;
+  }>;
+}
+

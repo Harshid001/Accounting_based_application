@@ -33,10 +33,18 @@ export const createNotification = async (input: CreateNotificationInput): Promis
       read: false,
     });
   } catch (error) {
-    if (error !== null && typeof error === 'object' && 'code' in error && error.code === 11000) {
+    if (
+      error !== null &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 11000
+    ) {
       return;
     }
-    logger.error({ event: 'notification.failed', err: error }, 'notification could not be stored');
+    logger.error(
+      { event: 'notification.failed', err: error },
+      'notification could not be stored',
+    );
   }
 };
 
@@ -52,7 +60,11 @@ export const notifyLinkedClientUsers = async (
   clientId: Types.ObjectId,
   input: Omit<CreateNotificationInput, 'recipient'>,
 ): Promise<void> => {
-  const recipients = await User.find({ role: 'client', linkedClients: clientId, status: 'active' })
+  const recipients = await User.find({
+    role: 'client',
+    linkedClients: clientId,
+    status: 'active',
+  })
     .select('_id')
     .lean()
     .exec();
@@ -88,7 +100,11 @@ export const unreadCounts = async (
 ): Promise<{ notifications: number; messages: number }> => {
   const messageFilter =
     user.role === 'client'
-      ? { client: { $in: user.linkedClients }, readBy: { $ne: user.id }, author: { $ne: user.id } }
+      ? {
+          client: { $in: user.linkedClients },
+          readBy: { $ne: user.id },
+          author: { $ne: user.id },
+        }
       : { readBy: { $ne: user.id }, author: { $ne: user.id } };
 
   const [notifications, messages] = await Promise.all([

@@ -118,7 +118,9 @@ export const planFromClientServices = async (
         clientName: client.displayName,
         complianceTypeName: label,
         periodLabel: '—',
-        reason: type.active ? 'the catalogue entry does not recur' : 'the catalogue entry is inactive',
+        reason: type.active
+          ? 'the catalogue entry does not recur'
+          : 'the catalogue entry is inactive',
       });
       continue;
     }
@@ -183,7 +185,9 @@ export const planBulk = async (input: BulkPlanInput): Promise<GenerationPlan> =>
     .select('client assignedStaff frequency startDate endDate active')
     .lean()
     .exec();
-  const serviceByClient = new Map(services.map((service) => [service.client.toString(), service]));
+  const serviceByClient = new Map(
+    services.map((service) => [service.client.toString(), service]),
+  );
 
   const taken = await existingKeys(
     clients.map((client) => client._id),
@@ -278,7 +282,12 @@ export const commitPlan = async (
         });
       }
     } catch (error) {
-      if (error !== null && typeof error === 'object' && 'code' in error && error.code === 11000) {
+      if (
+        error !== null &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 11000
+      ) {
         skipped += 1;
         continue;
       }
@@ -300,7 +309,10 @@ export const commitPlan = async (
 const materialiseChecklist = async (
   complianceItemId: Types.ObjectId,
   planned: PlannedItem,
-  cache: Map<string, Array<{ title: string; documentType: string; description?: string | null }>>,
+  cache: Map<
+    string,
+    Array<{ title: string; documentType: string; description?: string | null }>
+  >,
   actor: RequestActor,
 ): Promise<number> => {
   const key = planned.complianceTypeId.toString();

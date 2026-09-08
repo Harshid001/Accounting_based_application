@@ -98,7 +98,10 @@ export const handle = <S extends RouteSchemas>(
         } as ValidatedInput<S>;
 
         if (errors.length > 0) {
-          throw validationFailed('Some fields need attention before this can be saved.', errors);
+          throw validationFailed(
+            'Some fields need attention before this can be saved.',
+            errors,
+          );
         }
 
         const actor = req.actor;

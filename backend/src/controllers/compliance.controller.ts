@@ -39,10 +39,7 @@ import type { z } from 'zod';
 
 type ListQuery = z.infer<typeof complianceListQuery>;
 
-export const list = async (
-  input: { query: ListQuery },
-  ctx: RouteContext,
-): Promise<void> => {
+export const list = async (input: { query: ListQuery }, ctx: RouteContext): Promise<void> => {
   const page = toPageRequest(input.query.page, input.query.limit);
   const { items, total } = await listCompliance(ctx.user, input.query, page);
   const progress = await requestProgressFor(items.map((item) => item._id));
@@ -164,7 +161,9 @@ export const exportCsv = async (
 ): Promise<void> => {
   const rows = await allComplianceInScope(ctx.user, input.query);
   const progress = await requestProgressFor(rows.map((row) => row._id));
-  const serialised = rows.map((row) => serialiseComplianceRow(row, progress.get(row._id.toString())));
+  const serialised = rows.map((row) =>
+    serialiseComplianceRow(row, progress.get(row._id.toString())),
+  );
   const csv = buildCsv(serialised, [
     { header: 'Client', value: (row) => row.client?.name ?? '' },
     { header: 'Filing', value: (row) => row.complianceType?.name ?? '' },

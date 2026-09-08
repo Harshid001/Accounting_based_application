@@ -137,7 +137,10 @@ const clientSchema = new Schema<ClientAttributes>(
       default: null,
       uppercase: true,
       trim: true,
-      validate: patternValidator(GSTIN_PATTERN, 'A GSTIN is 15 characters, such as 27ABCDE1234F1Z5.'),
+      validate: patternValidator(
+        GSTIN_PATTERN,
+        'A GSTIN is 15 characters, such as 27ABCDE1234F1Z5.',
+      ),
     },
     tan: {
       type: String,
@@ -205,12 +208,18 @@ clientSchema.pre('validate', function preValidate() {
 
 clientSchema.index({ archived: 1, status: 1, displayName: 1 });
 clientSchema.index({ assignedStaff: 1, archived: 1 });
-clientSchema.index({ pan: 1 }, { unique: true, partialFilterExpression: { pan: { $type: 'string' } } });
+clientSchema.index(
+  { pan: 1 },
+  { unique: true, partialFilterExpression: { pan: { $type: 'string' } } },
+);
 clientSchema.index(
   { gstin: 1 },
   { unique: true, partialFilterExpression: { gstin: { $type: 'string' } } },
 );
-clientSchema.index({ cin: 1 }, { unique: true, partialFilterExpression: { cin: { $type: 'string' } } });
+clientSchema.index(
+  { cin: 1 },
+  { unique: true, partialFilterExpression: { cin: { $type: 'string' } } },
+);
 clientSchema.index(
   { displayName: 'text', legalName: 'text', pan: 'text', gstin: 'text' },
   { name: 'client_search', weights: { displayName: 10, legalName: 5, pan: 3, gstin: 3 } },

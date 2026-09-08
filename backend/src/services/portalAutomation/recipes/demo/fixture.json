@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "portal": "gst",
+  "form": "FIXTURE",
+  "steps": [
+    {
+      "key": "login-navigate",
+      "action": "navigate",
+      "url": "http://localhost:4000/api/v1/portal/fixture/login"
+    },
+    {
+      "key": "login-password",
+      "action": "handoff",
+      "type": "password",
+      "selector": "#password-input"
+    },
+    {
+      "key": "login-submit",
+      "action": "click",
+      "selector": "#login-btn"
+    },
+    {
+      "key": "fill-values",
+      "action": "fill",
+      "map": "computed.section3A.taxableValue",
+      "selector": "#taxable-value"
+    },
+    {
+      "key": "confirm-file",
+      "action": "click",
+      "selector": "#file-btn",
+      "confirm": "human",
+      "typed": "FILE"
+    },
+    {
+      "key": "capture-arn",
+      "action": "extract",
+      "regex": "ARN:\\s?(AA\\d{13})",
+      "map": "result.arn"
+    }
+  ]
+}

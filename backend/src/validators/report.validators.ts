@@ -45,7 +45,13 @@ export const firmSettingsBody = z.object({
         city: z.union([z.string().trim().max(80), z.null()]).optional(),
         state: z.union([z.string().trim().max(80), z.null()]).optional(),
         pincode: z
-          .union([z.string().trim().regex(/^[1-9][0-9]{5}$/, 'A pincode is six digits.'), z.null()])
+          .union([
+            z
+              .string()
+              .trim()
+              .regex(/^[1-9][0-9]{5}$/, 'A pincode is six digits.'),
+            z.null(),
+          ])
           .optional(),
       }),
       z.null(),

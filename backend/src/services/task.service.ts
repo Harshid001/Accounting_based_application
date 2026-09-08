@@ -188,7 +188,10 @@ const assertBlockersBelong = async (
   }).exec();
   if (count !== new Set(blockedBy).size) {
     throw validationFailed('All blocker tasks must belong to the same client.', [
-      { field: 'blockedBy', message: 'A dependency belongs to another client or does not exist.' },
+      {
+        field: 'blockedBy',
+        message: 'A dependency belongs to another client or does not exist.',
+      },
     ]);
   }
 };
@@ -206,7 +209,10 @@ const assertComplianceItemBelongs = async (
   const exists = await ComplianceItem.exists({ _id: complianceItemId, client: clientId });
   if (!exists) {
     throw validationFailed('The compliance filing must belong to this client.', [
-      { field: 'complianceItemId', message: 'This filing does not belong to the selected client.' },
+      {
+        field: 'complianceItemId',
+        message: 'This filing does not belong to the selected client.',
+      },
     ]);
   }
 };
@@ -239,7 +245,9 @@ export const createTask = async (
       { field: 'title', message: 'Give the task a title the client can read.' },
     ]);
   }
-  const clientId = payload.clientId ? new (await import('mongoose')).Types.ObjectId(payload.clientId) : null;
+  const clientId = payload.clientId
+    ? new (await import('mongoose')).Types.ObjectId(payload.clientId)
+    : null;
   await assertAssigneeAllowed(user, clientId, payload.assigneeId);
   await assertAttachmentsBelong(clientId, payload.attachments ?? []);
   await assertBlockersBelong(clientId, payload.blockedBy ?? []);
@@ -331,7 +339,8 @@ export const updateTask = async (
     await assertBlockersBelong(doc.client ?? null, payload.blockedBy);
     await assertNoCycle(doc._id, payload.blockedBy);
   }
-  if (payload.attachments) await assertAttachmentsBelong(doc.client ?? null, payload.attachments);
+  if (payload.attachments)
+    await assertAttachmentsBelong(doc.client ?? null, payload.attachments);
   if (payload.complianceItemId !== undefined) {
     await assertComplianceItemBelongs(doc.client ?? null, payload.complianceItemId);
   }
@@ -343,7 +352,8 @@ export const updateTask = async (
   for (const field of WRITABLE) before[field] = doc.get(field);
   before.assignee = doc.assignee;
 
-  if (payload.complianceItemId !== undefined) doc.set('complianceItem', payload.complianceItemId);
+  if (payload.complianceItemId !== undefined)
+    doc.set('complianceItem', payload.complianceItemId);
   if (payload.assigneeId !== undefined) doc.set('assignee', payload.assigneeId);
   for (const field of WRITABLE) {
     if (field === 'complianceItem') continue;

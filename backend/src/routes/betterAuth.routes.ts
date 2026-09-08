@@ -1,5 +1,9 @@
 import express, { Router } from 'express';
-import type { NextFunction, Request as ExpressRequest, Response as ExpressResponse } from 'express';
+import type {
+  NextFunction,
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from 'express';
 
 import { getAuth } from '../config/auth.js';
 import { env } from '../config/env.js';
@@ -18,7 +22,11 @@ const SESSION_PATHS = ['/get-session', '/sign-out', '/list-sessions'];
 
 const pathOf = (req: ExpressRequest): string => (req.path === '' ? '/' : req.path);
 
-const readEmailFromRawBody = (req: ExpressRequest, _res: ExpressResponse, next: NextFunction): void => {
+const readEmailFromRawBody = (
+  req: ExpressRequest,
+  _res: ExpressResponse,
+  next: NextFunction,
+): void => {
   const raw: unknown = req.body;
   if (!Buffer.isBuffer(raw) || raw.length === 0) {
     next();
@@ -57,7 +65,11 @@ const chooseLimiter = (req: ExpressRequest, res: ExpressResponse, next: NextFunc
   next();
 };
 
-const forwardToBetterAuth = (req: ExpressRequest, res: ExpressResponse, next: NextFunction): void => {
+const forwardToBetterAuth = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void => {
   void (async () => {
     try {
       const base = env.BETTER_AUTH_URL.replace(/\/+$/, '');

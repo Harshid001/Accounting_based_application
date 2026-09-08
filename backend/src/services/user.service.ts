@@ -249,10 +249,7 @@ export const purgeUnlinkedAccounts = async (
   if (unverifiedOnly) {
     filter.emailVerified = false;
   }
-  const candidates = await User.find(filter)
-    .select('_id')
-    .lean()
-    .exec();
+  const candidates = await User.find(filter).select('_id').lean().exec();
   if (candidates.length === 0) return 0;
 
   const ids = candidates.map((candidate) => candidate._id);

@@ -24,7 +24,9 @@ export const aiChatBody = z
       .optional(),
   })
   .refine(
-    (data) => (data.message !== undefined && data.message.trim().length > 0) || Boolean(data.image?.dataUrl),
+    (data) =>
+      (data.message !== undefined && data.message.trim().length > 0) ||
+      Boolean(data.image?.dataUrl),
     { message: 'Provide either a message or an image.' },
   );
 

@@ -113,6 +113,11 @@ export const queryKeys = {
     all: ['jobs'] as const,
     list: (params?: QueryParams) => ['jobs', 'list', scoped(params)] as const,
   },
+
+  automation: {
+    all: ['automation'] as const,
+    detail: (id: string) => ['automation', 'detail', id] as const,
+  },
 } as const;
 
 export const invalidateOnClientChange = [

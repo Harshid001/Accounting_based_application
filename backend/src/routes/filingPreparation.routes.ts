@@ -71,4 +71,3 @@ filingPreparationRouter.post(
   scopeViaItem,
   handle({ params: idParam, body: gatewaySubmitBody }, controller.submitGatewayReturn),
 );
-

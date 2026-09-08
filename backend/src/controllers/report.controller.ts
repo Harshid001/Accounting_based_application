@@ -35,10 +35,7 @@ export const compliance = async (
   });
 };
 
-export const workload = async (
-  input: { query: Filters },
-  ctx: RouteContext,
-): Promise<void> => {
+export const workload = async (input: { query: Filters }, ctx: RouteContext): Promise<void> => {
   sendData(ctx.res, await workloadReport(ctx.user, input.query));
 };
 

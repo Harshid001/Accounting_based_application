@@ -2,11 +2,7 @@ import { sendData, sendNoContent } from '../lib/http.js';
 import type { RouteContext } from '../middleware/validate.js';
 import { User } from '../models/user.model.js';
 import { serialiseMe, serialiseSession } from '../serializers/user.serializer.js';
-import {
-  listSessionsFor,
-  revokeOtherSessions,
-  updateSelf,
-} from '../services/user.service.js';
+import { listSessionsFor, revokeOtherSessions, updateSelf } from '../services/user.service.js';
 import type { UpdateMeBody } from '../validators/user.validators.js';
 
 export const readMe = async (_input: unknown, ctx: RouteContext): Promise<void> => {

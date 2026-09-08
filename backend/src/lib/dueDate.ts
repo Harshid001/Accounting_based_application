@@ -20,9 +20,7 @@ export interface FixedDayMonthAfterPeriodRule {
 }
 
 export type DueDateRule =
-  | DayOfFollowingMonthRule
-  | DaysAfterPeriodEndRule
-  | FixedDayMonthAfterPeriodRule;
+  DayOfFollowingMonthRule | DaysAfterPeriodEndRule | FixedDayMonthAfterPeriodRule;
 
 export const isDueDateRuleKind = (value: string): value is DueDateRuleKind =>
   value === 'day_of_following_month' ||

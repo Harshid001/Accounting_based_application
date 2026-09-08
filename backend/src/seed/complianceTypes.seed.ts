@@ -146,8 +146,16 @@ export const SEEDED_COMPLIANCE_TYPES: SeedEntry[] = [
     defaultFrequency: 'annual',
     dueDateRule: { kind: 'fixed_day_month_after_period', day: 28, month: 11, yearsAfter: 0 },
     defaultDocumentChecklist: [
-      { title: 'Register of members', documentType: 'other', description: 'Statutory register' },
-      { title: 'Board meeting minutes', documentType: 'other', description: 'Minutes book extract' },
+      {
+        title: 'Register of members',
+        documentType: 'other',
+        description: 'Statutory register',
+      },
+      {
+        title: 'Board meeting minutes',
+        documentType: 'other',
+        description: 'Minutes book extract',
+      },
     ],
     reminderOffsetsDays: [30, 14, 7, 1],
   },
@@ -181,7 +189,10 @@ export const seedComplianceTypes = async (): Promise<{ created: number; existing
   let existing = 0;
 
   for (const entry of SEEDED_COMPLIANCE_TYPES) {
-    const found = await ComplianceType.findOne({ code: entry.code }).select('_id').lean().exec();
+    const found = await ComplianceType.findOne({ code: entry.code })
+      .select('_id')
+      .lean()
+      .exec();
     if (found) {
       existing += 1;
       continue;

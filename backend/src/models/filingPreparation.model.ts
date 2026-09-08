@@ -72,6 +72,5 @@ const filingPreparationSchema = new Schema<FilingPreparationAttributes>(
 filingPreparationSchema.index({ client: 1, status: 1, periodEnd: -1 });
 filingPreparationSchema.index({ preparedBy: 1, status: 1 });
 
-export const FilingPreparation: Model<FilingPreparationAttributes> = model<
-  FilingPreparationAttributes
->('filingPreparation', filingPreparationSchema);
+export const FilingPreparation: Model<FilingPreparationAttributes> =
+  model<FilingPreparationAttributes>('filingPreparation', filingPreparationSchema);

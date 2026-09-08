@@ -2,7 +2,12 @@ import { sendCreated, sendData, sendList } from '../lib/http.js';
 import { buildPageMeta, toPageRequest } from '../lib/pagination.js';
 import type { RouteContext } from '../middleware/validate.js';
 import { serialiseMessage, serialiseThread } from '../serializers/message.serializer.js';
-import { deleteMessage, listMessages, listThreads, postMessage } from '../services/message.service.js';
+import {
+  deleteMessage,
+  listMessages,
+  listThreads,
+  postMessage,
+} from '../services/message.service.js';
 import type { PostMessageBody } from '../validators/message.validators.js';
 
 export const list = async (

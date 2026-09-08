@@ -142,8 +142,10 @@ const firmSettingsSchema = new Schema<FirmSettingsAttributes>(
       default: [7, 3, 1],
       validate: {
         validator: (value: number[]) =>
-          value.length <= 6 && value.every((day) => Number.isInteger(day) && day >= 0 && day <= 90),
-        message: 'Reminder offsets are whole numbers of days between 0 and 90, at most six of them.',
+          value.length <= 6 &&
+          value.every((day) => Number.isInteger(day) && day >= 0 && day <= 90),
+        message:
+          'Reminder offsets are whole numbers of days between 0 and 90, at most six of them.',
       },
     },
     complianceHorizonDays: { type: Number, default: 120, min: 1, max: 1095 },

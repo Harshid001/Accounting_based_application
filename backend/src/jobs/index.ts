@@ -42,14 +42,21 @@ export const startScheduler = (): void => {
       SCHEDULE[jobName],
       () => {
         void JOB_REGISTRY[jobName]().catch((error: unknown) => {
-          logger.error({ event: 'scheduler.error', jobName, err: error }, 'scheduled job threw');
+          logger.error(
+            { event: 'scheduler.error', jobName, err: error },
+            'scheduled job threw',
+          );
         });
       },
       { timezone: env.SCHEDULER_TIMEZONE },
     ),
   );
   logger.info(
-    { event: 'scheduler.started', jobs: Object.keys(SCHEDULE), timezone: env.SCHEDULER_TIMEZONE },
+    {
+      event: 'scheduler.started',
+      jobs: Object.keys(SCHEDULE),
+      timezone: env.SCHEDULER_TIMEZONE,
+    },
     'scheduler started',
   );
 };

@@ -52,7 +52,8 @@ export const namedRef = (value: unknown, key = 'name'): NamedRef | null => {
   return name === null ? { id, name: '' } : { id, name };
 };
 
-export const dateOnly = (value: Date | null | undefined): string | null => formatDateOnly(value);
+export const dateOnly = (value: Date | null | undefined): string | null =>
+  formatDateOnly(value);
 
 export const timestamp = (value: Date | null | undefined): string | null =>
   value ? value.toISOString() : null;

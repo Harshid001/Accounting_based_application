@@ -8,7 +8,10 @@ export const guideStepBody = z.object({
 });
 
 export const gatewaySubmitBody = z.object({
-  otp: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit OTP.'),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Enter the 6-digit OTP.'),
   transactionId: z.string().trim().max(100).optional(),
 });
 
@@ -16,4 +19,3 @@ export const filingPreparationParam = idParam;
 
 export type GuideStepBody = z.infer<typeof guideStepBody>;
 export type GatewaySubmitBody = z.infer<typeof gatewaySubmitBody>;
-

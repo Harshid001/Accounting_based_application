@@ -40,10 +40,7 @@ export const clientScopeFilter = (subject: ScopeSubject): ScopeFilter => {
   }
 };
 
-export const scopedClientIdFilter = (
-  subject: ScopeSubject,
-  field = 'client',
-): ScopeFilter => {
+export const scopedClientIdFilter = (subject: ScopeSubject, field = 'client'): ScopeFilter => {
   switch (subject.role) {
     case 'admin':
       return {};

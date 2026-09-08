@@ -24,9 +24,17 @@ import {
 import { serialiseComplianceForPortal } from '../serializers/compliance.serializer.js';
 import { serialiseDocumentRequestForPortal } from '../serializers/documentRequest.serializer.js';
 import { serialiseTaskForPortal } from '../serializers/task.serializer.js';
-import { clientHasAadhaar, revealAadhaar, submitClientOnboarding, updateClient } from '../services/client.service.js';
+import {
+  clientHasAadhaar,
+  revealAadhaar,
+  submitClientOnboarding,
+  updateClient,
+} from '../services/client.service.js';
 import type { Lean } from '../types/lean.js';
-import type { portalOnboardingBody, portalProfileBody } from '../validators/client.validators.js';
+import type {
+  portalOnboardingBody,
+  portalProfileBody,
+} from '../validators/client.validators.js';
 import type { portalComplianceQuery } from '../validators/compliance.validators.js';
 
 type ComplianceQuery = z.infer<typeof portalComplianceQuery>;

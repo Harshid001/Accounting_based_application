@@ -20,10 +20,7 @@ import type {
 
 type ListQuery = z.infer<typeof documentRequestListQuery>;
 
-export const list = async (
-  input: { query: ListQuery },
-  ctx: RouteContext,
-): Promise<void> => {
+export const list = async (input: { query: ListQuery }, ctx: RouteContext): Promise<void> => {
   const page = toPageRequest(input.query.page, input.query.limit);
   const { items, total } = await listDocumentRequests(ctx.user, input.query, page);
   sendList(ctx.res, items.map(serialiseDocumentRequest), buildPageMeta(total, page));

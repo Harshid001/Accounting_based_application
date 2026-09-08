@@ -21,7 +21,11 @@ export const prepare = async (
   input: { params: { id: string } },
   ctx: RouteContext,
 ): Promise<void> => {
-  const prepared = await prepareFiling(ctx.user, new Types.ObjectId(input.params.id), ctx.actor);
+  const prepared = await prepareFiling(
+    ctx.user,
+    new Types.ObjectId(input.params.id),
+    ctx.actor,
+  );
   sendData(ctx.res, prepared);
 };
 
@@ -50,7 +54,11 @@ export const lock = async (
   input: { params: { id: string } },
   ctx: RouteContext,
 ): Promise<void> => {
-  const prepared = await lockPreparation(ctx.user, new Types.ObjectId(input.params.id), ctx.actor);
+  const prepared = await lockPreparation(
+    ctx.user,
+    new Types.ObjectId(input.params.id),
+    ctx.actor,
+  );
   sendData(ctx.res, prepared);
 };
 
@@ -68,7 +76,11 @@ export const requestGatewayOtp = async (
   input: { params: { id: string } },
   ctx: RouteContext,
 ): Promise<void> => {
-  const challenge = await requestFilingOtp(ctx.user, new Types.ObjectId(input.params.id), ctx.actor);
+  const challenge = await requestFilingOtp(
+    ctx.user,
+    new Types.ObjectId(input.params.id),
+    ctx.actor,
+  );
   sendData(ctx.res, challenge);
 };
 
@@ -84,5 +96,3 @@ export const submitGatewayReturn = async (
   );
   sendData(ctx.res, result);
 };
-
-

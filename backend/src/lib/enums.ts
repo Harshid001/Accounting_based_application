@@ -137,6 +137,9 @@ export const AUDIT_ACTIONS = [
   'send_client_email',
   'sign_in',
   'role_change',
+  'automation_start',
+  'automation_handoff',
+  'automation_abort',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -154,8 +157,43 @@ export const AUDIT_ENTITY_KINDS = [
   'filingPreparation',
   'firmSettings',
   'session',
+  'automationRun',
 ] as const;
 export type AuditEntityKind = (typeof AUDIT_ENTITY_KINDS)[number];
+
+// ---------------------------------------------------------------------------
+// Portal Automation enums
+// ---------------------------------------------------------------------------
+
+export const AUTOMATION_RUN_STATUSES = [
+  'queued',
+  'starting',
+  'running',
+  'waiting_human',
+  'succeeded',
+  'failed',
+  'aborted',
+] as const;
+export type AutomationRunStatus = (typeof AUTOMATION_RUN_STATUSES)[number];
+
+export const AUTOMATION_STEP_STATUSES = [
+  'pending',
+  'running',
+  'waiting_human',
+  'succeeded',
+  'failed',
+  'skipped',
+] as const;
+export type AutomationStepStatus = (typeof AUTOMATION_STEP_STATUSES)[number];
+
+export const AUTOMATION_RUN_MODES = ['recipe', 'assisted'] as const;
+export type AutomationRunMode = (typeof AUTOMATION_RUN_MODES)[number];
+
+export const HANDOFF_TYPES = ['password', 'captcha', 'otp', 'confirm_submit', 'sign'] as const;
+export type HandoffType = (typeof HANDOFF_TYPES)[number];
+
+export const PORTAL_KEYS = ['gst', 'income_tax', 'tds', 'roc'] as const;
+export type PortalKey = (typeof PORTAL_KEYS)[number];
 
 export const JOB_STATUSES = ['running', 'succeeded', 'failed'] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];

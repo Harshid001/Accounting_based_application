@@ -1,6 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
 import type { FunctionCall as GeminiFunctionCall, Part as GeminiPart } from '@google/genai';
-import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from 'openai/resources/chat/completions';
 import OpenAI from 'openai';
 import { Types } from 'mongoose';
 
@@ -51,15 +54,8 @@ import {
   changeComplianceStatus,
   createComplianceItem,
 } from './compliance.service.js';
-import {
-  getPreparation,
-  prepareFiling,
-  updateGuideStep,
-} from './filingPreparation.service.js';
-import {
-  requestFilingOtp,
-  submitReturnWithOtp,
-} from './governmentGateway.service.js';
+import { getPreparation, prepareFiling, updateGuideStep } from './filingPreparation.service.js';
+import { requestFilingOtp, submitReturnWithOtp } from './governmentGateway.service.js';
 import {
   createClientService,
   listClientServices,
@@ -72,20 +68,10 @@ import {
   getClientDetail,
   setArchived,
 } from './client.service.js';
-import {
-  createTask,
-  listTasks,
-  updateTask,
-  assignTask,
-  deleteTask,
-} from './task.service.js';
+import { createTask, listTasks, updateTask, assignTask, deleteTask } from './task.service.js';
 import { createTaskComment } from './taskComment.service.js';
 import { listComplianceTypes } from './complianceType.service.js';
-import {
-  planFromClientServices,
-  planBulk,
-  commitPlan,
-} from './complianceGenerator.service.js';
+import { planFromClientServices, planBulk, commitPlan } from './complianceGenerator.service.js';
 import { listDocuments } from './document.service.js';
 import { postMessage, listMessages } from './message.service.js';
 import { listUsers, changeRole, setLinkedClients } from './user.service.js';
@@ -251,7 +237,9 @@ const VALID_ACTION_ROUTES = new Set([
 
 const isValidActionRoute = (route: string): boolean => {
   if (VALID_ACTION_ROUTES.has(route)) return true;
-  return /^\/(clients|tasks|compliance|requests|messages|reports|settings|portal)(\/[a-zA-Z0-9_-]+)*$/.test(route);
+  return /^\/(clients|tasks|compliance|requests|messages|reports|settings|portal)(\/[a-zA-Z0-9_-]+)*$/.test(
+    route,
+  );
 };
 
 const namedOf = (value: unknown, key: string): string | null => {
@@ -333,7 +321,8 @@ const tool_createClient = async (
   const email = asString(args.email)?.trim();
   const phone = asString(args.phone)?.trim();
   const notes = asString(args.notes)?.trim() || null;
-  const status: 'onboarding' | 'active' = args.status === 'onboarding' ? 'onboarding' : 'active';
+  const status: 'onboarding' | 'active' =
+    args.status === 'onboarding' ? 'onboarding' : 'active';
 
   const primaryContact =
     email || phone
@@ -499,7 +488,9 @@ const tool_archiveClient = async (
       displayName: updated.displayName,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not change client archive state.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not change client archive state.',
+    };
   }
 };
 
@@ -509,7 +500,9 @@ const tool_getComplianceFilings = async (
   args: Record<string, unknown>,
 ): Promise<unknown> => {
   const clientId =
-    typeof args.clientId === 'string' && OBJECT_ID_PATTERN.test(args.clientId) ? args.clientId : undefined;
+    typeof args.clientId === 'string' && OBJECT_ID_PATTERN.test(args.clientId)
+      ? args.clientId
+      : undefined;
   const category = COMPLIANCE_CATEGORIES.includes(args.category as ComplianceCategory)
     ? (args.category as ComplianceCategory)
     : undefined;
@@ -535,7 +528,13 @@ const tool_getComplianceFilings = async (
   const items = await ComplianceItem.find({
     ...clientFilter,
     ...(category !== undefined
-      ? { complianceType: { $in: (await ComplianceType.find({ category }).select('_id').lean().exec()).map((t) => t._id) } }
+      ? {
+          complianceType: {
+            $in: (await ComplianceType.find({ category }).select('_id').lean().exec()).map(
+              (t) => t._id,
+            ),
+          },
+        }
       : {}),
     ...(status !== undefined ? { status } : {}),
   })
@@ -601,7 +600,9 @@ const tool_updateFilingStatus = async (
       acknowledgementRef: ref || updated.acknowledgementRef || null,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not update filing status.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not update filing status.',
+    };
   }
 };
 
@@ -621,7 +622,10 @@ const tool_updateFiling = async (
   if (typeof args.dueDate === 'string' && DATE_ONLY_PATTERN.test(args.dueDate)) {
     patch.dueDate = new Date(`${args.dueDate}T00:00:00.000Z`);
   }
-  if (typeof args.assignedStaffId === 'string' && OBJECT_ID_PATTERN.test(args.assignedStaffId)) {
+  if (
+    typeof args.assignedStaffId === 'string' &&
+    OBJECT_ID_PATTERN.test(args.assignedStaffId)
+  ) {
     patch.assignedStaff = args.assignedStaffId;
   }
   if (typeof args.notes === 'string') {
@@ -632,7 +636,11 @@ const tool_updateFiling = async (
   }
 
   try {
-    const updated = await updateComplianceItem(new Types.ObjectId(filingId), patch, context.actor);
+    const updated = await updateComplianceItem(
+      new Types.ObjectId(filingId),
+      patch,
+      context.actor,
+    );
     return {
       updated: true,
       filingId: updated._id.toString(),
@@ -829,7 +837,9 @@ const tool_getFilingGuide = async (
       missingInputs: prepared.missingInputs,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not load the filing guide.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not load the filing guide.',
+    };
   }
 };
 
@@ -863,7 +873,9 @@ const tool_updateFilingGuideStep = async (
       totalSteps: prepared.guideSteps.length,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not update the guide step.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not update the guide step.',
+    };
   }
 };
 
@@ -892,7 +904,9 @@ const tool_requestPortalOtp = async (
       message: `A 6-digit filing OTP was sent by ${challenge.portal ?? 'the Government Portal'} to ${challenge.maskedTarget}. Ask the client for the OTP, then provide it to submit the return.`,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not request portal filing OTP.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not request portal filing OTP.',
+    };
   }
 };
 
@@ -930,7 +944,12 @@ const tool_submitReturnToGovernmentPortal = async (
       message: result.message,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not submit return to government portal.' };
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Could not submit return to government portal.',
+    };
   }
 };
 
@@ -947,7 +966,9 @@ const tool_createTask = async (
   if (title.length < 3) {
     return { error: 'A task title of at least 3 characters is required.' };
   }
-  const priority = (['low', 'normal', 'high', 'urgent'] as const).includes(args.priority as TaskPriority)
+  const priority = (['low', 'normal', 'high', 'urgent'] as const).includes(
+    args.priority as TaskPriority,
+  )
     ? (args.priority as TaskPriority)
     : 'normal';
 
@@ -957,7 +978,9 @@ const tool_createTask = async (
       : null;
 
   const requestedClient =
-    typeof args.clientId === 'string' && OBJECT_ID_PATTERN.test(args.clientId) ? args.clientId : null;
+    typeof args.clientId === 'string' && OBJECT_ID_PATTERN.test(args.clientId)
+      ? args.clientId
+      : null;
   if (requestedClient !== null) {
     const scoped = await accessibleClientIds(user);
     if (scoped !== null && !scoped.some((id) => id.toString() === requestedClient)) {
@@ -974,7 +997,8 @@ const tool_createTask = async (
     const created = await createTask(
       {
         title: title.slice(0, 200),
-        description: typeof args.description === 'string' ? args.description.slice(0, 8000) : null,
+        description:
+          typeof args.description === 'string' ? args.description.slice(0, 8000) : null,
         clientId: requestedClient,
         assigneeId,
         priority,
@@ -999,10 +1023,14 @@ const tool_listTasks = async (
   user: AuthenticatedUser,
   args: Record<string, unknown>,
 ): Promise<unknown> => {
-  const status = (['not_started', 'in_progress', 'review', 'done'] as const).includes(args.status as TaskStatus)
+  const status = (['not_started', 'in_progress', 'review', 'done'] as const).includes(
+    args.status as TaskStatus,
+  )
     ? (args.status as TaskStatus)
     : undefined;
-  const priority = (['low', 'normal', 'high', 'urgent'] as const).includes(args.priority as TaskPriority)
+  const priority = (['low', 'normal', 'high', 'urgent'] as const).includes(
+    args.priority as TaskPriority,
+  )
     ? (args.priority as TaskPriority)
     : undefined;
   const clientId = asString(args.clientId);
@@ -1056,7 +1084,11 @@ const tool_updateTask = async (
   if (asString(args.description) !== undefined) {
     patch.description = asString(args.description)!.slice(0, 8000);
   }
-  if ((['not_started', 'in_progress', 'review', 'done'] as const).includes(args.status as TaskStatus)) {
+  if (
+    (['not_started', 'in_progress', 'review', 'done'] as const).includes(
+      args.status as TaskStatus,
+    )
+  ) {
     patch.status = args.status;
   }
   if ((['low', 'normal', 'high', 'urgent'] as const).includes(args.priority as TaskPriority)) {
@@ -1094,11 +1126,21 @@ const tool_assignTask = async (
   }
   const taskId = asString(args.taskId);
   const assigneeId = asString(args.assigneeId);
-  if (!taskId || !OBJECT_ID_PATTERN.test(taskId) || !assigneeId || !OBJECT_ID_PATTERN.test(assigneeId)) {
+  if (
+    !taskId ||
+    !OBJECT_ID_PATTERN.test(taskId) ||
+    !assigneeId ||
+    !OBJECT_ID_PATTERN.test(assigneeId)
+  ) {
     return { error: 'Valid taskId and assigneeId are required.' };
   }
   try {
-    const updated = await assignTask(new Types.ObjectId(taskId), assigneeId, user, context.actor);
+    const updated = await assignTask(
+      new Types.ObjectId(taskId),
+      assigneeId,
+      user,
+      context.actor,
+    );
     return {
       reassigned: true,
       taskId: updated._id.toString(),
@@ -1171,7 +1213,9 @@ const tool_createDocumentRequest = async (
     return { error: 'Client portal accounts cannot raise document requests.' };
   }
   const clientId =
-    typeof args.clientId === 'string' && OBJECT_ID_PATTERN.test(args.clientId) ? args.clientId : null;
+    typeof args.clientId === 'string' && OBJECT_ID_PATTERN.test(args.clientId)
+      ? args.clientId
+      : null;
   if (clientId === null) {
     return { error: 'A valid clientId is required to raise a document request.' };
   }
@@ -1219,7 +1263,9 @@ const tool_createDocumentRequest = async (
       documentCount: created.length,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'The request could not be created.' };
+    return {
+      error: error instanceof Error ? error.message : 'The request could not be created.',
+    };
   }
 };
 
@@ -1278,7 +1324,9 @@ const tool_cancelDocumentRequest = async (
     const cancelled = await cancelDocumentRequest(new Types.ObjectId(requestId), context.actor);
     return { cancelled: true, requestId: cancelled._id.toString(), title: cancelled.title };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not cancel document request.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not cancel document request.',
+    };
   }
 };
 
@@ -1404,10 +1452,7 @@ const tool_listTeamMembers = async (
   args: Record<string, unknown>,
 ): Promise<unknown> => {
   const role = args.role === 'admin' || args.role === 'staff' ? args.role : undefined;
-  const { items, total } = await listUsers(
-    { role, status: 'active' },
-    toPageRequest(1, 50),
-  );
+  const { items, total } = await listUsers({ role, status: 'active' }, toPageRequest(1, 50));
   return {
     total,
     team: items
@@ -1446,7 +1491,10 @@ const tool_updateFirmSettings = async (
   if (asString(args.contactEmail)) update.contactEmail = asString(args.contactEmail)!.trim();
   if (asString(args.contactPhone)) update.contactPhone = asString(args.contactPhone)!.trim();
   if (typeof args.complianceHorizonDays === 'number') {
-    update.complianceHorizonDays = Math.min(Math.max(Math.trunc(args.complianceHorizonDays), 7), 365);
+    update.complianceHorizonDays = Math.min(
+      Math.max(Math.trunc(args.complianceHorizonDays), 7),
+      365,
+    );
   }
   try {
     const updated = await updateFirmSettings(update, context.actor);
@@ -1458,7 +1506,9 @@ const tool_updateFirmSettings = async (
       complianceHorizonDays: updated.complianceHorizonDays,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not update firm settings.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not update firm settings.',
+    };
   }
 };
 
@@ -1633,7 +1683,9 @@ const tool_listClientServices = async (
       })),
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not list client services.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not list client services.',
+    };
   }
 };
 
@@ -1653,7 +1705,9 @@ const tool_deleteClientService = async (
     await deleteClientService(new Types.ObjectId(serviceId), context.actor);
     return { success: true, serviceId, deleted: true };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not remove client service.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not remove client service.',
+    };
   }
 };
 
@@ -1730,7 +1784,9 @@ const tool_createComplianceFiling = async (
       status: item.status,
     };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not create compliance filing.' };
+    return {
+      error: error instanceof Error ? error.message : 'Could not create compliance filing.',
+    };
   }
 };
 
@@ -1774,7 +1830,10 @@ const tool_runAutonomousPracticeAutomation = async (
       .sort({ dueDate: 1 })
       .lean()
       .exec(),
-    ComplianceItem.find({ ...openFilter, dueDate: { $gte: today, $lte: addDays(today, horizonDays) } })
+    ComplianceItem.find({
+      ...openFilter,
+      dueDate: { $gte: today, $lte: addDays(today, horizonDays) },
+    })
       .populate('client', 'displayName')
       .populate('complianceType', 'name category')
       .sort({ dueDate: 1 })
@@ -1813,7 +1872,9 @@ const tool_runAutonomousPracticeAutomation = async (
       client: filing.client,
       title: taskTitle,
       status: { $ne: 'done' },
-    }).lean().exec();
+    })
+      .lean()
+      .exec();
 
     if (!existing) {
       const assignedStaff = (filing.client as { assignedStaff?: unknown[] })?.assignedStaff;
@@ -1833,9 +1894,21 @@ const tool_runAutonomousPracticeAutomation = async (
         complianceItem: filing._id,
         internalOnly: true,
         checklist: [
-          { _id: new Types.ObjectId(), title: 'Verify client input documents & receipts', done: false },
-          { _id: new Types.ObjectId(), title: 'Reconcile 2B/TDS challans and compute liability', done: false },
-          { _id: new Types.ObjectId(), title: 'Partner final sign-off & portal filing', done: false },
+          {
+            _id: new Types.ObjectId(),
+            title: 'Verify client input documents & receipts',
+            done: false,
+          },
+          {
+            _id: new Types.ObjectId(),
+            title: 'Reconcile 2B/TDS challans and compute liability',
+            done: false,
+          },
+          {
+            _id: new Types.ObjectId(),
+            title: 'Partner final sign-off & portal filing',
+            done: false,
+          },
         ],
         loggedMinutes: 0,
         attachments: [],
@@ -1931,10 +2004,16 @@ const tool_linkClientUser = async (
     return { error: 'A valid 24-character userId is required.' };
   }
   const clientIds = Array.isArray(args.clientIds)
-    ? args.clientIds.filter((id): id is string => typeof id === 'string' && OBJECT_ID_PATTERN.test(id))
+    ? args.clientIds.filter(
+        (id): id is string => typeof id === 'string' && OBJECT_ID_PATTERN.test(id),
+      )
     : [];
   try {
-    const updated = await setLinkedClients(new Types.ObjectId(userId), clientIds, context.actor);
+    const updated = await setLinkedClients(
+      new Types.ObjectId(userId),
+      clientIds,
+      context.actor,
+    );
     return {
       success: true,
       userId: updated._id.toString(),
@@ -2006,7 +2085,11 @@ const withRouteContext = (
   const match = CLIENT_OF_ROUTE.exec(context.currentRoute);
   const routeClient = match === null ? null : (match[1] ?? null);
   if (routeClient === null) return args;
-  if (CLIENT_ROUTE_TOOLS.has(name) && args.clientId === undefined && context.user.role !== 'client') {
+  if (
+    CLIENT_ROUTE_TOOLS.has(name) &&
+    args.clientId === undefined &&
+    context.user.role !== 'client'
+  ) {
     return { ...args, clientId: routeClient };
   }
   return args;
@@ -2021,8 +2104,14 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Search text: client name, PAN or GSTIN fragment.' },
-        status: { type: 'string', description: 'Optional filter: onboarding, active or inactive.' },
+        query: {
+          type: 'string',
+          description: 'Search text: client name, PAN or GSTIN fragment.',
+        },
+        status: {
+          type: 'string',
+          description: 'Optional filter: onboarding, active or inactive.',
+        },
       },
     },
     badge: (result) => {
@@ -2089,7 +2178,8 @@ const TOOLS: readonly ToolSpec[] = [
       isRecord(result) && result.updated === true && typeof result.displayName === 'string'
         ? `Updated client ${result.displayName}`
         : 'Attempted client update',
-    run: (context, args) => tool_updateClient(context, withRouteContext(context, TOOL_NAMES.updateClient, args)),
+    run: (context, args) =>
+      tool_updateClient(context, withRouteContext(context, TOOL_NAMES.updateClient, args)),
   },
   {
     name: TOOL_NAMES.getClientDetails,
@@ -2107,7 +2197,10 @@ const TOOLS: readonly ToolSpec[] = [
         ? `Fetched profile of ${result.displayName}`
         : 'Checked client profile',
     run: (context, args) =>
-      tool_getClientDetails(context, withRouteContext(context, TOOL_NAMES.getClientDetails, args)),
+      tool_getClientDetails(
+        context,
+        withRouteContext(context, TOOL_NAMES.getClientDetails, args),
+      ),
   },
   {
     name: TOOL_NAMES.archiveClient,
@@ -2122,7 +2215,8 @@ const TOOLS: readonly ToolSpec[] = [
     },
     badge: (result) =>
       isRecord(result) && result.archived === true ? 'Archived client' : 'Restored client',
-    run: (context, args) => tool_archiveClient(context, withRouteContext(context, TOOL_NAMES.archiveClient, args)),
+    run: (context, args) =>
+      tool_archiveClient(context, withRouteContext(context, TOOL_NAMES.archiveClient, args)),
   },
 
   // 2. Compliance & Statutory Filings
@@ -2133,24 +2227,33 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        clientId: { type: 'string', description: 'Optional 24-character client id to restrict to one client.' },
+        clientId: {
+          type: 'string',
+          description: 'Optional 24-character client id to restrict to one client.',
+        },
         category: {
           type: 'string',
           description: 'One of: gst, income_tax, tds, roc, advisory, other.',
         },
         status: {
           type: 'string',
-          description: 'One of: pending, in_progress, awaiting_client, filed, acknowledged, not_applicable.',
+          description:
+            'One of: pending, in_progress, awaiting_client, filed, acknowledged, not_applicable.',
         },
         limit: { type: 'integer', description: 'Maximum filings to return, 1 to 50.' },
       },
     },
     badge: (result) => {
       const count = countFrom(result, ['count', 'filings']);
-      return count === null ? 'Checked statutory filings' : `Checked ${count} filing${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Checked statutory filings'
+        : `Checked ${count} filing${count === 1 ? '' : 's'}`;
     },
     run: (context, args) =>
-      tool_getComplianceFilings(context.user, withRouteContext(context, TOOL_NAMES.complianceFilings, args)),
+      tool_getComplianceFilings(
+        context.user,
+        withRouteContext(context, TOOL_NAMES.complianceFilings, args),
+      ),
   },
   {
     name: TOOL_NAMES.updateFilingStatus,
@@ -2162,11 +2265,21 @@ const TOOLS: readonly ToolSpec[] = [
         filingId: { type: 'string', description: 'The 24-character filing id.' },
         status: {
           type: 'string',
-          description: 'One of: pending, in_progress, awaiting_client, filed, acknowledged, not_applicable.',
+          description:
+            'One of: pending, in_progress, awaiting_client, filed, acknowledged, not_applicable.',
         },
-        filedDate: { type: 'string', description: 'Date filed as YYYY-MM-DD. Defaults to today if marking filed.' },
-        acknowledgementRef: { type: 'string', description: 'ARN, challan number or acknowledgement reference.' },
-        notApplicableReason: { type: 'string', description: 'Reason why this filing does not apply if status is not_applicable.' },
+        filedDate: {
+          type: 'string',
+          description: 'Date filed as YYYY-MM-DD. Defaults to today if marking filed.',
+        },
+        acknowledgementRef: {
+          type: 'string',
+          description: 'ARN, challan number or acknowledgement reference.',
+        },
+        notApplicableReason: {
+          type: 'string',
+          description: 'Reason why this filing does not apply if status is not_applicable.',
+        },
       },
       required: ['filingId', 'status'],
     },
@@ -2185,14 +2298,22 @@ const TOOLS: readonly ToolSpec[] = [
       properties: {
         filingId: { type: 'string', description: 'The 24-character filing id.' },
         dueDate: { type: 'string', description: 'New due date as YYYY-MM-DD.' },
-        assignedStaffId: { type: 'string', description: '24-character user id of assigned staff.' },
+        assignedStaffId: {
+          type: 'string',
+          description: '24-character user id of assigned staff.',
+        },
         notes: { type: 'string', description: 'Filing notes.' },
-        acknowledgementRef: { type: 'string', description: 'Acknowledgement or ARN reference.' },
+        acknowledgementRef: {
+          type: 'string',
+          description: 'Acknowledgement or ARN reference.',
+        },
       },
       required: ['filingId'],
     },
     badge: (result) =>
-      isRecord(result) && result.updated === true ? 'Updated filing details' : 'Attempted filing update',
+      isRecord(result) && result.updated === true
+        ? 'Updated filing details'
+        : 'Attempted filing update',
     run: (context, args) => tool_updateFiling(context, args),
   },
   {
@@ -2202,9 +2323,18 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        startDate: { type: 'string', description: 'Window start date as YYYY-MM-DD (e.g. 2026-04-01).' },
-        endDate: { type: 'string', description: 'Window end date as YYYY-MM-DD (e.g. 2026-06-30).' },
-        complianceTypeId: { type: 'string', description: 'Optional 24-character compliance type id to generate only one type.' },
+        startDate: {
+          type: 'string',
+          description: 'Window start date as YYYY-MM-DD (e.g. 2026-04-01).',
+        },
+        endDate: {
+          type: 'string',
+          description: 'Window end date as YYYY-MM-DD (e.g. 2026-06-30).',
+        },
+        complianceTypeId: {
+          type: 'string',
+          description: 'Optional 24-character compliance type id to generate only one type.',
+        },
       },
     },
     badge: (result) =>
@@ -2220,13 +2350,21 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        category: { type: 'string', description: 'One of: gst, income_tax, tds, roc, advisory, other.' },
-        query: { type: 'string', description: 'Search by compliance name or code (e.g. GSTR, TDS, ITR).' },
+        category: {
+          type: 'string',
+          description: 'One of: gst, income_tax, tds, roc, advisory, other.',
+        },
+        query: {
+          type: 'string',
+          description: 'Search by compliance name or code (e.g. GSTR, TDS, ITR).',
+        },
       },
     },
     badge: (result) => {
       const count = countFrom(result, ['count', 'complianceTypes']);
-      return count === null ? 'Checked compliance types' : `Listed ${count} compliance type${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Checked compliance types'
+        : `Listed ${count} compliance type${count === 1 ? '' : 's'}`;
     },
     run: (context, args) => tool_listComplianceTypes(context.user, args),
   },
@@ -2326,8 +2464,14 @@ const TOOLS: readonly ToolSpec[] = [
       type: 'object',
       properties: {
         filingId: { type: 'string', description: 'The 24-character compliance filing id.' },
-        otp: { type: 'string', description: 'The 6-digit OTP received from the government portal.' },
-        transactionId: { type: 'string', description: 'Optional transaction ID from request_portal_otp.' },
+        otp: {
+          type: 'string',
+          description: 'The 6-digit OTP received from the government portal.',
+        },
+        transactionId: {
+          type: 'string',
+          description: 'Optional transaction ID from request_portal_otp.',
+        },
       },
       required: ['filingId', 'otp'],
     },
@@ -2349,15 +2493,22 @@ const TOOLS: readonly ToolSpec[] = [
         title: { type: 'string', description: 'Short task title, 3 to 200 characters.' },
         priority: { type: 'string', description: 'One of: low, normal, high, urgent.' },
         dueDate: { type: 'string', description: 'Due date as YYYY-MM-DD.' },
-        clientId: { type: 'string', description: 'Optional 24-character client id to link the task.' },
-        assigneeId: { type: 'string', description: 'Optional 24-character staff/admin user id to assign.' },
+        clientId: {
+          type: 'string',
+          description: 'Optional 24-character client id to link the task.',
+        },
+        assigneeId: {
+          type: 'string',
+          description: 'Optional 24-character staff/admin user id to assign.',
+        },
         description: { type: 'string', description: 'Optional longer description.' },
       },
       required: ['title'],
     },
     badge: (result) =>
       isRecord(result) && result.created === true ? 'Created task' : 'Attempted task creation',
-    run: (context, args) => tool_createTask(context, withRouteContext(context, TOOL_NAMES.createTask, args)),
+    run: (context, args) =>
+      tool_createTask(context, withRouteContext(context, TOOL_NAMES.createTask, args)),
   },
   {
     name: TOOL_NAMES.listTasks,
@@ -2366,7 +2517,10 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        status: { type: 'string', description: 'One of: not_started, in_progress, review, done.' },
+        status: {
+          type: 'string',
+          description: 'One of: not_started, in_progress, review, done.',
+        },
         priority: { type: 'string', description: 'One of: low, normal, high, urgent.' },
         clientId: { type: 'string', description: 'Optional 24-character client id.' },
         query: { type: 'string', description: 'Search keyword in task title.' },
@@ -2376,9 +2530,12 @@ const TOOLS: readonly ToolSpec[] = [
     },
     badge: (result) => {
       const count = countFrom(result, ['total', 'tasks']);
-      return count === null ? 'Checked tasks' : `Checked ${count} task${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Checked tasks'
+        : `Checked ${count} task${count === 1 ? '' : 's'}`;
     },
-    run: (context, args) => tool_listTasks(context.user, withRouteContext(context, TOOL_NAMES.listTasks, args)),
+    run: (context, args) =>
+      tool_listTasks(context.user, withRouteContext(context, TOOL_NAMES.listTasks, args)),
   },
   {
     name: TOOL_NAMES.updateTask,
@@ -2388,7 +2545,10 @@ const TOOLS: readonly ToolSpec[] = [
       type: 'object',
       properties: {
         taskId: { type: 'string', description: 'The 24-character task id.' },
-        status: { type: 'string', description: 'One of: not_started, in_progress, review, done.' },
+        status: {
+          type: 'string',
+          description: 'One of: not_started, in_progress, review, done.',
+        },
         priority: { type: 'string', description: 'One of: low, normal, high, urgent.' },
         dueDate: { type: 'string', description: 'Due date as YYYY-MM-DD.' },
         title: { type: 'string', description: 'Updated title.' },
@@ -2413,7 +2573,9 @@ const TOOLS: readonly ToolSpec[] = [
       required: ['taskId', 'assigneeId'],
     },
     badge: (result) =>
-      isRecord(result) && result.reassigned === true ? 'Reassigned task' : 'Attempted reassignment',
+      isRecord(result) && result.reassigned === true
+        ? 'Reassigned task'
+        : 'Attempted reassignment',
     run: (context, args) => tool_assignTask(context, args),
   },
   {
@@ -2454,7 +2616,10 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        clientId: { type: 'string', description: 'The 24-character client id the request goes to.' },
+        clientId: {
+          type: 'string',
+          description: 'The 24-character client id the request goes to.',
+        },
         title: { type: 'string', description: 'Request title, 3 to 200 characters.' },
         requestedDocuments: {
           type: 'array',
@@ -2474,11 +2639,15 @@ const TOOLS: readonly ToolSpec[] = [
       return 'Attempted document request';
     },
     run: (context, args) =>
-      tool_createDocumentRequest(context, withRouteContext(context, TOOL_NAMES.createDocumentRequest, args)),
+      tool_createDocumentRequest(
+        context,
+        withRouteContext(context, TOOL_NAMES.createDocumentRequest, args),
+      ),
   },
   {
     name: TOOL_NAMES.listDocumentRequests,
-    description: 'List document requests across clients. Filter by client, status (open, fulfilled, cancelled) or overdue.',
+    description:
+      'List document requests across clients. Filter by client, status (open, fulfilled, cancelled) or overdue.',
     parameters: {
       type: 'object',
       properties: {
@@ -2490,10 +2659,15 @@ const TOOLS: readonly ToolSpec[] = [
     },
     badge: (result) => {
       const count = countFrom(result, ['total', 'requests']);
-      return count === null ? 'Checked document requests' : `Checked ${count} request${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Checked document requests'
+        : `Checked ${count} request${count === 1 ? '' : 's'}`;
     },
     run: (context, args) =>
-      tool_listDocumentRequests(context.user, withRouteContext(context, TOOL_NAMES.listDocumentRequests, args)),
+      tool_listDocumentRequests(
+        context.user,
+        withRouteContext(context, TOOL_NAMES.listDocumentRequests, args),
+      ),
   },
   {
     name: TOOL_NAMES.cancelDocumentRequest,
@@ -2506,7 +2680,9 @@ const TOOLS: readonly ToolSpec[] = [
       required: ['requestId'],
     },
     badge: (result) =>
-      isRecord(result) && result.cancelled === true ? 'Cancelled document request' : 'Attempted request cancellation',
+      isRecord(result) && result.cancelled === true
+        ? 'Cancelled document request'
+        : 'Attempted request cancellation',
     run: (context, args) => tool_cancelDocumentRequest(context, args),
   },
   {
@@ -2520,12 +2696,15 @@ const TOOLS: readonly ToolSpec[] = [
       required: ['requestId'],
     },
     badge: (result) =>
-      isRecord(result) && result.sent === true ? 'Sent document reminder email' : 'Attempted reminder',
+      isRecord(result) && result.sent === true
+        ? 'Sent document reminder email'
+        : 'Attempted reminder',
     run: (context, args) => tool_sendDocumentReminder(context, args),
   },
   {
     name: TOOL_NAMES.listClientDocuments,
-    description: 'List documents uploaded by or for a client. Filter by document type or search keyword.',
+    description:
+      'List documents uploaded by or for a client. Filter by document type or search keyword.',
     parameters: {
       type: 'object',
       properties: {
@@ -2542,16 +2721,22 @@ const TOOLS: readonly ToolSpec[] = [
     },
     badge: (result) => {
       const count = countFrom(result, ['total', 'documents']);
-      return count === null ? 'Checked client documents' : `Checked ${count} document${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Checked client documents'
+        : `Checked ${count} document${count === 1 ? '' : 's'}`;
     },
     run: (context, args) =>
-      tool_listClientDocuments(context.user, withRouteContext(context, TOOL_NAMES.listClientDocuments, args)),
+      tool_listClientDocuments(
+        context.user,
+        withRouteContext(context, TOOL_NAMES.listClientDocuments, args),
+      ),
   },
 
   // 5. Client Communications
   {
     name: TOOL_NAMES.sendClientMessage,
-    description: 'Post an official notice or message directly to a client in their portal communication thread.',
+    description:
+      'Post an official notice or message directly to a client in their portal communication thread.',
     parameters: {
       type: 'object',
       properties: {
@@ -2561,9 +2746,14 @@ const TOOLS: readonly ToolSpec[] = [
       required: ['clientId', 'message'],
     },
     badge: (result) =>
-      isRecord(result) && result.sent === true ? 'Sent client message' : 'Attempted client message',
+      isRecord(result) && result.sent === true
+        ? 'Sent client message'
+        : 'Attempted client message',
     run: (context, args) =>
-      tool_sendClientMessage(context, withRouteContext(context, TOOL_NAMES.sendClientMessage, args)),
+      tool_sendClientMessage(
+        context,
+        withRouteContext(context, TOOL_NAMES.sendClientMessage, args),
+      ),
   },
   {
     name: TOOL_NAMES.listClientMessages,
@@ -2578,16 +2768,22 @@ const TOOLS: readonly ToolSpec[] = [
     },
     badge: (result) => {
       const count = countFrom(result, ['total', 'messages']);
-      return count === null ? 'Checked client messages' : `Checked ${count} message${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Checked client messages'
+        : `Checked ${count} message${count === 1 ? '' : 's'}`;
     },
     run: (context, args) =>
-      tool_listClientMessages(context, withRouteContext(context, TOOL_NAMES.listClientMessages, args)),
+      tool_listClientMessages(
+        context,
+        withRouteContext(context, TOOL_NAMES.listClientMessages, args),
+      ),
   },
 
   // 6. Team & Staff Management
   {
     name: TOOL_NAMES.listTeamMembers,
-    description: 'List active practice team members (admins and staff) with their names, emails, roles, and user IDs.',
+    description:
+      'List active practice team members (admins and staff) with their names, emails, roles, and user IDs.',
     parameters: {
       type: 'object',
       properties: {
@@ -2596,7 +2792,9 @@ const TOOLS: readonly ToolSpec[] = [
     },
     badge: (result) => {
       const count = countFrom(result, ['total', 'team']);
-      return count === null ? 'Checked team roster' : `Listed ${count} team member${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Checked team roster'
+        : `Listed ${count} team member${count === 1 ? '' : 's'}`;
     },
     run: (context, args) => tool_listTeamMembers(context, args),
   },
@@ -2604,25 +2802,32 @@ const TOOLS: readonly ToolSpec[] = [
   // 7. Firm Settings
   {
     name: TOOL_NAMES.getFirmSettings,
-    description: 'Retrieve current firm settings: firm name, contact email, phone, address, and compliance horizon.',
+    description:
+      'Retrieve current firm settings: firm name, contact email, phone, address, and compliance horizon.',
     parameters: { type: 'object', properties: {} },
     badge: () => 'Read firm settings',
     run: () => tool_getFirmSettings(),
   },
   {
     name: TOOL_NAMES.updateFirmSettings,
-    description: 'Update firm settings (firm name, contact email, phone, compliance horizon). Admin only.',
+    description:
+      'Update firm settings (firm name, contact email, phone, compliance horizon). Admin only.',
     parameters: {
       type: 'object',
       properties: {
         firmName: { type: 'string', description: 'Firm display name.' },
         contactEmail: { type: 'string', description: 'Primary firm email.' },
         contactPhone: { type: 'string', description: 'Primary firm phone number.' },
-        complianceHorizonDays: { type: 'integer', description: 'Days ahead to track statutory filings (7 to 365).' },
+        complianceHorizonDays: {
+          type: 'integer',
+          description: 'Days ahead to track statutory filings (7 to 365).',
+        },
       },
     },
     badge: (result) =>
-      isRecord(result) && result.updated === true ? 'Updated firm settings' : 'Attempted settings update',
+      isRecord(result) && result.updated === true
+        ? 'Updated firm settings'
+        : 'Attempted settings update',
     run: (context, args) => tool_updateFirmSettings(context, args),
   },
 
@@ -2642,25 +2847,37 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        category: { type: 'string', description: 'One of: gst, income_tax, tds, roc, advisory, other.' },
-        status: { type: 'string', description: 'One of: pending, in_progress, awaiting_client, filed, acknowledged, not_applicable.' },
+        category: {
+          type: 'string',
+          description: 'One of: gst, income_tax, tds, roc, advisory, other.',
+        },
+        status: {
+          type: 'string',
+          description:
+            'One of: pending, in_progress, awaiting_client, filed, acknowledged, not_applicable.',
+        },
         clientId: { type: 'string', description: 'Optional 24-character client id.' },
       },
     },
     badge: () => 'Generated compliance report',
     run: (context, args) =>
-      tool_getComplianceReport(context, withRouteContext(context, TOOL_NAMES.getComplianceReport, args)),
+      tool_getComplianceReport(
+        context,
+        withRouteContext(context, TOOL_NAMES.getComplianceReport, args),
+      ),
   },
   {
     name: TOOL_NAMES.getTeamWorkloadReport,
-    description: 'Generate team workload report: open tasks, overdue tasks, active filings, and workload by staff member.',
+    description:
+      'Generate team workload report: open tasks, overdue tasks, active filings, and workload by staff member.',
     parameters: { type: 'object', properties: {} },
     badge: () => 'Generated team workload report',
     run: (context) => tool_getTeamWorkloadReport(context),
   },
   {
     name: TOOL_NAMES.getClientRosterReport,
-    description: 'Generate client practice roster report with active services, next due dates, and open requests.',
+    description:
+      'Generate client practice roster report with active services, next due dates, and open requests.',
     parameters: {
       type: 'object',
       properties: {
@@ -2669,10 +2886,15 @@ const TOOLS: readonly ToolSpec[] = [
     },
     badge: (result) => {
       const count = countFrom(result, ['count', 'roster']);
-      return count === null ? 'Generated client roster' : `Generated roster for ${count} client${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Generated client roster'
+        : `Generated roster for ${count} client${count === 1 ? '' : 's'}`;
     },
     run: (context, args) =>
-      tool_getClientRosterReport(context, withRouteContext(context, TOOL_NAMES.getClientRosterReport, args)),
+      tool_getClientRosterReport(
+        context,
+        withRouteContext(context, TOOL_NAMES.getClientRosterReport, args),
+      ),
   },
 
   // 9. Client Services & Subscriptions
@@ -2684,11 +2906,26 @@ const TOOLS: readonly ToolSpec[] = [
       type: 'object',
       properties: {
         clientId: { type: 'string', description: 'The 24-character client id.' },
-        complianceTypeId: { type: 'string', description: 'The 24-character compliance type id.' },
-        complianceTypeName: { type: 'string', description: 'Or search by name/code (e.g. GSTR-3B, TDS, ITR).' },
-        startDate: { type: 'string', description: 'Start date as YYYY-MM-DD. Defaults to today.' },
-        frequency: { type: 'string', description: 'One of: monthly, quarterly, half_yearly, annual, one_time.' },
-        assignedStaffId: { type: 'string', description: 'Optional 24-character staff user id.' },
+        complianceTypeId: {
+          type: 'string',
+          description: 'The 24-character compliance type id.',
+        },
+        complianceTypeName: {
+          type: 'string',
+          description: 'Or search by name/code (e.g. GSTR-3B, TDS, ITR).',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Start date as YYYY-MM-DD. Defaults to today.',
+        },
+        frequency: {
+          type: 'string',
+          description: 'One of: monthly, quarterly, half_yearly, annual, one_time.',
+        },
+        assignedStaffId: {
+          type: 'string',
+          description: 'Optional 24-character staff user id.',
+        },
       },
       required: ['clientId'],
     },
@@ -2697,7 +2934,10 @@ const TOOLS: readonly ToolSpec[] = [
         ? `Added service ${result.serviceName}`
         : 'Attempted to add client service',
     run: (context, args) =>
-      tool_addClientService(context, withRouteContext(context, TOOL_NAMES.addClientService, args)),
+      tool_addClientService(
+        context,
+        withRouteContext(context, TOOL_NAMES.addClientService, args),
+      ),
   },
   {
     name: TOOL_NAMES.listClientServices,
@@ -2711,10 +2951,15 @@ const TOOLS: readonly ToolSpec[] = [
     },
     badge: (result) => {
       const count = countFrom(result, ['count', 'services']);
-      return count === null ? 'Checked client services' : `Checked ${count} client service${count === 1 ? '' : 's'}`;
+      return count === null
+        ? 'Checked client services'
+        : `Checked ${count} client service${count === 1 ? '' : 's'}`;
     },
     run: (context, args) =>
-      tool_listClientServices(context, withRouteContext(context, TOOL_NAMES.listClientServices, args)),
+      tool_listClientServices(
+        context,
+        withRouteContext(context, TOOL_NAMES.listClientServices, args),
+      ),
   },
   {
     name: TOOL_NAMES.deleteClientService,
@@ -2727,7 +2972,9 @@ const TOOLS: readonly ToolSpec[] = [
       required: ['serviceId'],
     },
     badge: (result) =>
-      isRecord(result) && result.success === true ? 'Removed client service' : 'Attempted to remove service',
+      isRecord(result) && result.success === true
+        ? 'Removed client service'
+        : 'Attempted to remove service',
     run: (context, args) => tool_deleteClientService(context, args),
   },
 
@@ -2740,12 +2987,24 @@ const TOOLS: readonly ToolSpec[] = [
       type: 'object',
       properties: {
         clientId: { type: 'string', description: 'The 24-character client id.' },
-        complianceTypeId: { type: 'string', description: 'The 24-character compliance type id.' },
-        complianceTypeName: { type: 'string', description: 'Or search by compliance type name/code.' },
-        periodType: { type: 'string', description: 'One of: month, quarter, half_year, financial_year.' },
+        complianceTypeId: {
+          type: 'string',
+          description: 'The 24-character compliance type id.',
+        },
+        complianceTypeName: {
+          type: 'string',
+          description: 'Or search by compliance type name/code.',
+        },
+        periodType: {
+          type: 'string',
+          description: 'One of: month, quarter, half_year, financial_year.',
+        },
         periodAnchor: { type: 'string', description: 'Date within the period as YYYY-MM-DD.' },
         dueDate: { type: 'string', description: 'Due date as YYYY-MM-DD.' },
-        assignedStaffId: { type: 'string', description: 'Optional 24-character staff user id.' },
+        assignedStaffId: {
+          type: 'string',
+          description: 'Optional 24-character staff user id.',
+        },
         notes: { type: 'string', description: 'Internal filing notes.' },
       },
       required: ['clientId'],
@@ -2755,7 +3014,10 @@ const TOOLS: readonly ToolSpec[] = [
         ? `Created filing ${result.filingName}`
         : 'Attempted filing creation',
     run: (context, args) =>
-      tool_createComplianceFiling(context, withRouteContext(context, TOOL_NAMES.createComplianceFiling, args)),
+      tool_createComplianceFiling(
+        context,
+        withRouteContext(context, TOOL_NAMES.createComplianceFiling, args),
+      ),
   },
 
   // 11. Autonomous Practice Automation Runner
@@ -2766,9 +3028,18 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        horizonDays: { type: 'integer', description: 'Upcoming deadline lookahead in days (default 30).' },
-        quarterDays: { type: 'integer', description: 'Bulk filing horizon in days (default 90).' },
-        urgentDays: { type: 'integer', description: 'Urgent task threshold in days (default 10).' },
+        horizonDays: {
+          type: 'integer',
+          description: 'Upcoming deadline lookahead in days (default 30).',
+        },
+        quarterDays: {
+          type: 'integer',
+          description: 'Bulk filing horizon in days (default 90).',
+        },
+        urgentDays: {
+          type: 'integer',
+          description: 'Urgent task threshold in days (default 10).',
+        },
       },
     },
     badge: () => 'Ran autonomous practice automation',
@@ -2799,7 +3070,10 @@ const TOOLS: readonly ToolSpec[] = [
     parameters: {
       type: 'object',
       properties: {
-        userId: { type: 'string', description: 'The 24-character user id of the client account.' },
+        userId: {
+          type: 'string',
+          description: 'The 24-character user id of the client account.',
+        },
         clientIds: {
           type: 'array',
           items: { type: 'string' },
@@ -2816,7 +3090,8 @@ const TOOLS: readonly ToolSpec[] = [
   },
 ] as const;
 
-const toolByName = (name: string): ToolSpec | undefined => TOOLS.find((tool) => tool.name === name);
+const toolByName = (name: string): ToolSpec | undefined =>
+  TOOLS.find((tool) => tool.name === name);
 
 const executeTool = async (
   context: AgentContext,
@@ -2873,7 +3148,9 @@ const buildSystemPrompt = (context: AgentContext): string =>
 const ROUTE_CONTEXT_PREFIX = (route: string): string =>
   `[System context] The user is currently viewing this FirmDesk page: ${route}. If it contains a client id, treat "this client" as that client.`;
 
-const historyTurns = (context: AgentContext): Array<{ role: 'user' | 'assistant'; text: string }> =>
+const historyTurns = (
+  context: AgentContext,
+): Array<{ role: 'user' | 'assistant'; text: string }> =>
   context.history.slice(-MAX_HISTORY_TURNS).map((turn) => ({
     role: turn.role,
     text: turn.content,
@@ -2968,7 +3245,10 @@ const runGeminiAgent = async (
 
     if (functionCalls.length === 0) {
       return {
-        text: text.length > 0 ? text : 'I could not produce an answer. Please rephrase the question.',
+        text:
+          text.length > 0
+            ? text
+            : 'I could not produce an answer. Please rephrase the question.',
         badges,
       };
     }
@@ -2985,7 +3265,10 @@ const runGeminiAgent = async (
         functionResponse: {
           ...(callId ? { id: callId } : {}),
           name,
-          response: (result && typeof result === 'object' ? result : { result }) as Record<string, unknown>,
+          response: (result && typeof result === 'object' ? result : { result }) as Record<
+            string,
+            unknown
+          >,
         },
       });
     }
@@ -3018,7 +3301,9 @@ const runOpenAIAgent = async (
   const model = credentials.model;
   const badges: AgentToolBadge[] = [];
 
-  const messages: ChatCompletionMessageParam[] = [{ role: 'system', content: buildSystemPrompt(context) }];
+  const messages: ChatCompletionMessageParam[] = [
+    { role: 'system', content: buildSystemPrompt(context) },
+  ];
   if (context.currentRoute !== null) {
     messages.push({ role: 'system', content: ROUTE_CONTEXT_PREFIX(context.currentRoute) });
   }
@@ -3078,7 +3363,9 @@ const runOpenAIAgent = async (
     const toolCalls = choice.tool_calls ?? [];
     if (toolCalls.length === 0) {
       return {
-        text: choice.content?.trim() ?? 'I could not produce an answer. Please rephrase the question.',
+        text:
+          choice.content?.trim() ??
+          'I could not produce an answer. Please rephrase the question.',
         badges,
       };
     }
@@ -3190,7 +3477,12 @@ const staticFallbackReply = async (
         dueIn30Days: number;
         tasksByStatus: Record<string, number>;
       };
-      teamCapacity?: Array<{ staffName: string; openTasks: number; overdueTasks: number; openFilings: number }>;
+      teamCapacity?: Array<{
+        staffName: string;
+        openTasks: number;
+        overdueTasks: number;
+        openFilings: number;
+      }>;
     };
 
     const deadlines = result.deadlines ?? { overdueCount: 0, upcomingCount: 0 };
@@ -3264,9 +3556,16 @@ const staticFallbackReply = async (
   }
 
   if (query.includes('deadline') || query.includes('due date') || query.includes('upcoming')) {
-    const result = (await executeTool(context, TOOL_NAMES.upcomingDeadlines, { horizonDays: 14 })) as {
+    const result = (await executeTool(context, TOOL_NAMES.upcomingDeadlines, {
+      horizonDays: 14,
+    })) as {
       overdueCount?: number;
-      upcoming?: Array<{ clientName: string; filingName: string; dueDate: string | null; status: string }>;
+      upcoming?: Array<{
+        clientName: string;
+        filingName: string;
+        dueDate: string | null;
+        status: string;
+      }>;
     };
     const upcoming = result.upcoming ?? [];
     const lines = upcoming
@@ -3298,7 +3597,12 @@ const staticFallbackReply = async (
     };
   }
 
-  if (query.includes('gst') || query.includes('tds') || query.includes('itr') || query.includes('filing')) {
+  if (
+    query.includes('gst') ||
+    query.includes('tds') ||
+    query.includes('itr') ||
+    query.includes('filing')
+  ) {
     const category = query.includes('tds')
       ? 'tds'
       : query.includes('itr') || query.includes('income tax')
@@ -3309,11 +3613,17 @@ const staticFallbackReply = async (
       status: 'pending',
       limit: 10,
     })) as {
-      filings?: Array<{ clientName: string; filingName: string; periodLabel: string; dueDate: string | null }>;
+      filings?: Array<{
+        clientName: string;
+        filingName: string;
+        periodLabel: string;
+        dueDate: string | null;
+      }>;
     };
     const filings = result.filings ?? [];
     const lines = filings.map(
-      (item) => `• ${item.clientName} — **${item.filingName}** (${item.periodLabel}), due **${item.dueDate ?? '—'}**`,
+      (item) =>
+        `• ${item.clientName} — **${item.filingName}** (${item.periodLabel}), due **${item.dueDate ?? '—'}**`,
     );
     return {
       content:
@@ -3323,7 +3633,10 @@ const staticFallbackReply = async (
           : `${lines.join('\n')}\n\n`) +
         `*This reply came from FirmDesk's built-in reference mode. An admin can add a Gemini or OpenAI key under Settings → AI Copilot for full conversational operations.*`,
       toolCalls: [
-        { tool: TOOL_NAMES.complianceFilings, label: `Checked ${filings.length} filing${filings.length === 1 ? '' : 's'}` },
+        {
+          tool: TOOL_NAMES.complianceFilings,
+          label: `Checked ${filings.length} filing${filings.length === 1 ? '' : 's'}`,
+        },
       ],
       actions: [
         { label: 'Open Filings', route: '/compliance' },
@@ -3353,7 +3666,12 @@ const staticFallbackReply = async (
     };
   }
 
-  if (query.includes('automate') || query.includes('can you do') || query.includes('capabilities') || query.includes('help')) {
+  if (
+    query.includes('automate') ||
+    query.includes('can you do') ||
+    query.includes('capabilities') ||
+    query.includes('help')
+  ) {
     return {
       content:
         `### 🤖 FirmDesk AI Copilot Full Website Automation Capabilities\n\n` +
@@ -3431,7 +3749,8 @@ export const runAiAgent = async (input: {
     user: input.user,
     actor: input.actor,
     history: sanitiseHistory(input.history),
-    currentRoute: typeof input.currentRoute === 'string' ? input.currentRoute.slice(0, 200) : null,
+    currentRoute:
+      typeof input.currentRoute === 'string' ? input.currentRoute.slice(0, 200) : null,
     image: input.image ?? null,
   };
 

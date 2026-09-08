@@ -50,7 +50,10 @@ export const createComplianceTypeBody = z
       .string()
       .trim()
       .toUpperCase()
-      .regex(/^[A-Z0-9_-]{2,40}$/, 'A code is uppercase letters, digits, hyphens or underscores.'),
+      .regex(
+        /^[A-Z0-9_-]{2,40}$/,
+        'A code is uppercase letters, digits, hyphens or underscores.',
+      ),
   })
   .superRefine((value, ctx) => {
     if (value.isRecurring && (value.dueDateRule === null || value.dueDateRule === undefined)) {

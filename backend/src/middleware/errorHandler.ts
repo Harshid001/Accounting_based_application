@@ -11,10 +11,7 @@ interface MongoDuplicateError {
 }
 
 const isDuplicateKeyError = (error: unknown): error is MongoDuplicateError =>
-  error !== null &&
-  typeof error === 'object' &&
-  'code' in error &&
-  error.code === 11000;
+  error !== null && typeof error === 'object' && 'code' in error && error.code === 11000;
 
 const duplicateFieldMessage = (field: string): string => {
   switch (field) {

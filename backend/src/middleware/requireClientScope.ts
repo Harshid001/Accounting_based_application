@@ -10,11 +10,7 @@ import { currentUser } from './requireAuth.js';
 export const ACTIVE_CLIENT_HEADER = 'x-active-client';
 
 export type ScopeSource =
-  | 'param:id'
-  | 'param:clientId'
-  | 'body:clientId'
-  | 'query:client'
-  | 'header';
+  'param:id' | 'param:clientId' | 'body:clientId' | 'query:client' | 'header';
 
 const readSource = (req: Request, source: ScopeSource): string | null => {
   switch (source) {
@@ -39,8 +35,7 @@ const readSource = (req: Request, source: ScopeSource): string | null => {
   }
 };
 
-export const activeClientHeader = (req: Request): string | null =>
-  readSource(req, 'header');
+export const activeClientHeader = (req: Request): string | null => readSource(req, 'header');
 
 export const assertClientAccess = async (
   user: AuthenticatedUser,

@@ -126,7 +126,10 @@ export const createDocumentRequests = async (
     }).exec();
     if (count !== new Set(complianceItemIds).size) {
       throw validationFailed('All compliance filings must belong to this client.', [
-        { field: 'complianceItemId', message: 'One or more compliance filings belong to another client.' },
+        {
+          field: 'complianceItemId',
+          message: 'One or more compliance filings belong to another client.',
+        },
       ]);
     }
   }

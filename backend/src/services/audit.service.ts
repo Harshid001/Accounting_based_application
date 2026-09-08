@@ -81,7 +81,12 @@ export const recordAudit = async (input: AuditInput): Promise<void> => {
     });
   } catch (error) {
     logger.error(
-      { event: 'audit.write_failed', action: input.action, entityKind: input.entityKind, err: error },
+      {
+        event: 'audit.write_failed',
+        action: input.action,
+        entityKind: input.entityKind,
+        err: error,
+      },
       'an audit entry could not be written',
     );
   }

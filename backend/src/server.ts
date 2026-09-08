@@ -10,6 +10,7 @@ import { verifyMailTransport } from './config/mailer.js';
 import { startScheduler, stopScheduler } from './jobs/index.js';
 import { seedComplianceTypes } from './seed/complianceTypes.seed.js';
 import { bootstrapAdmin } from './seed/bootstrapAdmin.seed.js';
+import { automationWorker } from './services/portalAutomation/worker.js';
 
 const REQUIRED_INDEX_HINT =
   'Indexes are not built automatically in production. Run `npm run indexes` after deploying.';
@@ -31,6 +32,7 @@ const shutdown = async (signal: string): Promise<void> => {
     });
   }
   closeStorage();
+  await automationWorker.shutdown();
   await disconnectDatabase();
   logger.info({ event: 'shutdown.complete' }, 'shutdown complete');
   process.exit(0);
