@@ -216,8 +216,9 @@ describe('POST /api/v1/automation/runs (start run)', () => {
       .send({ filingPreparationId: preparationId });
     expect(first.status).toBe(200);
 
-    // Pin the run as live — the real worker can fail fast in the test env
-    // (no chromium), which would release the duplicate guard.
+    // Let the background worker finish its (test-env) failure path first,
+    // THEN pin the run live — deterministic instead of racing the worker.
+    await new Promise((resolve) => setTimeout(resolve, 300));
     await AutomationRun.updateOne(
       { _id: first.body.data.id },
       { status: 'running' },

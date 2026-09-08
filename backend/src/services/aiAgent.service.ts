@@ -241,7 +241,8 @@ You can perform and automate all the following operations directly via tools:
    - Supported AND status ready|locked → run_portal_automation (or bulk_run_portal_automation for multiple filings).
    - Not supported → say exactly which forms ARE supported, and offer the manual get_filing_guide steps instead. NEVER claim a form is automatable without checking.
 5. **After launch**: call get_automation_run_status once, then tell the user the browser worker is filing on the official portal, give the live-feed [ACTION] link, and state exactly which handoffs to expect (portal password, CAPTCHA, OTP, typed FILE confirmation) — the user completes them in the live browser feed, never in chat.
-6. **Errors**: report tool errors faithfully. Retry ONCE only for transient errors (e.g. worker capacity). NEVER launch a second run for the same preparation — the system blocks duplicates; if it reports one is already active, direct the user to the live feed.
+ 6. **Errors**: report tool errors faithfully. Retry ONCE only for transient errors (e.g. worker capacity). NEVER launch a second run for the same preparation — the system blocks duplicates; if it reports one is already active, direct the user to the live feed.
+   **Capacity**: check_automation_support returns capacity.free / capacity.note in plain words — "free" means slots AVAILABLE to launch, 0 busy means all FREE. Quote capacity.note verbatim; never invert or guess its meaning.
 
 ### MONITORING INTENTS (status questions — never re-launch to answer these):
 - "is it done?" / "kya ho gaya?" / "what's happening?" / "stuck kyu hai?" / "why is it waiting?" → get_automation_run_status (or list_automation_runs when no runId is known). Explain the current step and, when waiting_human, exactly what the user must do in the live feed (OTP from client's phone, CAPTCHA, password, typed FILE).
@@ -1257,6 +1258,12 @@ const tool_checkAutomationSupport = async (
 ): Promise<unknown> => {
   const formCode = asString(args.formCode)?.toUpperCase().trim();
   const support = await getAutomationSupport();
+  const capacity = {
+    active: support.activeCapacity,
+    max: support.maxCapacity,
+    free: support.capacityFree,
+    note: support.capacityNote,
+  };
   if (formCode !== undefined && formCode.length > 0) {
     const entry = support.knownForms.find((f) => f.formCode === formCode);
     return {
@@ -1264,7 +1271,7 @@ const tool_checkAutomationSupport = async (
       supported: entry?.supported ?? false,
       known: entry !== undefined,
       supportedForms: support.supportedForms,
-      capacity: `${support.activeCapacity}/${support.maxCapacity}`,
+      capacity,
       message: entry?.supported
         ? `${formCode} has an automation recipe — run_portal_automation can file it after prepare_filing_return.`
         : entry !== undefined
@@ -1275,9 +1282,9 @@ const tool_checkAutomationSupport = async (
   return {
     supportedForms: support.supportedForms,
     knownForms: support.knownForms,
-    capacity: `${support.activeCapacity}/${support.maxCapacity}`,
+    capacity,
     message:
-      'Automation coverage menu. Only the supportedForms can be filed via run_portal_automation; everything else gets the manual guide.',
+      'Automation coverage menu. Only the supportedForms can be filed via run_portal_automation; everything else gets the manual guide. The capacity.note states plainly whether browser slots are free or busy — quote it verbatim, never guess.',
   };
 };
 
@@ -1438,7 +1445,12 @@ const tool_listPendingAutomatableFilings = async (
 
   return {
     total: automatable.length,
-    capacity: `${support.activeCapacity}/${support.maxCapacity}`,
+    capacity: {
+      active: support.activeCapacity,
+      max: support.maxCapacity,
+      free: support.capacityFree,
+      note: support.capacityNote,
+    },
     filings: automatable.map((item) => ({
       filingId: String(item._id),
       clientName:
@@ -4387,9 +4399,11 @@ const staticFallbackReply = async (
     const runs = (runsResult as { runs?: Array<Record<string, unknown>> }).runs ?? [];
     const support = supportResult as {
       supportedForms?: Array<{ form: string; portal: string }>;
-      capacity?: string;
+      capacity?: { note?: string };
     };
     const supported = support.supportedForms ?? [];
+    const capacityNote =
+      support.capacity?.note ?? 'Browser capacity unknown — check the /automation page.';
     const lines = runs.map((run) => {
       const status = typeof run.status === 'string' ? run.status : 'unknown';
       const form = typeof run.form === 'string' ? run.form : 'unknown form';
@@ -4405,7 +4419,8 @@ const staticFallbackReply = async (
         (runs.length === 0
           ? `No browser automation runs found in your scope yet.\n\n`
           : `${lines.join('\n')}\n\n`) +
-        `**Automation coverage**: ${supported.map((f) => f.form).join(', ') || 'no recipes yet'} (browser capacity ${support.capacity ?? '0/2'}).\n\n` +
+        `**Automation coverage**: ${supported.map((f) => f.form).join(', ') || 'no recipes yet'}.\n\n` +
+        `${capacityNote}\n\n` +
         `*Reference mode: for live monitoring and launching runs from chat, an admin can configure a Gemini or OpenAI key under Settings → AI Copilot.*`,
       toolCalls: [
         { tool: TOOL_NAMES.listAutomationRuns, label: `Checked ${runs.length} automation run${runs.length === 1 ? '' : 's'}` },

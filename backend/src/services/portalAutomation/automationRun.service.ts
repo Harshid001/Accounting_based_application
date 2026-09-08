@@ -282,6 +282,8 @@ export interface AutomationSupportView {
   knownForms: Array<{ formCode: string; portalKey: string; supported: boolean }>;
   activeCapacity: number;
   maxCapacity: number;
+  capacityFree: number;
+  capacityNote: string;
 }
 
 // formCode → the portal category it belongs to
@@ -315,13 +317,23 @@ export const getAutomationSupport = async (): Promise<AutomationSupportView> => 
       return { formCode, portalKey, supported };
     });
 
+  const activeCapacity = automationWorker.getActiveRunCount();
+  const maxCapacity = 2;
+
   return {
     supportedForms: recipes
       .filter((r) => r.portal !== 'demo' && r.form !== 'FIXTURE')
       .map((r) => ({ form: r.form, portal: r.portal, recipeVersion: r.version })),
     knownForms,
-    activeCapacity: automationWorker.getActiveRunCount(),
-    maxCapacity: 2,
+    activeCapacity,
+    maxCapacity,
+    capacityFree: Math.max(maxCapacity - activeCapacity, 0),
+    capacityNote:
+      activeCapacity === 0
+        ? 'All browser slots are FREE right now — runs can launch immediately.'
+        : activeCapacity >= maxCapacity
+          ? 'All browser slots are BUSY — new runs must wait for an active run to finish.'
+          : `${maxCapacity - activeCapacity} browser slot(s) free of ${maxCapacity} — runs can launch now.`,
   };
 };
 
