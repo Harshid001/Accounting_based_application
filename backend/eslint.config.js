@@ -11,7 +11,11 @@ export default tseslint.config(
       globals: { ...globals.node },
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['eslint.config.js', 'deploy/ecosystem.config.cjs'],
+          allowDefaultProject: [
+            'eslint.config.js',
+            'deploy/ecosystem.config.cjs',
+            'scripts/copy-recipes.mjs',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },

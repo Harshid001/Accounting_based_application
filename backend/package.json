@@ -10,7 +10,7 @@
   "main": "dist/src/server.js",
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-recipes.mjs",
     "start": "node dist/src/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --max-warnings 0",
