@@ -20,12 +20,12 @@ const scopeViaItem = requireResolvedClientScope(clientIdOfItem);
 // Used for an active run (client scope resolved via run document)
 import { AutomationRun } from '../models/automationRun.model.js';
 import { notFound } from '../lib/errors.js';
-import { Types } from 'mongoose';
+import type { Types } from 'mongoose';
 
 const scopeViaRun = requireResolvedClientScope(async (id: Types.ObjectId) => {
   const run = await AutomationRun.findById(id).select('client').lean().exec();
   if (!run) throw notFound('automation run');
-  return run.client as Types.ObjectId;
+  return run.client;
 });
 
 automationRouter.post(

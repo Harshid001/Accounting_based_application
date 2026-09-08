@@ -7,7 +7,7 @@
 //   Audit log entry with run + evidence references
 // ---------------------------------------------------------------------------
 
-import { Types } from 'mongoose';
+import type { Types } from 'mongoose';
 
 import { logger } from '../../config/logger.js';
 import { ComplianceItem } from '../../models/complianceItem.model.js';

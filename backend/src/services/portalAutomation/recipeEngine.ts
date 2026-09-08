@@ -14,8 +14,8 @@ import { fileURLToPath } from 'node:url';
 import type { Page } from 'playwright';
 
 import { logger } from '../../config/logger.js';
-import { HandoffBroker } from './handoffBroker.js';
-import { ScreenCaster } from './screenCaster.js';
+import type { HandoffBroker } from './handoffBroker.js';
+import type { ScreenCaster } from './screenCaster.js';
 import type { Recipe, RecipeStep, RunEvent, RunEventKind } from './types.js';
 import type { HandoffType } from '../../lib/enums.js';
 
@@ -36,11 +36,12 @@ export const loadRecipe = async (portal: string, form: string): Promise<Recipe> 
   const filePath = resolve(RECIPES_DIR, portal, `${form}.json`);
   try {
     const raw = await readFile(filePath, 'utf-8');
-    const recipe: Recipe = JSON.parse(raw);
+    const recipe = JSON.parse(raw) as Recipe;
     return recipe;
   } catch (error) {
     throw new Error(
       `Recipe not found: ${portal}/${form}.json — ${error instanceof Error ? error.message : 'unknown error'}`,
+      { cause: error }
     );
   }
 };
@@ -66,7 +67,7 @@ export const listRecipes = async (): Promise<
         if (!file.endsWith('.json')) continue;
         try {
           const raw = await readFile(resolve(portalDir, file), 'utf-8');
-          const recipe: Recipe = JSON.parse(raw);
+          const recipe = JSON.parse(raw) as Recipe;
           recipes.push({
             portal: recipe.portal,
             form: recipe.form,
@@ -123,6 +124,10 @@ const resolveMapValue = (
     return '';
   }
 
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   return String(value);
 };
 
@@ -169,7 +174,7 @@ const executeClick = async (page: Page, step: RecipeStep): Promise<void> => {
   const timeout = step.timeoutMs ?? DEFAULT_STEP_TIMEOUT_MS;
 
   if (step.role && step.name) {
-    await page.getByRole(step.role as any, { name: step.name }).click({ timeout });
+    await page.getByRole(step.role as Parameters<Page['getByRole']>[0], { name: step.name }).click({ timeout });
   } else if (step.selector) {
     await page.locator(step.selector).click({ timeout });
   } else {
@@ -184,7 +189,7 @@ const executeFill = async (page: Page, step: RecipeStep, value: string): Promise
     const locator = page.locator(step.selector);
     await locator.fill(value, { timeout });
   } else if (step.role && step.name) {
-    await page.getByRole(step.role as any, { name: step.name }).fill(value, { timeout });
+    await page.getByRole(step.role as Parameters<Page['getByRole']>[0], { name: step.name }).fill(value, { timeout });
   } else {
     throw new Error(`fill step "${step.key}" needs a selector or role+name`);
   }
@@ -343,7 +348,7 @@ export const executeRecipe = async (
         }
 
         default:
-          throw new Error(`Unknown recipe action: ${step.action}`);
+          throw new Error(`Unknown recipe action: ${String(step.action)}`);
       }
 
       // Capture evidence screenshot after each successful step

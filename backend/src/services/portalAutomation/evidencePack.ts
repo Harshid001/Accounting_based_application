@@ -6,7 +6,8 @@
 // For simplicity we use the built-in approach and build a zip in-memory.
 // ---------------------------------------------------------------------------
 
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 import archiver = require('archiver');
 
 import { logger } from '../../config/logger.js';
@@ -85,6 +86,7 @@ export const buildEvidencePack = async (
   });
 
   // Build zip using archiver
+  /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
   const archive = (archiver as any)('zip', { zlib: { level: 6 } });
 
   for (const entry of entries) {
@@ -96,6 +98,7 @@ export const buildEvidencePack = async (
   }
 
   void archive.finalize();
+  /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
 
   const sanitizedForm = run.form.replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `evidence_${sanitizedForm}_${run._id.toString().slice(-8)}.zip`;
@@ -105,5 +108,5 @@ export const buildEvidencePack = async (
     'evidence pack built',
   );
 
-  return { stream: archive, filename };
+  return { stream: archive as unknown as Readable, filename };
 };

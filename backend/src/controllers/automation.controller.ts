@@ -14,6 +14,7 @@ import { buildEvidencePack } from '../services/portalAutomation/evidencePack.js'
 import { recordAudit } from '../services/audit.service.js';
 import type { StartRunBody, HandoffBody } from '../validators/automation.validators.js';
 import { getPreparation } from '../services/filingPreparation.service.js';
+import type { RunEvent } from '../services/portalAutomation/types.js';
 
 export const startRun = async (
   input: { body: StartRunBody },
@@ -180,7 +181,7 @@ export const streamEvents = (req: Request, res: Response): void => {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
-  const handleEvent = (event: any) => {
+  const handleEvent = (event: RunEvent) => {
     if (event.runId === runId) {
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     }
@@ -196,7 +197,7 @@ export const streamEvents = (req: Request, res: Response): void => {
 import type { ValidatedInput } from '../middleware/validate.js';
 
 export const listRecipes = async (
-  _input: ValidatedInput<{}>,
+  _input: ValidatedInput<Record<string, never>>,
   ctx: RouteContext,
 ): Promise<void> => {
   const { listRecipes: list } = await import('../services/portalAutomation/recipeEngine.js');

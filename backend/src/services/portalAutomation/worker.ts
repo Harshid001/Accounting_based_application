@@ -9,6 +9,7 @@
 import { EventEmitter } from 'node:events';
 import { chromium } from 'playwright';
 import type { Browser, BrowserContext, Page } from 'playwright';
+import type { Types } from 'mongoose';
 
 import { logger } from '../../config/logger.js';
 import { AutomationRun } from '../../models/automationRun.model.js';
@@ -71,6 +72,7 @@ export class AutomationWorker extends EventEmitter {
   /**
    * Start an automation run. Throws if concurrency limit reached.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async startRun(request: RunRequest): Promise<void> {
     if (this.shuttingDown) throw new Error('Worker is shutting down');
     if (this.activeRuns.size >= MAX_CONCURRENT_BROWSERS) {
@@ -105,10 +107,12 @@ export class AutomationWorker extends EventEmitter {
 
     try {
       // 1. Restore session state if available
-      const storedStateStr = await restoreSessionState(clientId as any, recipe.portal);
+      const storedStateStr = await restoreSessionState(clientId as unknown as Types.ObjectId, recipe.portal);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const storageState = storedStateStr ? JSON.parse(storedStateStr) : undefined;
 
       context = await browser.newContext({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         storageState,
         viewport: { width: 1280, height: 800 },
         userAgent:
@@ -131,7 +135,7 @@ export class AutomationWorker extends EventEmitter {
     caster.start(page);
 
     // Forward SSE events to router
-    caster.on('frame', (frameData) => {
+    caster.on('frame', (frameData: string) => {
       this.emit('event', { kind: 'frame', runId, timestamp: Date.now(), frameData });
     });
 
@@ -162,7 +166,7 @@ export class AutomationWorker extends EventEmitter {
 
       // 3. Save new session state (capture cookies after login)
       const newState = await context.storageState();
-      await saveSessionState(clientId as any, recipe.portal, JSON.stringify(newState));
+      await saveSessionState(clientId as unknown as Types.ObjectId, recipe.portal, JSON.stringify(newState));
 
       // 4. Update run record
       if (result.success) {
