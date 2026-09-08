@@ -204,6 +204,7 @@ export const JOB_NAMES = [
   'sendAdminDigest',
   'purgeUnlinkedAccounts',
   'rollRecurringTasks',
+  'suggestAutomationRuns',
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 

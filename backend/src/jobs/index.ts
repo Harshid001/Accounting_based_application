@@ -9,6 +9,7 @@ import { purgeUnlinkedAccounts } from './purgeUnlinkedAccounts.job.js';
 import { rollRecurringTasks } from './rollRecurringTasks.job.js';
 import { sendAdminDigest } from './sendAdminDigest.job.js';
 import { sendDeadlineReminders } from './sendDeadlineReminders.job.js';
+import { suggestAutomationRuns } from './suggestAutomationRuns.job.js';
 import type { JobOutcome } from './lock.js';
 
 export const JOB_REGISTRY: Record<JobName, () => Promise<JobOutcome>> = {
@@ -17,6 +18,7 @@ export const JOB_REGISTRY: Record<JobName, () => Promise<JobOutcome>> = {
   sendAdminDigest,
   purgeUnlinkedAccounts,
   rollRecurringTasks,
+  suggestAutomationRuns,
 };
 
 const SCHEDULE: Record<JobName, string> = {
@@ -25,6 +27,7 @@ const SCHEDULE: Record<JobName, string> = {
   purgeUnlinkedAccounts: '0 3 * * *',
   sendDeadlineReminders: '0 7 * * *',
   sendAdminDigest: '0 8 * * *',
+  suggestAutomationRuns: '30 7 * * *',
 };
 
 let tasks: ScheduledTask[] = [];

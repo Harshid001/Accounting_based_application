@@ -79,6 +79,9 @@ const ComplianceDetail = lazy(async () => ({
 const ComplianceGenerate = lazy(async () => ({
   default: (await import('@/routes/compliance/ComplianceGenerate')).ComplianceGenerate,
 }));
+const AutomationMonitor = lazy(async () => ({
+  default: (await import('@/routes/automation/AutomationMonitor')).AutomationMonitor,
+}));
 const DocumentsIndex = lazy(async () => ({
   default: (await import('@/routes/documents/DocumentsIndex')).DocumentsIndex,
 }));
@@ -198,6 +201,7 @@ export function AppRoutes() {
         <Route path="/compliance" element={<ComplianceList />} />
         <Route path="/compliance/generate" element={<ComplianceGenerate />} />
         <Route path="/compliance/:complianceId" element={<ComplianceDetail />} />
+        <Route path="/automation" element={<AutomationMonitor />} />
         <Route path="/documents" element={<DocumentsIndex />} />
         <Route path="/converter" element={<ConverterPage />} />
         <Route path="/requests" element={<RequestsIndex />} />

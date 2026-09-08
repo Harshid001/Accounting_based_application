@@ -1,5 +1,6 @@
 import {
   ArrowRightLeft,
+  Bot,
   Building2,
   CalendarClock,
   CheckSquare,
@@ -44,6 +45,12 @@ export const STAFF_NAV: NavEntry[] = [
     to: '/compliance',
     labelKey: 'sidebar.filings',
     icon: <CalendarClock size={16} aria-hidden="true" />,
+    capability: 'compliance:read',
+  },
+  {
+    to: '/automation',
+    labelKey: 'sidebar.automation',
+    icon: <Bot size={16} aria-hidden="true" />,
     capability: 'compliance:read',
   },
   {

@@ -117,6 +117,12 @@ export const queryKeys = {
   automation: {
     all: ['automation'] as const,
     detail: (id: string) => ['automation', 'detail', id] as const,
+    list: (filters?: { clientId?: string; status?: string; limit?: number }) => [
+      'automation',
+      'list',
+      filters ?? {},
+    ] as const,
+    support: ['automation', 'support'] as const,
   },
 } as const;
 

@@ -2,11 +2,12 @@ import type { Request, Response } from 'express';
 
 import { sendData } from '../lib/http.js';
 import { notFound, conflict, validationFailed } from '../lib/errors.js';
-import type { RouteContext } from '../middleware/validate.js';
+import type { RouteContext, ValidatedInput } from '../middleware/validate.js';
 import { AutomationRun } from '../models/automationRun.model.js';
 import { serializeAutomationRun } from '../serializers/automationRun.serializer.js';
 import { automationWorker } from '../services/portalAutomation/worker.js';
-import { executePortalAutomation } from '../services/portalAutomation/automationRun.service.js';
+import { executePortalAutomation, listRunsForUser } from '../services/portalAutomation/automationRun.service.js';
+import { getAutomationSupport } from '../services/portalAutomation/automationRun.service.js';
 import { buildEvidencePack } from '../services/portalAutomation/evidencePack.js';
 import { recordAudit } from '../services/audit.service.js';
 import type { StartRunBody, HandoffBody } from '../validators/automation.validators.js';
@@ -34,6 +35,26 @@ export const detail = async (
   if (!run) throw notFound('automation run');
 
   sendData(ctx.res, serializeAutomationRun(run));
+};
+
+export const listRuns = async (
+  input: { query: { clientId?: string; status?: string; limit?: number } },
+  ctx: RouteContext,
+): Promise<void> => {
+  const runs = await listRunsForUser(ctx.user, {
+    clientId: input.query.clientId ?? null,
+    status: input.query.status ?? null,
+    limit: input.query.limit ?? null,
+  });
+  sendData(ctx.res, runs.map(serializeAutomationRun));
+};
+
+export const support = async (
+  _input: ValidatedInput<Record<string, never>>,
+  ctx: RouteContext,
+): Promise<void> => {
+  const view = await getAutomationSupport();
+  sendData(ctx.res, view);
 };
 
 export const abortRun = async (
@@ -133,8 +154,6 @@ export const streamEvents = (req: Request, res: Response): void => {
     automationWorker.off('event', handleEvent);
   });
 };
-
-import type { ValidatedInput } from '../middleware/validate.js';
 
 export const listRecipes = async (
   _input: ValidatedInput<Record<string, never>>,

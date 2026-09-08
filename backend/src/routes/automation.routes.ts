@@ -13,6 +13,7 @@ import {
   automationRunParam,
   startRunBody,
   handoffBody,
+  listRunsQuery,
 } from '../validators/automation.validators.js';
 
 export const automationRouter: Router = Router();
@@ -29,6 +30,20 @@ automationRouter.post(
   mutationLimiter,
   requireCapability('compliance:update'),
   handle({ body: startRunBody }, controller.startRun),
+);
+
+automationRouter.get(
+  '/runs',
+  readLimiter,
+  requireCapability('compliance:read'),
+  handle({ query: listRunsQuery }, controller.listRuns),
+);
+
+automationRouter.get(
+  '/support',
+  readLimiter,
+  requireCapability('compliance:read'),
+  handle({}, controller.support),
 );
 
 automationRouter.get(

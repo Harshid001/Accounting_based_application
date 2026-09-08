@@ -57,7 +57,16 @@ import {
 } from './compliance.service.js';
 import { getPreparation, prepareFiling, updateGuideStep } from './filingPreparation.service.js';
 import { requestFilingOtp, submitReturnWithOtp } from './governmentGateway.service.js';
-import { executePortalAutomation } from './portalAutomation/automationRun.service.js';
+import {
+  executePortalAutomation,
+  getRunForUser,
+  listRunsForUser,
+  abortRunForUser,
+  getAutomationSupport,
+  getAutomationMetrics,
+  listPortalSessionsForUser,
+  revokePortalSessionForUser,
+} from './portalAutomation/automationRun.service.js';
 import { serializeAutomationRun } from '../serializers/automationRun.serializer.js';
 import {
   createClientService,
@@ -110,7 +119,7 @@ interface AgentContext {
   image?: { dataUrl: string; mimeType?: string } | null;
 }
 
-const MAX_AGENT_ITERATIONS = 8;
+const MAX_AGENT_ITERATIONS = 12;
 const MAX_HISTORY_TURNS = 20;
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -144,6 +153,19 @@ const TOOL_NAMES = {
 
   // Autonomous Portal Automation Runner
   runPortalAutomation: 'run_portal_automation',
+
+  // Portal Automation — Run Lifecycle & Intelligence
+  getAutomationRunStatus: 'get_automation_run_status',
+  listAutomationRuns: 'list_automation_runs',
+  retryAutomationRun: 'retry_automation_run',
+  abortAutomationRun: 'abort_automation_run',
+  checkAutomationSupport: 'check_automation_support',
+  getAutomationMetrics: 'get_automation_metrics',
+  getPortalSessionStatus: 'get_portal_session_status',
+  revokePortalSession: 'revoke_portal_session',
+  getFilingPreparation: 'get_filing_preparation',
+  listPendingAutomatableFilings: 'list_pending_automatable_filings',
+  bulkRunPortalAutomation: 'bulk_run_portal_automation',
 
   // Autonomous Practice Automation Runner
   runAutonomousPracticeAutomation: 'run_autonomous_practice_automation',
@@ -208,7 +230,34 @@ You can perform and automate all the following operations directly via tools:
 2. **Client Management**: Search clients, fetch full profiles, create new clients (individual/business with PAN, GSTIN, contacts, address), update existing client details, and archive/restore clients.
 3. **Client Services**: Attach recurring statutory services (GSTR-1, GSTR-3B, TDS, ITR) with add_client_service, inspect with list_client_services, or delete with delete_client_service.
 4. **Statutory Compliance & Filings**: Track statutory filings (GST, TDS, Income Tax, ROC/MCA), update filing statuses (mark as filed, in_progress, awaiting_client, acknowledged, not_applicable), record ARN / challan / acknowledgement numbers and filed dates, update filing notes/due dates, bulk-generate statutory filings for periods, create custom filings, and inspect compliance types.
-   **Return preparation & filing (accountant work)**: Prepare returns end-to-end with prepare_filing_return — it aggregates the documents uploaded against the filing, computes the tax liability (output tax/ITC for GST, slab tax for ITR, TDS for 24Q/26Q), and lists any missing inputs. When asked to "file GSTR-3B for a client" (or any return), first find the filing with get_compliance_filings, prepare it with prepare_filing_return, and raise document requests for anything missing. AUTONOMOUS PORTAL FILING: if the preparation status is ready or locked, immediately launch the headless browser worker with run_portal_automation (passing the preparationId from prepare_filing_return) — do NOT walk the user through the manual portal guide. After the run launches, tell the user the browser worker is filing on the official portal and direct them to the live browser feed to watch progress and handle OTP/Captcha handoffs (e.g. "[ACTION] Watch the live browser feed | /compliance/<complianceItemId>"). Only fall back to the manual get_filing_guide steps when the user explicitly asks for manual instructions or run_portal_automation reports an error (report the error faithfully, e.g. worker capacity — suggest retrying shortly). Record the ARN with update_filing_status once the run succeeds.
+   **Return preparation & filing (accountant work)**: Prepare returns end-to-end with prepare_filing_return — it aggregates the documents uploaded against the filing, computes the tax liability (output tax/ITC for GST, slab tax for ITR, TDS for 24Q/26Q), and lists any missing inputs.
+   **Browser portal automation**: run_portal_automation launches a supervised headless browser worker that files a prepared return on the official portal. You can monitor runs (get_automation_run_status, list_automation_runs), retry failed runs, abort runs, check recipe coverage (check_automation_support), inspect preparations (get_filing_preparation), and bulk-launch (bulk_run_portal_automation, max 5).
+
+### FILING DECISION LADDER (walk top-to-bottom for every file/automate request — NEVER skip steps):
+1. **Resolve the client**: call search_clients with the name. If zero or multiple matches, ask ONE clarifying question listing the candidates (with GSTIN/city disambiguators) and STOP — never pick a client silently. (Skip if the user is on /clients/<id> or gave an exact id.)
+2. **Resolve the filing + period**: call get_compliance_filings. If multiple open filings for the same form/period could match, ask which one. If the filing is already filed/acknowledged, report its status and ARN and STOP.
+3. **Prepare**: call prepare_filing_return. If it returns missingInputs, create a document request for each missing input (create_document_request), tell the user what was requested, and STOP — no automation on incomplete data.
+4. **Check coverage**: call check_automation_support for the form.
+   - Supported AND status ready|locked → run_portal_automation (or bulk_run_portal_automation for multiple filings).
+   - Not supported → say exactly which forms ARE supported, and offer the manual get_filing_guide steps instead. NEVER claim a form is automatable without checking.
+5. **After launch**: call get_automation_run_status once, then tell the user the browser worker is filing on the official portal, give the live-feed [ACTION] link, and state exactly which handoffs to expect (portal password, CAPTCHA, OTP, typed FILE confirmation) — the user completes them in the live browser feed, never in chat.
+6. **Errors**: report tool errors faithfully. Retry ONCE only for transient errors (e.g. worker capacity). NEVER launch a second run for the same preparation — the system blocks duplicates; if it reports one is already active, direct the user to the live feed.
+
+### MONITORING INTENTS (status questions — never re-launch to answer these):
+- "is it done?" / "kya ho gaya?" / "what's happening?" / "stuck kyu hai?" / "why is it waiting?" → get_automation_run_status (or list_automation_runs when no runId is known). Explain the current step and, when waiting_human, exactly what the user must do in the live feed (OTP from client's phone, CAPTCHA, password, typed FILE).
+- "kis kis ki filing chal rahi hai?" / "show me the runs" → list_automation_runs.
+- "which forms can you automate?" → check_automation_support.
+- Record the ARN with update_filing_status only after a run status shows succeeded.
+
+### UNDERSTANDING & LANGUAGE RULES:
+- Accept Hinglish, Hindi, and English naturally ("file karo", "uska 3B nikalo", "ARN aaya?", "stuck hai"). Respond in the language the user is using.
+- Multi-intent messages ("check Ravi's filings and file the 3B") — execute sequentially and report both results.
+- Genuinely ambiguous client, period, or filing → ask ONE clarifying question; never guess. Unambiguous requests → act immediately without asking.
+- "this month"/"this quarter" resolve against today's IST date.
+
+### HUMAN-ONLY GATES (absolute, never violable):
+- OTP, CAPTCHA, portal passwords, and typed FILE/SUBMIT/PAY confirmations are completed by the human in the live browser feed. You have NO tool to supply them — if a user pastes an OTP in chat, tell them to enter it in the live feed instead.
+- Only fall back to the manual get_filing_guide when the user explicitly asks for manual instructions or the form has no automation recipe.
 5. **Tasks & Workflow**: Create tasks, search/list tasks by status/priority/assignee, update task status (not_started, in_progress, review, done), update due dates/priorities, reassign tasks to team members, add internal task comments/notes, and delete tasks.
 6. **Document Requests & Files**: Raise document requests to clients, list open/fulfilled requests, cancel requests, trigger reminder emails to clients, and inspect client uploaded documents.
 7. **Client Communications**: Post messages and official notices directly into client portal threads, and inspect message history.
@@ -225,6 +274,7 @@ You can perform and automate all the following operations directly via tools:
 - Dates: All date parameters must be YYYY-MM-DD.
 - Be proactive, decisive, and helpful: execute requested operations cleanly, summarize the result, and mention what was updated or created.
 - Portal automation runs: after a successful run_portal_automation call, always offer the live feed link as a follow-up action pointing at /compliance/<complianceItemId> so the user can watch the browser and handle handoffs.
+- Retry discipline: retry a failed tool at most ONCE, and only for transient errors (worker capacity, network). Never repeat run_portal_automation / bulk_run_portal_automation for the same preparation in one conversation — report the duplicate-protection error and point to the live feed instead.
 - At the very end you may suggest up to 3 follow-up navigation actions, one per line:
   [ACTION] label | route
   Allowed base routes: /dashboard /clients /tasks /my-work /compliance /compliance/generate /requests /messages /reports /settings (or subroutes like /clients/<id>, /tasks/<id>)`;
@@ -257,6 +307,14 @@ const namedOf = (value: unknown, key: string): string | null => {
 
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
+
+const asObjectIdArg = (value: unknown, field: string): string | { error: string } => {
+  const str = asString(value);
+  if (!str || !OBJECT_ID_PATTERN.test(str)) {
+    return { error: `A valid 24-character ${field} is required.` };
+  }
+  return str;
+};
 
 const filingsProjection = (items: unknown[]): unknown =>
   items.map((raw) => {
@@ -1003,6 +1061,459 @@ const tool_runPortalAutomation = async (
       error: error instanceof Error ? error.message : 'Could not start portal automation.',
     };
   }
+};
+
+// 2d. Portal automation — run lifecycle & intelligence tools
+
+/** Human explanation of what a waiting run needs from the user. */
+const handoffExplanation = (type: string, prompt: string): string => {
+  switch (type) {
+    case 'password':
+      return `The run is paused at the portal login — the accountant must type the client's portal password in the live browser feed (never in chat). Prompt: "${prompt}"`;
+    case 'captcha':
+      return `The run is paused at a CAPTCHA — the accountant must read it from the live browser feed and type the answer there. Prompt: "${prompt}"`;
+    case 'otp':
+      return `The run is paused waiting for the OTP sent to the client's registered phone/email — the accountant enters it in the live browser feed. Prompt: "${prompt}"`;
+    case 'confirm_submit':
+      return `The run is at the FINAL submit gate — the accountant must type the confirmation word in the live browser feed before anything is filed. Prompt: "${prompt}"`;
+    case 'sign':
+      return `The run is paused at a signature step (EVC/Aadhaar OTP or DSC) — the accountant completes it in the live browser feed. Prompt: "${prompt}"`;
+    default:
+      return `The run is waiting for human input: ${prompt}`;
+  }
+};
+
+const runStatusView = (run: unknown): Record<string, unknown> => {
+  const r = run as {
+    _id: { toString(): string };
+    status: string;
+    form: string;
+    portal: string;
+    client: { toString(): string };
+    complianceItem: { toString(): string };
+    steps: Array<{ key: string; label: string; status: string; error: string | null }>;
+    handoffs: Array<{ handoffId: string; type: string; prompt: string; resolvedAt: Date | null }>;
+    result: { arn: string | null; acknowledgementRef: string | null };
+    error: string | null;
+    createdAt: Date;
+  };
+  const view = serializeAutomationRun(run as Parameters<typeof serializeAutomationRun>[0]);
+  const currentStep =
+    r.steps.find((s) => s.status === 'running' || s.status === 'waiting_human') ??
+    r.steps.find((s) => s.status === 'pending') ??
+    r.steps[r.steps.length - 1];
+  const openHandoff =
+    r.status === 'waiting_human'
+      ? (r.handoffs.find((h) => h.resolvedAt === null) ?? r.handoffs[r.handoffs.length - 1])
+      : undefined;
+
+  const explanation =
+    openHandoff !== undefined
+      ? handoffExplanation(openHandoff.type, openHandoff.prompt)
+      : r.status === 'succeeded'
+        ? `The run succeeded${view.result.arn ? ` — ARN ${view.result.arn}` : ''}.`
+        : r.status === 'failed'
+          ? `The run failed${r.error ? `: ${r.error}` : ''}.`
+          : r.status === 'aborted'
+            ? 'The run was aborted.'
+            : 'The browser worker is progressing through the portal.';
+
+  return {
+    runId: r._id.toString(),
+    clientId: r.client.toString(),
+    complianceItemId: r.complianceItem.toString(),
+    portal: r.portal,
+    form: r.form,
+    status: r.status,
+    stepsCompleted: view.stepsCompleted,
+    totalSteps: view.totalSteps,
+    currentStep: currentStep ? { key: currentStep.key, label: currentStep.label } : null,
+    waitingFor:
+      openHandoff !== undefined
+        ? { type: openHandoff.type, explanation }
+        : null,
+    explanation,
+    arn: view.result.arn,
+    acknowledgementRef: view.result.acknowledgementRef,
+    error: r.error,
+    startedAt: view.createdAt,
+    watchUrl: `/compliance/${r.complianceItem.toString()}`,
+  };
+};
+
+const tool_getAutomationRunStatus = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const runId = asObjectIdArg(args.runId, 'runId');
+  if (typeof runId === 'object') return runId;
+  try {
+    const run = await getRunForUser(runId, context.user);
+    return { success: true, ...runStatusView(run) };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not load the run status.',
+    };
+  }
+};
+
+const tool_listAutomationRuns = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  if (context.user.role === 'client') {
+    return { error: 'Client portal accounts cannot list automation runs.' };
+  }
+  const clientId =
+    asString(args.clientId) !== undefined &&
+    OBJECT_ID_PATTERN.test(asString(args.clientId)!)
+      ? asString(args.clientId)
+      : undefined;
+  const status = asString(args.status);
+  const limit = typeof args.limit === 'number' ? args.limit : undefined;
+  try {
+    const runs = await listRunsForUser(context.user, { clientId, status, limit });
+    return {
+      total: runs.length,
+      runs: runs.map((run) => runStatusView(run)),
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not list runs.' };
+  }
+};
+
+const tool_retryAutomationRun = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot run portal automation.' };
+  }
+  const runId = asObjectIdArg(args.runId, 'runId');
+  if (typeof runId === 'object') return runId;
+  try {
+    const previous = await getRunForUser(runId, user);
+    if (!['failed', 'aborted'].includes(previous.status)) {
+      return {
+        error: `Only failed or aborted runs can be retried (this run is ${previous.status}).`,
+      };
+    }
+    const run = await executePortalAutomation({
+      filingPreparationId: previous.filingPreparation,
+      user,
+      actor: context.actor,
+      mode: previous.mode,
+    });
+    const view = serializeAutomationRun(run);
+    return {
+      success: true,
+      retried: true,
+      previousRunId: runId,
+      runId: view.id,
+      form: view.form,
+      portal: view.portal,
+      status: view.status,
+      totalSteps: view.totalSteps,
+      watchUrl: `/compliance/${view.complianceItemId}`,
+      message:
+        'A fresh browser run has been launched from the same preparation (session cookies are reused when still valid).',
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not retry the automation run.',
+    };
+  }
+};
+
+const tool_abortAutomationRun = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot abort automation runs.' };
+  }
+  const runId = asObjectIdArg(args.runId, 'runId');
+  if (typeof runId === 'object') return runId;
+  try {
+    await abortRunForUser(runId, user, context.actor);
+    return {
+      success: true,
+      runId,
+      aborted: true,
+      message: 'The browser run has been safely aborted — nothing further will be submitted.',
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not abort the run.',
+    };
+  }
+};
+
+const tool_checkAutomationSupport = async (
+  _context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const formCode = asString(args.formCode)?.toUpperCase().trim();
+  const support = await getAutomationSupport();
+  if (formCode !== undefined && formCode.length > 0) {
+    const entry = support.knownForms.find((f) => f.formCode === formCode);
+    return {
+      formCode,
+      supported: entry?.supported ?? false,
+      known: entry !== undefined,
+      supportedForms: support.supportedForms,
+      capacity: `${support.activeCapacity}/${support.maxCapacity}`,
+      message: entry?.supported
+        ? `${formCode} has an automation recipe — run_portal_automation can file it after prepare_filing_return.`
+        : entry !== undefined
+          ? `${formCode} is a known form but has no automation recipe yet — offer the manual get_filing_guide instead.`
+          : `Unknown form code ${formCode}. Supported today: ${support.supportedForms.map((f) => f.form).join(', ') || 'none'}.`,
+    };
+  }
+  return {
+    supportedForms: support.supportedForms,
+    knownForms: support.knownForms,
+    capacity: `${support.activeCapacity}/${support.maxCapacity}`,
+    message:
+      'Automation coverage menu. Only the supportedForms can be filed via run_portal_automation; everything else gets the manual guide.',
+  };
+};
+
+const tool_getAutomationMetrics = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  if (context.user.role === 'client') {
+    return { error: 'Client portal accounts cannot view automation metrics.' };
+  }
+  const days =
+    typeof args.days === 'number' && Number.isFinite(args.days)
+      ? Math.min(Math.max(Math.trunc(args.days), 1), 365)
+      : 30;
+  const metrics = await getAutomationMetrics(context.user, days);
+  return { success: true, periodDays: days, ...metrics };
+};
+
+const tool_getPortalSessionStatus = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  if (context.user.role === 'client') {
+    return { error: 'Client portal accounts cannot inspect portal sessions.' };
+  }
+  const clientId = asObjectIdArg(args.clientId, 'clientId');
+  if (typeof clientId === 'object') return clientId;
+  try {
+    const sessions = await listPortalSessionsForUser(context.user, clientId);
+    return {
+      clientId,
+      total: sessions.length,
+      sessions,
+      note:
+        sessions.length > 0
+          ? 'These portals have live saved sessions — runs may skip the login password handoff until expiry.'
+          : 'No saved portal sessions — the next run for this client will pause for the portal password handoff.',
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not load sessions.' };
+  }
+};
+
+const tool_revokePortalSession = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot revoke portal sessions.' };
+  }
+  const clientId = asObjectIdArg(args.clientId, 'clientId');
+  if (typeof clientId === 'object') return clientId;
+  const portal = asString(args.portal)?.trim();
+  if (!portal) return { error: 'A portal key is required (gst, income_tax, tds, roc).' };
+  try {
+    const revoked = await revokePortalSessionForUser(user, context.actor, clientId, portal);
+    return revoked
+      ? { success: true, clientId, portal, revoked: true }
+      : { success: true, clientId, portal, revoked: false, note: 'No active session found for that portal.' };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not revoke the session.' };
+  }
+};
+
+const tool_getFilingPreparation = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const filingId = asString(args.filingId) ?? asString(args.complianceItemId);
+  if (!filingId || !OBJECT_ID_PATTERN.test(filingId)) {
+    return { error: 'A valid 24-character filingId is required.' };
+  }
+  try {
+    const prepared = await getPreparation(context.user, new Types.ObjectId(filingId));
+    return {
+      success: true,
+      preparationId: prepared.preparationId,
+      filingId: prepared.complianceItemId,
+      form: prepared.formName,
+      period: prepared.periodLabel,
+      status: prepared.status,
+      summary: prepared.summary,
+      computed: prepared.computed,
+      missingInputs: prepared.missingInputs,
+      portal: prepared.portalName,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Could not load the preparation.',
+    };
+  }
+};
+
+const tool_listPendingAutomatableFilings = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot list filings for automation.' };
+  }
+  const clientId =
+    asString(args.clientId) !== undefined && OBJECT_ID_PATTERN.test(asString(args.clientId)!)
+      ? asString(args.clientId)
+      : undefined;
+  const limit =
+    typeof args.limit === 'number' && Number.isFinite(args.limit)
+      ? Math.min(Math.max(Math.trunc(args.limit), 1), 50)
+      : 20;
+
+  const scoped = await accessibleClientIds(user);
+  let clientFilter: Record<string, unknown> = {};
+  if (scoped !== null) {
+    if (clientId !== undefined && !scoped.some((id) => id.toString() === clientId)) {
+      return { error: 'You do not have access to that client.' };
+    }
+    clientFilter = clientId !== undefined ? { client: clientId } : { client: { $in: scoped } };
+  } else if (clientId !== undefined) {
+    clientFilter = { client: clientId };
+  }
+
+  const support = await getAutomationSupport();
+  const supportedCodes = new Set(
+    support.supportedForms.flatMap((f) => {
+      // normalize "GSTR-3B" → "GSTR3B" etc. against RECIPE_FILE_BY_FORM keys
+      return Object.keys({
+        GSTR1: 1,
+        GSTR3B: 1,
+        GSTR9: 1,
+        CMP08: 1,
+        'ITR-IND': 1,
+        'ITR-CO': 1,
+        'ADV-TAX': 1,
+        TDS24Q: 1,
+        TDS26Q: 1,
+        'ROC-MGT7': 1,
+        'ROC-AOC4': 1,
+      }).filter((code) => code.replace(/-/g, '') === f.form.replace(/-/g, '').toUpperCase());
+    }),
+  );
+
+  const items = await ComplianceItem.find({
+    ...clientFilter,
+    status: { $in: ['pending', 'in_progress', 'awaiting_client'] },
+  })
+    .sort({ dueDate: 1 })
+    .limit(limit)
+    .populate('client', 'displayName')
+    .populate('complianceType', 'name category code')
+    .lean()
+    .exec();
+
+  const automatable = items.filter((item) => {
+    const code = (item.complianceType as { code?: string } | null)?.code ?? '';
+    return supportedCodes.has(code.toUpperCase());
+  });
+
+  return {
+    total: automatable.length,
+    capacity: `${support.activeCapacity}/${support.maxCapacity}`,
+    filings: automatable.map((item) => ({
+      filingId: String(item._id),
+      clientName:
+        (item.client as { displayName?: string } | null)?.displayName ?? 'Unknown client',
+      filingName: (item.complianceType as { name?: string } | null)?.name ?? 'Filing',
+      formCode: (item.complianceType as { code?: string } | null)?.code ?? null,
+      periodLabel: item.periodLabel,
+      dueDate: formatDisplayDate(item.dueDate as Date | null),
+      status: item.status,
+    })),
+    note:
+      automatable.length > 0
+        ? 'These filings have automation recipes. Each must be prepared (prepare_filing_return) before run_portal_automation. Max 2 browsers run concurrently.'
+        : 'No automatable filings in scope right now.',
+  };
+};
+
+const BULK_RUN_LIMIT = 5;
+
+const tool_bulkRunPortalAutomation = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const user = context.user;
+  if (user.role === 'client') {
+    return { error: 'Client portal accounts cannot run portal automation.' };
+  }
+  const raw = args.filingPreparationIds;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { error: 'filingPreparationIds must be a non-empty array of preparation ids.' };
+  }
+  const ids = raw.filter((v): v is string => typeof v === 'string' && OBJECT_ID_PATTERN.test(v));
+  if (ids.length === 0) {
+    return { error: 'No valid 24-character preparation ids were provided.' };
+  }
+  if (ids.length > BULK_RUN_LIMIT) {
+    return {
+      error: `Bulk runs are capped at ${BULK_RUN_LIMIT} per request (got ${ids.length}). Split into batches.`,
+    };
+  }
+
+  const results: Array<Record<string, unknown>> = [];
+  for (const preparationId of ids) {
+    try {
+      const run = await executePortalAutomation({
+        filingPreparationId: preparationId,
+        user,
+        actor: context.actor,
+        mode: 'recipe',
+      });
+      const view = serializeAutomationRun(run);
+      results.push({
+        filingPreparationId: preparationId,
+        success: true,
+        runId: view.id,
+        form: view.form,
+        portal: view.portal,
+        status: view.status,
+        complianceItemId: view.complianceItemId,
+        watchUrl: `/compliance/${view.complianceItemId}`,
+      });
+    } catch (error) {
+      results.push({
+        filingPreparationId: preparationId,
+        success: false,
+        error: error instanceof Error ? error.message : 'Could not start the run.',
+      });
+    }
+  }
+
+  return {
+    launched: results.filter((r) => r.success === true).length,
+    failed: results.filter((r) => r.success === false).length,
+    runs: results,
+  };
 };
 
 // 3. Tasks & Workflow
@@ -2127,6 +2638,14 @@ const CLIENT_ROUTE_TOOLS = new Set<string>([
   TOOL_NAMES.requestPortalOtp,
   TOOL_NAMES.submitReturnToGovernmentPortal,
   TOOL_NAMES.runPortalAutomation,
+  TOOL_NAMES.getAutomationRunStatus,
+  TOOL_NAMES.listAutomationRuns,
+  TOOL_NAMES.checkAutomationSupport,
+  TOOL_NAMES.getPortalSessionStatus,
+  TOOL_NAMES.revokePortalSession,
+  TOOL_NAMES.getFilingPreparation,
+  TOOL_NAMES.listPendingAutomatableFilings,
+  TOOL_NAMES.bulkRunPortalAutomation,
 ]);
 
 const withRouteContext = (
@@ -2554,6 +3073,226 @@ const TOOLS: readonly ToolSpec[] = [
         ? `Launched browser automation for ${result.form}`
         : 'Attempted to launch portal automation',
     run: (context, args) => tool_runPortalAutomation(context, args),
+  },
+  {
+    name: TOOL_NAMES.getAutomationRunStatus,
+    description:
+      'Get live status of a browser automation run: current step, steps completed, waiting handoff (password/captcha/OTP/final submit) with a human explanation, ARN result on success, and the live feed URL. Use this whenever the user asks whether a run is done, stuck, or what is happening ("kya chal raha hai", "is it done?", "why is it waiting?"). Never re-launch a run to answer a status question.',
+    parameters: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string', description: 'The 24-character automation run id.' },
+      },
+      required: ['runId'],
+    },
+    badge: (result) => {
+      if (!isRecord(result) || result.success !== true) return 'Checked automation run';
+      const status = result.status;
+      const waiting = result.waitingFor;
+      return typeof waiting === 'object' && waiting !== null
+        ? 'Run waiting for human input'
+        : status === 'succeeded'
+          ? 'Run succeeded (ARN captured)'
+          : `Run ${String(status)}`;
+    },
+    run: (context, args) => tool_getAutomationRunStatus(context, args),
+  },
+  {
+    name: TOOL_NAMES.listAutomationRuns,
+    description:
+      'List browser automation runs (newest first), optionally filtered by client or status (queued, starting, running, waiting_human, succeeded, failed, aborted). Use for "kis kis ki filing chal rahi hai", "show failed runs", or finding the runId when the user refers to a filing without one.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'Optional 24-character client id.' },
+        status: {
+          type: 'string',
+          description:
+            'Optional: queued, starting, running, waiting_human, succeeded, failed, aborted.',
+        },
+        limit: { type: 'integer', description: 'Maximum runs to return (1 to 50).' },
+      },
+    },
+    badge: (result) => {
+      const count = countFrom(result, ['total', 'runs']);
+      return count === null ? 'Checked automation runs' : `Checked ${count} run${count === 1 ? '' : 's'}`;
+    },
+    run: (context, args) => tool_listAutomationRuns(context, args),
+  },
+  {
+    name: TOOL_NAMES.retryAutomationRun,
+    description:
+      'Retry a failed or aborted browser automation run — launches a fresh run from the same filing preparation, reusing the saved portal session when still valid. Only failed or aborted runs can be retried.',
+    parameters: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string', description: 'The 24-character run id to retry.' },
+      },
+      required: ['runId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.retried === true
+        ? 'Retried automation run'
+        : 'Attempted run retry',
+    run: (context, args) => tool_retryAutomationRun(context, args),
+  },
+  {
+    name: TOOL_NAMES.abortAutomationRun,
+    description:
+      'Safely abort an active browser automation run. Aborting is always safe — it stops the browser before anything further is submitted. Use when the user says stop, cancel, or abort a run.',
+    parameters: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string', description: 'The 24-character run id to abort.' },
+      },
+      required: ['runId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.aborted === true ? 'Aborted automation run' : 'Attempted abort',
+    run: (context, args) => tool_abortAutomationRun(context, args),
+  },
+  {
+    name: TOOL_NAMES.checkAutomationSupport,
+    description:
+      "Check which return forms the browser worker can actually file today (automation recipes) and current browser capacity. Pass a formCode to check one form, or omit to list the full coverage menu. NEVER claim a form can be automated without confirming it here first — unsupported forms get the manual filing guide instead.",
+    parameters: {
+      type: 'object',
+      properties: {
+        formCode: {
+          type: 'string',
+          description:
+            'Optional form code to check: GSTR1, GSTR3B, GSTR9, CMP08, ITR-IND, ITR-CO, ADV-TAX, TDS24Q, TDS26Q, ROC-MGT7, ROC-AOC4.',
+        },
+      },
+    },
+    badge: (result) => {
+      if (isRecord(result) && Array.isArray(result.supportedForms)) {
+        return `Checked automation coverage (${result.supportedForms.length} forms)`;
+      }
+      return 'Checked automation coverage';
+    },
+    run: (context, args) => tool_checkAutomationSupport(context, args),
+  },
+  {
+    name: TOOL_NAMES.getAutomationMetrics,
+    description:
+      'Portal automation health metrics over a period: total runs, success rate, failures, active runs, average duration. Use for "how is the automation doing" / "success rate" questions.',
+    parameters: {
+      type: 'object',
+      properties: {
+        days: {
+          type: 'integer',
+          description: 'Look-back window in days (1 to 365, default 30).',
+        },
+      },
+    },
+    badge: (result) =>
+      isRecord(result) && typeof result.successRate === 'number'
+        ? `Automation health: ${result.successRate}% success`
+        : 'Checked automation metrics',
+    run: (context, args) => tool_getAutomationMetrics(context, args),
+  },
+  {
+    name: TOOL_NAMES.getPortalSessionStatus,
+    description:
+      'Check which government portals have saved (encrypted) sessions for a client — sessions mean runs may skip the portal password handoff until expiry. Metadata only; session secrets never leave the vault.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+      },
+      required: ['clientId'],
+    },
+    badge: (result) => {
+      const count = countFrom(result, ['total', 'sessions']);
+      return count === null ? 'Checked portal sessions' : `Checked ${count} portal session${count === 1 ? '' : 's'}`;
+    },
+    run: (context, args) => tool_getPortalSessionStatus(context, args),
+  },
+  {
+    name: TOOL_NAMES.revokePortalSession,
+    description:
+      "Revoke a client's saved portal session (gst, income_tax, tds, roc) — the next automation run will require the password handoff again. Use for security hygiene or when the user asks to log a portal out.",
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+        portal: { type: 'string', description: 'One of: gst, income_tax, tds, roc.' },
+      },
+      required: ['clientId', 'portal'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.revoked === true
+        ? 'Revoked portal session'
+        : 'Attempted session revoke',
+    run: (context, args) => tool_revokePortalSession(context, args),
+  },
+  {
+    name: TOOL_NAMES.getFilingPreparation,
+    description:
+      'Inspect an existing filing preparation (computed figures, payload, missing inputs, status) without re-preparing. Use when the user asks what the numbers are, what is missing, or to verify data before filing. Takes the filing (compliance item) id.',
+    parameters: {
+      type: 'object',
+      properties: {
+        filingId: {
+          type: 'string',
+          description: 'The 24-character compliance filing id.',
+        },
+      },
+      required: ['filingId'],
+    },
+    badge: (result) =>
+      isRecord(result) && result.success === true
+        ? 'Inspected filing preparation'
+        : 'Attempted preparation lookup',
+    run: (context, args) => tool_getFilingPreparation(context, args),
+  },
+  {
+    name: TOOL_NAMES.listPendingAutomatableFilings,
+    description:
+      'List open filings (pending/in_progress/awaiting_client) whose forms have automation recipes — the starting point for "file everything pending" / "file all pending GSTR-3Bs". Each still needs prepare_filing_return before launching. Respects client scope.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'Optional 24-character client id.' },
+        limit: { type: 'integer', description: 'Maximum filings to return (1 to 50).' },
+      },
+    },
+    badge: (result) => {
+      const count = countFrom(result, ['total', 'filings']);
+      return count === null
+        ? 'Checked automatable filings'
+        : `Found ${count} automatable filing${count === 1 ? '' : 's'}`;
+    },
+    run: (context, args) =>
+      tool_listPendingAutomatableFilings(context, withRouteContext(context, TOOL_NAMES.listPendingAutomatableFilings, args)),
+  },
+  {
+    name: TOOL_NAMES.bulkRunPortalAutomation,
+    description:
+      `Launch browser automation runs for multiple prepared filings at once (max ${'5'} per request). Each preparation must be ready/locked. Returns per-run results including failures (e.g. worker capacity, duplicates) — report them faithfully. Direct the user to the live feeds for OTP/CAPTCHA handoffs.`,
+    parameters: {
+      type: 'object',
+      properties: {
+        filingPreparationIds: {
+          type: 'array',
+          description: 'Array of 24-character filing preparation ids (max 5).',
+          items: { type: 'string' },
+        },
+      },
+      required: ['filingPreparationIds'],
+    },
+    badge: (result) => {
+      if (
+        isRecord(result) &&
+        typeof result.launched === 'number' &&
+        typeof result.failed === 'number'
+      ) {
+        return `Bulk launch: ${result.launched} started, ${result.failed} failed`;
+      }
+      return 'Attempted bulk automation launch';
+    },
+    run: (context, args) => tool_bulkRunPortalAutomation(context, args),
   },
 
   // 3. Tasks & Workflow
@@ -3626,6 +4365,54 @@ const staticFallbackReply = async (
       actions: [
         { label: 'Open Tasks', route: '/tasks' },
         { label: 'My Work Queue', route: '/my-work' },
+        { label: 'AI Settings', route: '/settings' },
+      ],
+    };
+  }
+
+  const isAutomationStatus =
+    query.includes('automation') ||
+    query.includes('browser run') ||
+    query.includes('run status') ||
+    query.includes('is it done') ||
+    query.includes('stuck') ||
+    query.includes('waiting for otp') ||
+    query.includes('portal session');
+
+  if (isAutomationStatus) {
+    const [runsResult, supportResult] = await Promise.all([
+      executeTool(context, TOOL_NAMES.listAutomationRuns, { limit: 10 }),
+      executeTool(context, TOOL_NAMES.checkAutomationSupport, {}),
+    ]);
+    const runs = (runsResult as { runs?: Array<Record<string, unknown>> }).runs ?? [];
+    const support = supportResult as {
+      supportedForms?: Array<{ form: string; portal: string }>;
+      capacity?: string;
+    };
+    const supported = support.supportedForms ?? [];
+    const lines = runs.map((run) => {
+      const status = typeof run.status === 'string' ? run.status : 'unknown';
+      const form = typeof run.form === 'string' ? run.form : 'unknown form';
+      const stepsCompleted = typeof run.stepsCompleted === 'number' ? run.stepsCompleted : '?';
+      const totalSteps = typeof run.totalSteps === 'number' ? run.totalSteps : '?';
+      const arn = typeof run.arn === 'string' ? ` — ARN **${run.arn}**` : '';
+      const waiting = run.waitingFor ? ' — **waiting for your input in the live feed**' : '';
+      return `• **${form}** (${stepsCompleted}/${totalSteps} steps, ${status.replace(/_/g, ' ')})${arn}${waiting}`;;
+    });
+    return {
+      content:
+        `### 🤖 Portal automation status\n\n` +
+        (runs.length === 0
+          ? `No browser automation runs found in your scope yet.\n\n`
+          : `${lines.join('\n')}\n\n`) +
+        `**Automation coverage**: ${supported.map((f) => f.form).join(', ') || 'no recipes yet'} (browser capacity ${support.capacity ?? '0/2'}).\n\n` +
+        `*Reference mode: for live monitoring and launching runs from chat, an admin can configure a Gemini or OpenAI key under Settings → AI Copilot.*`,
+      toolCalls: [
+        { tool: TOOL_NAMES.listAutomationRuns, label: `Checked ${runs.length} automation run${runs.length === 1 ? '' : 's'}` },
+        { tool: TOOL_NAMES.checkAutomationSupport, label: 'Checked automation coverage' },
+      ],
+      actions: [
+        { label: 'Statutory Filings', route: '/compliance' },
         { label: 'AI Settings', route: '/settings' },
       ],
     };

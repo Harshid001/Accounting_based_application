@@ -694,3 +694,10 @@ export interface AutomationRunView {
   }>;
 }
 
+export interface AutomationSupportView {
+  supportedForms: Array<{ form: string; portal: string; recipeVersion: number }>;
+  knownForms: Array<{ formCode: string; portalKey: string; supported: boolean }>;
+  activeCapacity: number;
+  maxCapacity: number;
+}
+

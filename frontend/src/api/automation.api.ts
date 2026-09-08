@@ -1,9 +1,23 @@
 import { apiBlob, apiGet, apiPost } from '@/api/client';
 import { env } from '@/lib/env';
-import type { AutomationRunView } from '@/types/models';
+import type { AutomationRunView, AutomationSupportView } from '@/types/models';
 
 export const getAutomationRun = (id: string): Promise<AutomationRunView> =>
   apiGet<AutomationRunView>(`/automation/runs/${id}`);
+
+export const listAutomationRuns = (
+  filters: { clientId?: string; status?: string; limit?: number } = {},
+): Promise<AutomationRunView[]> => {
+  const search = new URLSearchParams();
+  if (filters.clientId !== undefined) search.set('clientId', filters.clientId);
+  if (filters.status !== undefined) search.set('status', filters.status);
+  if (filters.limit !== undefined) search.set('limit', String(filters.limit));
+  const qs = search.toString();
+  return apiGet<AutomationRunView[]>(`/automation/runs${qs.length > 0 ? `?${qs}` : ''}`);
+};
+
+export const getAutomationSupport = (): Promise<AutomationSupportView> =>
+  apiGet<AutomationSupportView>('/automation/support');
 
 export const startAutomationRun = (
   filingPreparationId: string,

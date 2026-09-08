@@ -206,4 +206,105 @@ describe('POST /api/v1/automation/runs (start run)', () => {
 
     expect(response.status).toBe(409);
   });
+
+  it('rejects a duplicate live run for the same preparation with 409', async () => {
+    const preparationId = await prepareReadyFiling();
+
+    const first = await request(app())
+      .post('/api/v1/automation/runs')
+      .set(auth(admin))
+      .send({ filingPreparationId: preparationId });
+    expect(first.status).toBe(200);
+
+    // Pin the run as live — the real worker can fail fast in the test env
+    // (no chromium), which would release the duplicate guard.
+    await AutomationRun.updateOne(
+      { _id: first.body.data.id },
+      { status: 'running' },
+    ).exec();
+
+    const second = await request(app())
+      .post('/api/v1/automation/runs')
+      .set(auth(admin))
+      .send({ filingPreparationId: preparationId });
+    expect(second.status).toBe(409);
+  });
+});
+
+describe('GET /api/v1/automation/runs (list)', () => {
+  it('lists runs for the admin (newest first)', async () => {
+    const preparationId = await prepareReadyFiling();
+    await request(app())
+      .post('/api/v1/automation/runs')
+      .set(auth(admin))
+      .send({ filingPreparationId: preparationId });
+
+    const response = await request(app())
+      .get('/api/v1/automation/runs')
+      .set(auth(admin));
+
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.length).toBeGreaterThan(0);
+    const first = response.body.data[0];
+    expect(first).toHaveProperty('id');
+    expect(first).toHaveProperty('form', 'GSTR-1');
+    expect(first).toHaveProperty('status');
+  });
+
+  it('scopes the list for outsider staff (empty for their clients)', async () => {
+    const preparationId = await prepareReadyFiling();
+    await request(app())
+      .post('/api/v1/automation/runs')
+      .set(auth(admin))
+      .send({ filingPreparationId: preparationId });
+
+    const response = await request(app())
+      .get('/api/v1/automation/runs')
+      .set(auth(outsiderStaff));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+  });
+
+  it('filters by status', async () => {
+    const response = await request(app())
+      .get('/api/v1/automation/runs?status=succeeded')
+      .set(auth(admin));
+
+    expect(response.status).toBe(200);
+    expect(
+      (response.body.data as Array<{ status: string }>).every((r) => r.status === 'succeeded'),
+    ).toBe(true);
+  });
+
+  it('rejects an invalid status with 400', async () => {
+    const response = await request(app())
+      .get('/api/v1/automation/runs?status=bogus')
+      .set(auth(admin));
+
+    expect(response.status).toBe(400);
+  });
+});
+
+describe('GET /api/v1/automation/support', () => {
+  it('returns the automation coverage menu', async () => {
+    const response = await request(app())
+      .get('/api/v1/automation/support')
+      .set(auth(admin));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveProperty('supportedForms');
+    expect(response.body.data).toHaveProperty('knownForms');
+    expect(response.body.data).toHaveProperty('maxCapacity', 2);
+  });
+
+  it('is forbidden for client portal accounts (capability gate)', async () => {
+    const clientAccount = await createAccount({ role: 'client', name: 'Client' });
+    const response = await request(app())
+      .get('/api/v1/automation/support')
+      .set(auth(clientAccount));
+
+    expect(response.status).toBe(403);
+  });
 });
