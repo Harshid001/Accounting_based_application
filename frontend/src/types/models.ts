@@ -1,8 +1,11 @@
 /* Over 400 lines deliberately: this is the hand-written mirror of every backend serialiser, and splitting it would scatter one contract across a dozen files that must be diffed against backend/src/serializers as a set. */
 import type { Capability } from '@/lib/permissions';
 import type {
+  AccountSubType,
+  AccountType,
   AuditAction,
   AuditEntityKind,
+  BooksMode,
   ClientStatus,
   ClientType,
   ComplianceCategory,
@@ -21,7 +24,11 @@ import type {
   TaskPriority,
   TaskRecurrenceFrequency,
   TaskStatus,
+  TallyEdition,
   UserStatus,
+  VoucherSource,
+  VoucherStatus,
+  VoucherType,
 } from '@/types/enums';
 
 export interface NamedRef {
@@ -138,6 +145,8 @@ export interface ClientDetail {
   additionalContacts: Contact[];
   address: Address | null;
   assignedStaff: PersonRef[];
+  booksMode?: BooksMode;
+  tallyConfig?: TallyConfig | null;
   createdAt: string | null;
   updatedAt: string | null;
   notes: string | null;
@@ -701,3 +710,164 @@ export interface AutomationSupportView {
   maxCapacity: number;
 }
 
+// ---------------------------------------------------------------------------
+// Books (mirrors backend/src/serializers/books.serializer.ts)
+// ---------------------------------------------------------------------------
+
+export interface TallyConfig {
+  companyName: string;
+  edition: TallyEdition;
+  workstationHint?: string | null;
+}
+
+export interface MoneyView {
+  paise: number;
+  display: string;
+}
+
+export interface BalanceView extends MoneyView {
+  side: 'Dr' | 'Cr';
+}
+
+export interface AccountView {
+  id: string;
+  code: string;
+  name: string;
+  type: AccountType;
+  subType: AccountSubType | null;
+  parentId: string | null;
+  party: { gstin: string | null; pan: string | null } | null;
+  openingBalance: BalanceView & { asOf: string | null };
+  isActive: boolean;
+  isSystem: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface AccountRef {
+  id: string;
+  code: string;
+  name: string;
+  type: AccountType | null;
+  subType: AccountSubType | null;
+}
+
+export interface LineTax {
+  gstRatePct?: number | null;
+  hsnSac?: string | null;
+  taxablePaise?: number | null;
+  placeOfSupply?: string | null;
+  tdsSection?: string | null;
+  tdsRatePct?: number | null;
+}
+
+export interface VoucherLineView {
+  account: AccountRef | null;
+  debit: MoneyView;
+  credit: MoneyView;
+  description: string | null;
+  tax: LineTax | null;
+  isDerived: boolean;
+}
+
+export interface VoucherView {
+  id: string;
+  voucherNo: string | null;
+  fyLabel: string;
+  date: string | null;
+  type: VoucherType;
+  status: VoucherStatus;
+  source: VoucherSource;
+  narration: string | null;
+  reference: string | null;
+  total: MoneyView;
+  derived: {
+    outputTax: MoneyView;
+    inputTax: MoneyView;
+    tdsPayable: MoneyView;
+    tdsReceivable: MoneyView;
+    rounding: MoneyView;
+  };
+  lines: VoucherLineView[];
+  tallySync: {
+    status: string;
+    voucherRef: string | null;
+    syncedAt: string | null;
+    error: string | null;
+  } | null;
+  postedAt: string | null;
+  postedBy: string | null;
+  reversalOf: string | null;
+  reversedBy: string | null;
+  lockedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface PeriodLockView {
+  id: string;
+  period: string;
+  kind: 'monthly' | 'fy';
+  periodStart: string | null;
+  periodEnd: string | null;
+  lockedAt: string | null;
+  lockedBy: string | null;
+  note: string | null;
+}
+
+export interface BooksStatusView {
+  booksMode: BooksMode;
+  tallyConfig: { companyName: string; edition: string } | null;
+  accounts: number;
+  vouchers: Record<VoucherStatus, number>;
+  locks: PeriodLockView[];
+  lastPostedAt: string | null;
+}
+
+export interface LedgerEntryView {
+  voucherId: string;
+  voucherNo: string | null;
+  date: string | null;
+  type: VoucherType;
+  status: VoucherStatus;
+  narration: string | null;
+  description: string | null;
+  debit: MoneyView;
+  credit: MoneyView;
+  balance: BalanceView;
+}
+
+export interface LedgerView {
+  account: AccountView;
+  from: string | null;
+  to: string | null;
+  opening: BalanceView;
+  entries: LedgerEntryView[];
+  totals: { debit: MoneyView; credit: MoneyView };
+  closing: BalanceView;
+}
+
+export interface TrialBalanceRowView {
+  accountId: string;
+  code: string;
+  name: string;
+  type: AccountType;
+  subType: AccountSubType | null;
+  isSystem: boolean;
+  debit: MoneyView;
+  credit: MoneyView;
+  balance: BalanceView;
+}
+
+export interface TrialBalanceView {
+  asOf: string | null;
+  includeDrafts: boolean;
+  balanced: boolean;
+  totals: { debit: MoneyView; credit: MoneyView };
+  groups: Array<{
+    type: AccountType;
+    debit: MoneyView;
+    credit: MoneyView;
+    rows: TrialBalanceRowView[];
+  }>;
+}

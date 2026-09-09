@@ -22,7 +22,9 @@ const Unlinked = lazy(async () => ({ default: (await import('@/routes/auth/Unlin
 const Forbidden = lazy(async () => ({
   default: (await import('@/routes/errors/Forbidden')).Forbidden,
 }));
-const NotFound = lazy(async () => ({ default: (await import('@/routes/errors/NotFound')).NotFound }));
+const NotFound = lazy(async () => ({
+  default: (await import('@/routes/errors/NotFound')).NotFound,
+}));
 const Landing = lazy(async () => ({ default: (await import('@/routes/landing/Landing')).Landing }));
 const TeamPage = lazy(async () => ({
   default: (await import('@/routes/landing/TeamPage')).TeamPage,
@@ -66,7 +68,9 @@ const ActivityTab = lazy(async () => ({
   default: (await import('@/routes/clients/tabs/ActivityTab')).ActivityTab,
 }));
 
-const TaskList = lazy(async () => ({ default: (await import('@/routes/tasks/TaskList')).TaskList }));
+const TaskList = lazy(async () => ({
+  default: (await import('@/routes/tasks/TaskList')).TaskList,
+}));
 const TaskDetail = lazy(async () => ({
   default: (await import('@/routes/tasks/TaskDetail')).TaskDetail,
 }));
@@ -81,6 +85,30 @@ const ComplianceGenerate = lazy(async () => ({
 }));
 const AutomationMonitor = lazy(async () => ({
   default: (await import('@/routes/automation/AutomationMonitor')).AutomationMonitor,
+}));
+const BooksOverview = lazy(async () => ({
+  default: (await import('@/routes/books/BooksOverview')).BooksOverview,
+}));
+const ChartOfAccounts = lazy(async () => ({
+  default: (await import('@/routes/books/ChartOfAccounts')).ChartOfAccounts,
+}));
+const VoucherList = lazy(async () => ({
+  default: (await import('@/routes/books/VoucherList')).VoucherList,
+}));
+const VoucherEntry = lazy(async () => ({
+  default: (await import('@/routes/books/VoucherEntry')).VoucherEntry,
+}));
+const VoucherDetail = lazy(async () => ({
+  default: (await import('@/routes/books/VoucherDetail')).VoucherDetail,
+}));
+const DayBook = lazy(async () => ({
+  default: (await import('@/routes/books/DayBook')).DayBook,
+}));
+const Ledger = lazy(async () => ({
+  default: (await import('@/routes/books/Ledger')).Ledger,
+}));
+const TrialBalance = lazy(async () => ({
+  default: (await import('@/routes/books/TrialBalance')).TrialBalance,
 }));
 const DocumentsIndex = lazy(async () => ({
   default: (await import('@/routes/documents/DocumentsIndex')).DocumentsIndex,
@@ -129,7 +157,9 @@ const CatalogueForm = lazy(async () => ({
 const UnlinkedAccounts = lazy(async () => ({
   default: (await import('@/routes/settings/UnlinkedAccounts')).UnlinkedAccounts,
 }));
-const AuditLog = lazy(async () => ({ default: (await import('@/routes/settings/AuditLog')).AuditLog }));
+const AuditLog = lazy(async () => ({
+  default: (await import('@/routes/settings/AuditLog')).AuditLog,
+}));
 const Jobs = lazy(async () => ({ default: (await import('@/routes/settings/Jobs')).Jobs }));
 
 const PortalOverview = lazy(async () => ({
@@ -202,6 +232,15 @@ export function AppRoutes() {
         <Route path="/compliance/generate" element={<ComplianceGenerate />} />
         <Route path="/compliance/:complianceId" element={<ComplianceDetail />} />
         <Route path="/automation" element={<AutomationMonitor />} />
+        <Route path="/books" element={<BooksOverview />} />
+        <Route path="/books/vouchers" element={<VoucherList />} />
+        <Route path="/books/vouchers/new" element={<VoucherEntry />} />
+        <Route path="/books/vouchers/:voucherId/edit" element={<VoucherEntry />} />
+        <Route path="/books/vouchers/:voucherId" element={<VoucherDetail />} />
+        <Route path="/books/day-book" element={<DayBook />} />
+        <Route path="/books/ledger" element={<Ledger />} />
+        <Route path="/books/trial-balance" element={<TrialBalance />} />
+        <Route path="/books/accounts" element={<ChartOfAccounts />} />
         <Route path="/documents" element={<DocumentsIndex />} />
         <Route path="/converter" element={<ConverterPage />} />
         <Route path="/requests" element={<RequestsIndex />} />

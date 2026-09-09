@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { CAPABILITY_KEYS, can, canAll, canAny, homePathFor, isAdmin, isClient, isStaffSide, isKnownCapability } from '@/lib/permissions';
+import {
+  CAPABILITY_KEYS,
+  can,
+  canAll,
+  canAny,
+  homePathFor,
+  isAdmin,
+  isClient,
+  isStaffSide,
+  isKnownCapability,
+} from '@/lib/permissions';
 import { makeMe, permissionsFor } from '../helpers/server';
 
 describe('capability list', () => {
@@ -8,7 +18,9 @@ describe('capability list', () => {
     expect(new Set(CAPABILITY_KEYS).size).toBe(CAPABILITY_KEYS.length);
     expect(CAPABILITY_KEYS).toContain('client:reveal_aadhaar');
     expect(CAPABILITY_KEYS).toContain('portal:write');
-    expect(CAPABILITY_KEYS).toHaveLength(56);
+    expect(CAPABILITY_KEYS).toContain('books:read');
+    expect(CAPABILITY_KEYS).toContain('books:lock');
+    expect(CAPABILITY_KEYS).toHaveLength(62);
   });
 
   it('recognises a real capability and rejects an invented one', () => {
@@ -36,6 +48,10 @@ describe('render-time predicates', () => {
     expect(can(staff, 'client:reveal_aadhaar')).toBe(false);
     expect(can(staff, 'audit:read')).toBe(false);
     expect(can(staff, 'user:manage')).toBe(false);
+    expect(can(staff, 'books:read')).toBe(true);
+    expect(can(staff, 'books:post')).toBe(true);
+    expect(can(staff, 'books:lock')).toBe(false);
+    expect(can(staff, 'books:delete_draft')).toBe(false);
     expect(isAdmin(staff)).toBe(false);
     expect(isStaffSide(staff)).toBe(true);
   });
@@ -47,6 +63,7 @@ describe('render-time predicates', () => {
     expect(can(client, 'client:read')).toBe(false);
     expect(can(client, 'task_comment:read')).toBe(false);
     expect(can(client, 'compliance:read')).toBe(false);
+    expect(can(client, 'books:read')).toBe(false);
     expect(isClient(client)).toBe(true);
     expect(isStaffSide(client)).toBe(false);
   });

@@ -74,6 +74,13 @@ export const CAPABILITIES = {
 
   'portal:read': ['client'],
   'portal:write': ['client'],
+
+  'books:read': ['admin', 'staff'],
+  'books:write': ['admin', 'staff'],
+  'books:post': ['admin', 'staff'],
+  'books:delete_draft': ['admin'],
+  'books:lock': ['admin'],
+  'books:export': ['admin', 'staff'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Capability = keyof typeof CAPABILITIES;

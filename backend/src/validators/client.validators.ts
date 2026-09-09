@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { CLIENT_STATUSES, CLIENT_TYPES, ENTITY_TYPES } from '../lib/enums.js';
+import {
+  BOOKS_MODES,
+  CLIENT_STATUSES,
+  CLIENT_TYPES,
+  ENTITY_TYPES,
+  TALLY_EDITIONS,
+} from '../lib/enums.js';
 import {
   AADHAAR_PATTERN,
   CIN_PATTERN,
@@ -86,6 +92,17 @@ const baseClientBody = {
   address: z.union([addressSchema, z.null()]).optional(),
   assignedStaff: z.array(objectId).max(50).optional(),
   notes: nullableText(4000),
+  booksMode: z.enum(BOOKS_MODES).optional(),
+  tallyConfig: z
+    .union([
+      z.object({
+        companyName: trimmedString(1, 200),
+        edition: z.enum(TALLY_EDITIONS),
+        workstationHint: nullableText(120),
+      }),
+      z.null(),
+    ])
+    .optional(),
 };
 
 const rejectCrossType = (

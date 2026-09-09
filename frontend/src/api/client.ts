@@ -1,7 +1,7 @@
 import { env } from '@/lib/env';
 import { ACTIVE_CLIENT_HEADER, REQUEST_ID_HEADER } from '@/lib/constants';
 import { ApiError, errorFromEnvelope, networkError } from '@/lib/errors';
-import type { ApiListEnvelope, Paged, QueryParams } from '@/types/api';
+import type { ApiEnvelope, ApiListEnvelope, Paged, QueryParams, ResponseMeta } from '@/types/api';
 
 let activeClientId: string | null = null;
 
@@ -122,6 +122,19 @@ export const apiRequestWithMeta = async <T>(
   return { data: unwrap<T>(result), requestId: result.requestId };
 };
 
+/** Returns the data plus the full meta object (page totals, extra meta). */
+export const apiRequestFull = async <T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<{ data: T; meta: ResponseMeta }> => {
+  const result = await send(path, options);
+  const envelope = (isRecord(result.body) ? result.body : {}) as Partial<ApiEnvelope<T>>;
+  return {
+    data: unwrap<T>(result),
+    meta: envelope.meta ?? { requestId: result.requestId ?? '' },
+  };
+};
+
 export const apiList = async <T>(path: string, options: RequestOptions = {}): Promise<Paged<T>> => {
   const result = await send(path, options);
   const envelope = (isRecord(result.body) ? result.body : {}) as Partial<ApiListEnvelope<T>>;
@@ -139,7 +152,11 @@ export const apiList = async <T>(path: string, options: RequestOptions = {}): Pr
 };
 
 export const apiGet = <T>(path: string, query?: QueryParams, signal?: AbortSignal): Promise<T> =>
-  apiRequest<T>(path, { method: 'GET', ...(query ? { query } : {}), ...(signal ? { signal } : {}) });
+  apiRequest<T>(path, {
+    method: 'GET',
+    ...(query ? { query } : {}),
+    ...(signal ? { signal } : {}),
+  });
 
 export const apiPost = <T>(path: string, body?: unknown): Promise<T> =>
   apiRequest<T>(path, { method: 'POST', ...(body === undefined ? {} : { body }) });

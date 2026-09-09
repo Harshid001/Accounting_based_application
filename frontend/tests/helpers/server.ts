@@ -27,6 +27,8 @@ const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
         'audit:read',
         'job:manage',
         'settings:write',
+        'books:delete_draft',
+        'books:lock',
       ].includes(key),
   ),
   client: [
@@ -90,9 +92,7 @@ export interface FetchStub {
 }
 
 const listMeta = (items: unknown): Record<string, unknown> =>
-  Array.isArray(items)
-    ? { total: items.length, page: 1, limit: 25, totalPages: 1 }
-    : {};
+  Array.isArray(items) ? { total: items.length, page: 1, limit: 25, totalPages: 1 } : {};
 
 export const stubFetch = (routes: readonly StubRoute[]): FetchStub => {
   const calls: string[] = [];

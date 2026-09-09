@@ -60,6 +60,8 @@ const commonDetail = (client: ClientRecord) => ({
   additionalContacts: client.additionalContacts,
   address: client.address ?? null,
   assignedStaff: personRefs(client.assignedStaff),
+  booksMode: client.booksMode ?? 'native',
+  tallyConfig: client.tallyConfig ?? null,
   createdAt: timestamp(client.createdAt),
   updatedAt: timestamp(client.updatedAt),
 });

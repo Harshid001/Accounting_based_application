@@ -117,12 +117,26 @@ export const queryKeys = {
   automation: {
     all: ['automation'] as const,
     detail: (id: string) => ['automation', 'detail', id] as const,
-    list: (filters?: { clientId?: string; status?: string; limit?: number }) => [
-      'automation',
-      'list',
-      filters ?? {},
-    ] as const,
+    list: (filters?: { clientId?: string; status?: string; limit?: number }) =>
+      ['automation', 'list', filters ?? {}] as const,
     support: ['automation', 'support'] as const,
+  },
+
+  books: {
+    all: ['books'] as const,
+    status: (clientId: string) => ['books', 'status', clientId] as const,
+    accounts: {
+      list: (params?: QueryParams) => ['books', 'accounts', 'list', scoped(params)] as const,
+      detail: (id: string) => ['books', 'accounts', 'detail', id] as const,
+    },
+    vouchers: {
+      list: (params?: QueryParams) => ['books', 'vouchers', 'list', scoped(params)] as const,
+      detail: (id: string) => ['books', 'vouchers', 'detail', id] as const,
+    },
+    dayBook: (params?: QueryParams) => ['books', 'day-book', scoped(params)] as const,
+    ledger: (params?: QueryParams) => ['books', 'ledger', scoped(params)] as const,
+    trialBalance: (params?: QueryParams) => ['books', 'trial-balance', scoped(params)] as const,
+    periods: (clientId: string) => ['books', 'periods', clientId] as const,
   },
 } as const;
 

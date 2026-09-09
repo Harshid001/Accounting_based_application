@@ -24,6 +24,7 @@ import { portalRouter } from './portal.routes.js';
 import { storageRouter } from './storage.routes.js';
 import { myWorkRouter, taskCommentRouter, taskRouter } from './task.routes.js';
 import { automationRouter } from './automation.routes.js';
+import { booksRouter } from './books.routes.js';
 
 export const apiRouter: Router = Router();
 
@@ -49,6 +50,7 @@ apiRouter.use('/messages', messageRouter);
 apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/portal', portalRouter);
 apiRouter.use('/automation', automationRouter);
+apiRouter.use('/books', booksRouter);
 apiRouter.use('/reports', reportRouter);
 apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/audit', auditRouter);

@@ -1,8 +1,20 @@
 import type { HydratedDocument, Model, Types } from 'mongoose';
 import { Schema, model } from 'mongoose';
 
-import { CLIENT_STATUSES, CLIENT_TYPES, ENTITY_TYPES } from '../lib/enums.js';
-import type { ClientStatus, ClientType, EntityType } from '../lib/enums.js';
+import {
+  BOOKS_MODES,
+  CLIENT_STATUSES,
+  CLIENT_TYPES,
+  ENTITY_TYPES,
+  TALLY_EDITIONS,
+} from '../lib/enums.js';
+import type {
+  BooksMode,
+  ClientStatus,
+  ClientType,
+  EntityType,
+  TallyEdition,
+} from '../lib/enums.js';
 import {
   CIN_PATTERN,
   GSTIN_PATTERN,
@@ -34,6 +46,12 @@ export interface EncryptedAadhaar {
   keyVersion: number;
 }
 
+export interface TallyConfigAttributes {
+  companyName: string;
+  edition: TallyEdition;
+  workstationHint?: string | null;
+}
+
 export interface ClientAttributes {
   clientType: ClientType;
   displayName: string;
@@ -55,6 +73,8 @@ export interface ClientAttributes {
   address?: AddressAttributes | null;
   assignedStaff: Types.ObjectId[];
   notes?: string | null;
+  booksMode: BooksMode;
+  tallyConfig?: TallyConfigAttributes | null;
   createdBy?: Types.ObjectId | null;
   updatedBy?: Types.ObjectId | null;
   createdAt: Date;
@@ -62,6 +82,15 @@ export interface ClientAttributes {
 }
 
 export type ClientDocument = HydratedDocument<ClientAttributes>;
+
+const tallyConfigSchema = new Schema<TallyConfigAttributes>(
+  {
+    companyName: { type: String, required: true, trim: true, minlength: 1, maxlength: 200 },
+    edition: { type: String, enum: TALLY_EDITIONS, required: true },
+    workstationHint: { type: String, default: null, trim: true, maxlength: 120 },
+  },
+  { _id: false },
+);
 
 const contactSchema = new Schema<ContactAttributes>(
   {
@@ -171,6 +200,8 @@ const clientSchema = new Schema<ClientAttributes>(
     address: { type: addressSchema, default: null },
     assignedStaff: { type: [Schema.Types.ObjectId], ref: 'user', default: [] },
     notes: { type: String, default: null, maxlength: 4000 },
+    booksMode: { type: String, enum: BOOKS_MODES, default: 'native', required: true },
+    tallyConfig: { type: tallyConfigSchema, default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: 'user', default: null },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'user', default: null },
   },
@@ -202,6 +233,12 @@ clientSchema.pre('validate', function preValidate() {
     const kind = this.clientType === 'individual' ? 'an individual' : 'a business';
     throw new Error(
       `${offending.join(', ')} cannot be stored on ${kind} client record. Remove ${offending.length === 1 ? 'it' : 'them'} and save again.`,
+    );
+  }
+
+  if (this.booksMode !== 'native' && !this.tallyConfig) {
+    throw new Error(
+      'A Tally company name and edition are required when books are kept in Tally or hybrid mode.',
     );
   }
 });

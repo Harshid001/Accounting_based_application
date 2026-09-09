@@ -140,6 +140,9 @@ export const AUDIT_ACTIONS = [
   'automation_start',
   'automation_handoff',
   'automation_abort',
+  'post',
+  'reverse',
+  'lock_period',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -158,8 +161,77 @@ export const AUDIT_ENTITY_KINDS = [
   'firmSettings',
   'session',
   'automationRun',
+  'account',
+  'journalVoucher',
+  'periodLock',
 ] as const;
 export type AuditEntityKind = (typeof AUDIT_ENTITY_KINDS)[number];
+
+// ---------------------------------------------------------------------------
+// Books (double-entry) enums
+// ---------------------------------------------------------------------------
+
+export const BOOKS_MODES = ['native', 'tally', 'hybrid'] as const;
+export type BooksMode = (typeof BOOKS_MODES)[number];
+
+export const TALLY_EDITIONS = ['erp9', 'prime'] as const;
+export type TallyEdition = (typeof TALLY_EDITIONS)[number];
+
+export const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'income', 'expense'] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+export const ACCOUNT_SUB_TYPES = [
+  'bank',
+  'cash',
+  'debtor',
+  'creditor',
+  'gst_output',
+  'gst_input',
+  'tds_payable',
+  'tds_receivable',
+  'rounding',
+  'retained_earnings',
+] as const;
+export type AccountSubType = (typeof ACCOUNT_SUB_TYPES)[number];
+
+/** Sub-types the engine posts derived duty lines into. Auto-created per client. */
+export const SYSTEM_ACCOUNT_SUB_TYPES = [
+  'gst_output',
+  'gst_input',
+  'tds_payable',
+  'tds_receivable',
+  'rounding',
+] as const satisfies readonly AccountSubType[];
+export type SystemAccountSubType = (typeof SYSTEM_ACCOUNT_SUB_TYPES)[number];
+
+/** Debit-normal account types have a positive natural balance on the debit side. */
+export const DEBIT_NORMAL_TYPES: readonly AccountType[] = ['asset', 'expense'];
+
+export const VOUCHER_TYPES = [
+  'journal',
+  'sales',
+  'purchase',
+  'payment',
+  'receipt',
+  'contra',
+  'debit_note',
+  'credit_note',
+] as const;
+export type VoucherType = (typeof VOUCHER_TYPES)[number];
+
+export const VOUCHER_STATUSES = ['draft', 'posted', 'reversed', 'locked'] as const;
+export type VoucherStatus = (typeof VOUCHER_STATUSES)[number];
+
+export const VOUCHER_SOURCES = ['manual', 'agent', 'bank_import', 'reversal'] as const;
+export type VoucherSource = (typeof VOUCHER_SOURCES)[number];
+
+export const TALLY_SYNC_STATUSES = ['pending', 'synced', 'failed'] as const;
+export type TallySyncStatus = (typeof TALLY_SYNC_STATUSES)[number];
+
+export const PERIOD_LOCK_KINDS = ['monthly', 'fy'] as const;
+export type PeriodLockKind = (typeof PERIOD_LOCK_KINDS)[number];
+
+export const MAX_VOUCHER_LINES = 200;
 
 // ---------------------------------------------------------------------------
 // Portal Automation enums

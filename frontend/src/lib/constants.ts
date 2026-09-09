@@ -1,4 +1,7 @@
 import type {
+  AccountSubType,
+  AccountType,
+  BooksMode,
   ClientStatus,
   ClientType,
   ComplianceCategory,
@@ -14,6 +17,8 @@ import type {
   TaskRecurrenceFrequency,
   TaskStatus,
   UserStatus,
+  VoucherStatus,
+  VoucherType,
 } from '@/types/enums';
 
 export const MAX_UPLOAD_BYTES = 26_214_400;
@@ -79,9 +84,9 @@ export const ALLOWED_EXTENSIONS: readonly string[] = ALLOWED_UPLOADS.map(
   (entry) => entry.extension,
 );
 
-export const UPLOAD_ACCEPT_ATTRIBUTE = ALLOWED_UPLOADS.map(
-  (entry) => `.${entry.extension}`,
-).join(',');
+export const UPLOAD_ACCEPT_ATTRIBUTE = ALLOWED_UPLOADS.map((entry) => `.${entry.extension}`).join(
+  ',',
+);
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
@@ -254,3 +259,47 @@ export const INDIAN_STATES = [
   'Puducherry',
 ] as const;
 
+export const BOOKS_MODE_LABELS: Record<BooksMode, string> = {
+  native: 'FirmDesk Books',
+  tally: 'Tally',
+  hybrid: 'FirmDesk Books + Tally mirror',
+};
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  asset: 'Assets',
+  liability: 'Liabilities',
+  equity: 'Equity',
+  income: 'Income',
+  expense: 'Expenses',
+};
+
+export const ACCOUNT_SUB_TYPE_LABELS: Record<AccountSubType, string> = {
+  bank: 'Bank',
+  cash: 'Cash',
+  debtor: 'Sundry debtor',
+  creditor: 'Sundry creditor',
+  gst_output: 'GST output',
+  gst_input: 'GST input credit',
+  tds_payable: 'TDS payable',
+  tds_receivable: 'TDS receivable',
+  rounding: 'Rounding off',
+  retained_earnings: 'Retained earnings',
+};
+
+export const VOUCHER_TYPE_LABELS: Record<VoucherType, string> = {
+  journal: 'Journal',
+  sales: 'Sales',
+  purchase: 'Purchase',
+  payment: 'Payment',
+  receipt: 'Receipt',
+  contra: 'Contra',
+  debit_note: 'Debit note',
+  credit_note: 'Credit note',
+};
+
+export const VOUCHER_STATUS_LABELS: Record<VoucherStatus, string> = {
+  draft: 'Draft',
+  posted: 'Posted',
+  reversed: 'Reversed',
+  locked: 'Locked',
+};

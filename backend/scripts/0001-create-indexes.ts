@@ -16,6 +16,10 @@ import '../src/models/notification.model.js';
 import '../src/models/auditLog.model.js';
 import '../src/models/jobRun.model.js';
 import '../src/models/firmSettings.model.js';
+import '../src/models/ledgerAccount.model.js';
+import '../src/models/journalVoucher.model.js';
+import '../src/models/periodLock.model.js';
+import '../src/models/voucherSequence.model.js';
 
 const run = async (): Promise<void> => {
   await connectDatabase();

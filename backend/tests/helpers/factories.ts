@@ -5,8 +5,10 @@ import { encryptField } from '../../src/lib/crypto.js';
 import { utcMidnight } from '../../src/lib/date.js';
 import type { DueDateRule } from '../../src/lib/dueDate.js';
 import type { ComplianceCategory, Frequency } from '../../src/lib/enums.js';
+import type { AccountSubType, AccountType } from '../../src/lib/enums.js';
 import type { ClientAttributes } from '../../src/models/client.model.js';
 import type { ChecklistEntry } from '../../src/models/complianceType.model.js';
+import { Account } from '../../src/models/ledgerAccount.model.js';
 import { Client } from '../../src/models/client.model.js';
 import { ClientService } from '../../src/models/clientService.model.js';
 import { ComplianceItem } from '../../src/models/complianceItem.model.js';
@@ -77,8 +79,11 @@ export const makeComplianceType = async (
     category: overrides.category ?? 'gst',
     isRecurring: overrides.isRecurring ?? true,
     defaultFrequency: overrides.defaultFrequency ?? 'monthly',
-    dueDateRule:
-      overrides.dueDateRule ?? { kind: 'day_of_following_month', day: 20, monthsAfter: 1 },
+    dueDateRule: overrides.dueDateRule ?? {
+      kind: 'day_of_following_month',
+      day: 20,
+      monthsAfter: 1,
+    },
     defaultDocumentChecklist: overrides.defaultDocumentChecklist ?? [],
     reminderOffsetsDays: [7, 3, 1],
     isSeeded: false,
@@ -90,7 +95,11 @@ export const makeComplianceType = async (
 export const makeClientService = async (
   clientId: Types.ObjectId,
   complianceTypeId: Types.ObjectId,
-  overrides: Partial<{ startDate: Date; endDate: Date | null; assignedStaff: Types.ObjectId }> = {},
+  overrides: Partial<{
+    startDate: Date;
+    endDate: Date | null;
+    assignedStaff: Types.ObjectId;
+  }> = {},
 ): Promise<Types.ObjectId> => {
   const doc = await ClientService.create({
     client: clientId,
@@ -110,7 +119,13 @@ export const makeComplianceItem = async (
     periodStart: Date;
     periodEnd: Date;
     dueDate: Date;
-    status: 'pending' | 'in_progress' | 'awaiting_client' | 'filed' | 'acknowledged' | 'not_applicable';
+    status:
+      | 'pending'
+      | 'in_progress'
+      | 'awaiting_client'
+      | 'filed'
+      | 'acknowledged'
+      | 'not_applicable';
     assignedStaff: Types.ObjectId;
     filedDate: Date;
   }> = {},
@@ -194,6 +209,74 @@ export const makeDocumentRequest = async (
   });
   return doc._id;
 };
+
+export const makeAccount = async (
+  clientId: Types.ObjectId,
+  overrides: Partial<{
+    code: string;
+    name: string;
+    type: AccountType;
+    subType: AccountSubType | null;
+    openingPaise: number;
+    openingIsDebit: boolean;
+    isActive: boolean;
+  }> = {},
+): Promise<Types.ObjectId> => {
+  const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const doc = await Account.create({
+    client: clientId,
+    code: overrides.code ?? `AC-${suffix}`,
+    name: overrides.name ?? `Account ${suffix}`,
+    type: overrides.type ?? 'asset',
+    subType: overrides.subType ?? null,
+    openingBalance: {
+      paise: overrides.openingPaise ?? 0,
+      asOf: utcMidnight(2026, 4, 1),
+      isDebit: overrides.openingIsDebit ?? true,
+    },
+    isActive: overrides.isActive ?? true,
+    isSystem: false,
+  });
+  return doc._id;
+};
+
+export interface ChartOfAccounts {
+  cash: Types.ObjectId;
+  bank: Types.ObjectId;
+  debtor: Types.ObjectId;
+  creditor: Types.ObjectId;
+  sales: Types.ObjectId;
+  rent: Types.ObjectId;
+}
+
+export const makeChart = async (clientId: Types.ObjectId): Promise<ChartOfAccounts> => ({
+  cash: await makeAccount(clientId, {
+    code: '1001',
+    name: 'Cash in Hand',
+    type: 'asset',
+    subType: 'cash',
+  }),
+  bank: await makeAccount(clientId, {
+    code: '1002',
+    name: 'HDFC Bank',
+    type: 'asset',
+    subType: 'bank',
+  }),
+  debtor: await makeAccount(clientId, {
+    code: '1101',
+    name: 'Sharma Traders',
+    type: 'asset',
+    subType: 'debtor',
+  }),
+  creditor: await makeAccount(clientId, {
+    code: '2101',
+    name: 'Office Supplies Co',
+    type: 'liability',
+    subType: 'creditor',
+  }),
+  sales: await makeAccount(clientId, { code: '4001', name: 'Sales', type: 'income' }),
+  rent: await makeAccount(clientId, { code: '5001', name: 'Rent', type: 'expense' }),
+});
 
 export const assignStaff = async (
   clientId: Types.ObjectId,

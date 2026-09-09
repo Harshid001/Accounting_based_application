@@ -44,6 +44,8 @@ const PRIVILEGED_CLIENT_FIELDS = [
   'incorporationDate',
   'dateOfBirth',
   'assignedStaff',
+  'booksMode',
+  'tallyConfig',
 ] as const;
 
 export const clientRouter: Router = Router();

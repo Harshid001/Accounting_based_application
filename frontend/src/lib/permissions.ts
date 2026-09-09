@@ -57,6 +57,12 @@ export const CAPABILITY_KEYS = [
   'search:run',
   'portal:read',
   'portal:write',
+  'books:read',
+  'books:write',
+  'books:post',
+  'books:delete_draft',
+  'books:lock',
+  'books:export',
 ] as const;
 
 export type Capability = (typeof CAPABILITY_KEYS)[number];

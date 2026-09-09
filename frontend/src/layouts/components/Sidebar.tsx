@@ -1,6 +1,7 @@
 import {
   ArrowRightLeft,
   Bot,
+  BookOpen,
   Building2,
   CalendarClock,
   CheckSquare,
@@ -33,7 +34,12 @@ export interface NavEntry {
 }
 
 export const STAFF_NAV: NavEntry[] = [
-  { to: '/dashboard', labelKey: 'sidebar.dashboard', icon: <Gauge size={16} aria-hidden="true" />, end: true },
+  {
+    to: '/dashboard',
+    labelKey: 'sidebar.dashboard',
+    icon: <Gauge size={16} aria-hidden="true" />,
+    end: true,
+  },
   { to: '/my-work', labelKey: 'sidebar.myWork', icon: <ListTodo size={16} aria-hidden="true" /> },
   {
     to: '/clients',
@@ -52,6 +58,12 @@ export const STAFF_NAV: NavEntry[] = [
     labelKey: 'sidebar.automation',
     icon: <Bot size={16} aria-hidden="true" />,
     capability: 'compliance:read',
+  },
+  {
+    to: '/books',
+    labelKey: 'sidebar.books',
+    icon: <BookOpen size={16} aria-hidden="true" />,
+    capability: 'books:read',
   },
   {
     to: '/tasks',
@@ -133,7 +145,9 @@ export function Sidebar({ collapsed, onToggle, onNavigate, variant = 'fixed' }: 
         {narrow ? null : (
           <span className="flex items-center gap-2.5">
             <JVLogo size="sm" />
-            <span className="truncate text-sm font-semibold text-[var(--fd-text-primary)] tracking-tight">JV Tax Consultancy</span>
+            <span className="truncate text-sm font-semibold tracking-tight text-[var(--fd-text-primary)]">
+              JV Tax Consultancy
+            </span>
           </span>
         )}
         {isDrawer ? null : (
@@ -172,7 +186,11 @@ export function Sidebar({ collapsed, onToggle, onNavigate, variant = 'fixed' }: 
               }
             >
               <span className="shrink-0">{entry.icon}</span>
-              {narrow ? <span className="sr-only">{t(entry.labelKey)}</span> : <span>{t(entry.labelKey)}</span>}
+              {narrow ? (
+                <span className="sr-only">{t(entry.labelKey)}</span>
+              ) : (
+                <span>{t(entry.labelKey)}</span>
+              )}
             </NavLink>
           </li>
         ))}

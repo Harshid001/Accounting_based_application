@@ -225,6 +225,8 @@ export interface ClientWritePayload {
   address?: ClientAttributes['address'];
   assignedStaff?: string[];
   notes?: string | null;
+  booksMode?: ClientAttributes['booksMode'];
+  tallyConfig?: ClientAttributes['tallyConfig'];
 }
 
 const applyAadhaar = (doc: ClientDocument, aadhaar: string | null | undefined): void => {
@@ -254,11 +256,24 @@ const assertStaffExist = async (staffIds: readonly string[]): Promise<void> => {
   }
 };
 
+const assertBooksModeConsistent = (
+  booksMode: ClientAttributes['booksMode'],
+  tallyConfig: ClientAttributes['tallyConfig'] | undefined,
+): void => {
+  if (booksMode !== 'native' && !tallyConfig) {
+    throw validationFailed(
+      'Tally company details are required when books are kept in Tally or hybrid mode.',
+      [{ field: 'tallyConfig', message: 'Enter the Tally company name and edition.' }],
+    );
+  }
+};
+
 export const createClient = async (
   payload: ClientWritePayload,
   actor: RequestActor,
 ): Promise<Lean<ClientAttributes>> => {
   if (payload.assignedStaff) await assertStaffExist(payload.assignedStaff);
+  assertBooksModeConsistent(payload.booksMode ?? 'native', payload.tallyConfig ?? null);
   const doc = new Client({
     clientType: payload.clientType,
     displayName: payload.displayName,
@@ -276,6 +291,8 @@ export const createClient = async (
     address: payload.address ?? null,
     assignedStaff: payload.assignedStaff ?? [],
     notes: payload.notes ?? null,
+    booksMode: payload.booksMode ?? 'native',
+    tallyConfig: payload.tallyConfig ?? null,
     createdBy: actor.id,
     updatedBy: actor.id,
   });
@@ -311,6 +328,8 @@ const AUDITABLE_FIELDS = [
   'address',
   'assignedStaff',
   'notes',
+  'booksMode',
+  'tallyConfig',
   'aadhaarEncrypted',
 ] as const;
 
@@ -336,6 +355,12 @@ export const updateClient = async (
     throw conflict('A client cannot change between individual and business after creation.');
   }
   if (payload.assignedStaff) await assertStaffExist(payload.assignedStaff);
+  if (payload.booksMode !== undefined || payload.tallyConfig !== undefined) {
+    assertBooksModeConsistent(
+      payload.booksMode ?? doc.booksMode,
+      payload.tallyConfig === undefined ? doc.tallyConfig : payload.tallyConfig,
+    );
+  }
 
   const before = snapshot(doc);
   for (const field of AUDITABLE_FIELDS) {

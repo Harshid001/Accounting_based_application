@@ -166,3 +166,57 @@ export type ReportName = (typeof REPORT_NAMES)[number];
 
 export const SEARCH_KINDS = ['client', 'task', 'compliance', 'document'] as const;
 export type SearchKind = (typeof SEARCH_KINDS)[number];
+
+// ---------------------------------------------------------------------------
+// Books (double-entry)
+// ---------------------------------------------------------------------------
+
+export const BOOKS_MODES = ['native', 'tally', 'hybrid'] as const;
+export type BooksMode = (typeof BOOKS_MODES)[number];
+
+export const TALLY_EDITIONS = ['erp9', 'prime'] as const;
+export type TallyEdition = (typeof TALLY_EDITIONS)[number];
+
+export const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'income', 'expense'] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+export const ACCOUNT_SUB_TYPES = [
+  'bank',
+  'cash',
+  'debtor',
+  'creditor',
+  'gst_output',
+  'gst_input',
+  'tds_payable',
+  'tds_receivable',
+  'rounding',
+  'retained_earnings',
+] as const;
+export type AccountSubType = (typeof ACCOUNT_SUB_TYPES)[number];
+
+/** Sub-types reserved for engine-managed duty accounts; not selectable in forms. */
+export const SYSTEM_ACCOUNT_SUB_TYPES: readonly AccountSubType[] = [
+  'gst_output',
+  'gst_input',
+  'tds_payable',
+  'tds_receivable',
+  'rounding',
+];
+
+export const VOUCHER_TYPES = [
+  'journal',
+  'sales',
+  'purchase',
+  'payment',
+  'receipt',
+  'contra',
+  'debit_note',
+  'credit_note',
+] as const;
+export type VoucherType = (typeof VOUCHER_TYPES)[number];
+
+export const VOUCHER_STATUSES = ['draft', 'posted', 'reversed', 'locked'] as const;
+export type VoucherStatus = (typeof VOUCHER_STATUSES)[number];
+
+export const VOUCHER_SOURCES = ['manual', 'agent', 'bank_import', 'reversal'] as const;
+export type VoucherSource = (typeof VOUCHER_SOURCES)[number];

@@ -64,3 +64,27 @@ export const maskFilename = (filename: string, max = 34): string => {
   const stem = filename.slice(0, dot);
   return `${stem.slice(0, Math.max(1, max - extension.length - 1))}…${extension}`;
 };
+
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Integer paise -> "₹1,18,000.00". */
+export const formatPaise = (paise: number | null | undefined, fallback = '—'): string =>
+  paise === null || paise === undefined || Number.isNaN(paise)
+    ? fallback
+    : currencyFormatter.format(paise / 100).replace(/\u00A0|\u202F/g, ' ');
+
+/** "1234.5" (rupees, typed) -> 123450 paise; null when not a clean 2dp amount. */
+export const rupeesStringToPaise = (raw: string): number | null => {
+  const trimmed = raw.trim().replace(/,/g, '');
+  if (trimmed.length === 0) return 0;
+  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null;
+  const [whole, fraction = ''] = trimmed.split('.');
+  return Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+};
+
+export const paiseToRupeesString = (paise: number): string => (paise / 100).toFixed(2);
