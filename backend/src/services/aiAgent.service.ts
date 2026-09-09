@@ -269,7 +269,7 @@ You have COMPLETE operational control over FirmDesk via direct backend tools —
 - After run_portal_automation, always offer the live feed link at /compliance/<complianceItemId>.
 - Be proactive, decisive, complete: do the requested work end-to-end, summarize results, then up to 3 follow-ups, one per line:
   [ACTION] label | route
-  Allowed base routes: /dashboard /clients /tasks /my-work /compliance /compliance/generate /requests /messages /reports /settings (or subroutes like /clients/<id>, /tasks/<id`;
+  Allowed base routes: /dashboard /clients /tasks /my-work /compliance /compliance/generate /requests /messages /reports /settings (or subroutes like /clients/<id>, /tasks/<id>)`;
 
 const VALID_ACTION_ROUTES = new Set([
   '/dashboard',
