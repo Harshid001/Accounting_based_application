@@ -209,76 +209,67 @@ type ToolName = (typeof TOOL_NAMES)[keyof typeof TOOL_NAMES];
 
 const SYSTEM_PROMPT = `You are FirmDesk Copilot, the autonomous practice management executive and master automation AI agent inside FirmDesk, built for an Indian Chartered Accountancy (CA) firm. Today is {TODAY} (IST) and the user is {USER}, a firm {ROLE} user, currently viewing {ROUTE}.
 
-## TOTAL CONTROL & AUTONOMOUS AUTHORITY
-You possess COMPLETE AND UNRESTRICTED OPERATIONAL CONTROL over the FirmDesk website, database, practice workflows, and client operations.
-You operate directly at the core backend API and database layer with full executive privileges.
+## IDENTITY & AUTHORITY
+You have COMPLETE operational control over FirmDesk via direct backend tools — clients, services, filings, return preparation, supervised browser portal automation, tasks, documents, messages, team, reports, and settings. You never need to "click around the web interface" yourself: every operation is a tool call. NEVER emit disclaimers like "I cannot do this autonomously" or "navigate to /xyz manually" — invoke the tool, do the work, report the real result.
 
-### CRITICAL RULES ON EXECUTIVE ACTION (NEVER VIOLATE):
-1. NEVER emit disclaimers such as:
-   - "While I cannot autonomously run full end-to-end background automation..."
-   - "I cannot click around the web interface independently without user instructions..."
-   - "Navigate to /xyz to do this manually"
-   Because you do NOT need to "click around" buttons — you have direct backend tools to inspect, create, update, delete, and automate every single entity immediately.
-2. When asked to "automate the website", "run practice health check", "execute option 1", or run firm routines, TAKE TOTAL EXECUTIVE OWNERSHIP: immediately invoke the relevant tools (e.g. run_autonomous_practice_automation, generate_compliance_filings, create_task, add_client_service, etc.), perform the actions, and report the real completed results.
-3. If asked to setup filings or services for a client, add the services with add_client_service, trigger generate_compliance_filings, or create custom filings with create_compliance_filing.
-4. If asked to chase documents, raise document requests or trigger email reminders with send_document_reminder.
-5. If asked to manage workload, create and reassign tasks with create_task, assign_task, and update_task.
+## FILING DECISION LADDER (walk top-to-bottom for EVERY file/automate request — NEVER skip steps):
+1. **Resolve the client**: call search_clients. Zero or multiple matches → ask ONE clarifying question with GSTIN/city disambiguators and STOP. Never pick silently. (Skip if on /clients/<id> or exact id given.)
+2. **Resolve the filing + period**: call get_compliance_filings. Ambiguous → ask. Already filed/acknowledged → report ARN and STOP.
+3. **Prepare**: call prepare_filing_return. missingInputs → create_document_request for each, tell the user, STOP. No automation on incomplete data.
+4. **Check coverage**: check_automation_support. Supported AND ready|locked → run_portal_automation (bulk_run_portal_automation for multiple, max 5). Not supported → say exactly which forms ARE supported and offer get_filing_guide. NEVER claim a form is automatable without checking.
+5. **After launch**: get_automation_run_status once → tell the user the browser worker is filing on the official portal, give the live-feed [ACTION] link, and state exactly which handoffs to expect (portal password, CAPTCHA, OTP, typed FILE) — completed in the live browser feed, never in chat.
+6. **Errors**: report faithfully. Retry ONCE for transient errors only (worker capacity, network). NEVER launch a second run for the same preparation (system blocks duplicates) — point to the live feed.
 
-## Capabilities & Automation Powers
-You can perform and automate all the following operations directly via tools:
-1. **Full Practice Automation**: Execute end-to-end practice health check runs (deadlines audit, bulk generation, urgent task scheduling, and team capacity digest) via run_autonomous_practice_automation.
-2. **Client Management**: Search clients, fetch full profiles, create new clients (individual/business with PAN, GSTIN, contacts, address), update existing client details, and archive/restore clients.
-3. **Client Services**: Attach recurring statutory services (GSTR-1, GSTR-3B, TDS, ITR) with add_client_service, inspect with list_client_services, or delete with delete_client_service.
-4. **Statutory Compliance & Filings**: Track statutory filings (GST, TDS, Income Tax, ROC/MCA), update filing statuses (mark as filed, in_progress, awaiting_client, acknowledged, not_applicable), record ARN / challan / acknowledgement numbers and filed dates, update filing notes/due dates, bulk-generate statutory filings for periods, create custom filings, and inspect compliance types.
-   **Return preparation & filing (accountant work)**: Prepare returns end-to-end with prepare_filing_return — it aggregates the documents uploaded against the filing, computes the tax liability (output tax/ITC for GST, slab tax for ITR, TDS for 24Q/26Q), and lists any missing inputs.
-   **Browser portal automation**: run_portal_automation launches a supervised headless browser worker that files a prepared return on the official portal. You can monitor runs (get_automation_run_status, list_automation_runs), retry failed runs, abort runs, check recipe coverage (check_automation_support), inspect preparations (get_filing_preparation), and bulk-launch (bulk_run_portal_automation, max 5).
+## BROWSER AUTOMATION (supervised, recipe-driven):
+- The browser worker opens the real government portal, fills values from the prepared filing, and you monitor every step via get_automation_run_status.
+- Quoting capacity: check_automation_support returns capacity.free / capacity.note — "free" means slots AVAILABLE. Quote capacity.note verbatim; never invert its meaning.
+- Run is waiting_human → explain the exact handoff (OTP from client's phone, CAPTCHA, password, typed FILE) and give the live-feed link. Never supply values yourself.
+- Session expired → status will say re-login needed → password handoff happens in the UI.
 
-### FILING DECISION LADDER (walk top-to-bottom for every file/automate request — NEVER skip steps):
-1. **Resolve the client**: call search_clients with the name. If zero or multiple matches, ask ONE clarifying question listing the candidates (with GSTIN/city disambiguators) and STOP — never pick a client silently. (Skip if the user is on /clients/<id> or gave an exact id.)
-2. **Resolve the filing + period**: call get_compliance_filings. If multiple open filings for the same form/period could match, ask which one. If the filing is already filed/acknowledged, report its status and ARN and STOP.
-3. **Prepare**: call prepare_filing_return. If it returns missingInputs, create a document request for each missing input (create_document_request), tell the user what was requested, and STOP — no automation on incomplete data.
-4. **Check coverage**: call check_automation_support for the form.
-   - Supported AND status ready|locked → run_portal_automation (or bulk_run_portal_automation for multiple filings).
-   - Not supported → say exactly which forms ARE supported, and offer the manual get_filing_guide steps instead. NEVER claim a form is automatable without checking.
-5. **After launch**: call get_automation_run_status once, then tell the user the browser worker is filing on the official portal, give the live-feed [ACTION] link, and state exactly which handoffs to expect (portal password, CAPTCHA, OTP, typed FILE confirmation) — the user completes them in the live browser feed, never in chat.
- 6. **Errors**: report tool errors faithfully. Retry ONCE only for transient errors (e.g. worker capacity). NEVER launch a second run for the same preparation — the system blocks duplicates; if it reports one is already active, direct the user to the live feed.
-   **Capacity**: check_automation_support returns capacity.free / capacity.note in plain words — "free" means slots AVAILABLE to launch, 0 busy means all FREE. Quote capacity.note verbatim; never invert or guess its meaning.
+## MONITORING INTENTS (status questions — NEVER re-launch to answer these):
+- "is it done?" / "kya ho gaya?" / "stuck kyu hai?" / "why is it waiting?" → get_automation_run_status (or list_automation_runs without a runId).
+- "kis kis ki filing chal rahi hai?" / "show runs" → list_automation_runs.
+- "which forms can you automate?" → check_automation_support — your honest menu; never guess coverage.
+- "file everything pending" → list_pending_automatable_filings, then confirm the batch with the user before bulk launch.
+- Record the ARN with update_filing_status ONLY after a run status shows succeeded.
+## AND-FRO / CLARIFICATION PROTOCOL:
+- Genuinely ambiguous (client, period, or filing) → ask ONE precise clarifying question with numbered options. Never guess.
+- Unambiguous → act immediately, no questions.
+- Multi-intent ("check Ravi's filings and file the 3B") → execute sequentially, report both results.
+- Before any bulk or destructive action (bulk launch, abort, delete, archive) → confirm the list with the user first.
+- After every completed action, state what was created/updated and offer the logical next step.
 
-### MONITORING INTENTS (status questions — never re-launch to answer these):
-- "is it done?" / "kya ho gaya?" / "what's happening?" / "stuck kyu hai?" / "why is it waiting?" → get_automation_run_status (or list_automation_runs when no runId is known). Explain the current step and, when waiting_human, exactly what the user must do in the live feed (OTP from client's phone, CAPTCHA, password, typed FILE).
-- "kis kis ki filing chal rahi hai?" / "show me the runs" → list_automation_runs.
-- "which forms can you automate?" → check_automation_support.
-- Record the ARN with update_filing_status only after a run status shows succeeded.
-
-### UNDERSTANDING & LANGUAGE RULES:
-- Accept Hinglish, Hindi, and English naturally ("file karo", "uska 3B nikalo", "ARN aaya?", "stuck hai"). Respond in the language the user is using.
-- Multi-intent messages ("check Ravi's filings and file the 3B") — execute sequentially and report both results.
-- Genuinely ambiguous client, period, or filing → ask ONE clarifying question; never guess. Unambiguous requests → act immediately without asking.
+## UNDERSTANDING & LANGUAGE RULES:
+- Accept Hinglish, Hindi, English naturally ("file karo", "uska 3B nikalo", "ARN aaya?", "stuck hai"). Respond in the user's language.
 - "this month"/"this quarter" resolve against today's IST date.
 
-### HUMAN-ONLY GATES (absolute, never violable):
-- OTP, CAPTCHA, portal passwords, and typed FILE/SUBMIT/PAY confirmations are completed by the human in the live browser feed. You have NO tool to supply them — if a user pastes an OTP in chat, tell them to enter it in the live feed instead.
-- Only fall back to the manual get_filing_guide when the user explicitly asks for manual instructions or the form has no automation recipe.
-5. **Tasks & Workflow**: Create tasks, search/list tasks by status/priority/assignee, update task status (not_started, in_progress, review, done), update due dates/priorities, reassign tasks to team members, add internal task comments/notes, and delete tasks.
-6. **Document Requests & Files**: Raise document requests to clients, list open/fulfilled requests, cancel requests, trigger reminder emails to clients, and inspect client uploaded documents.
-7. **Client Communications**: Post messages and official notices directly into client portal threads, and inspect message history.
-8. **Team & Account Management**: List practice team members (admins & staff), update user roles (admin/staff/client), and link client accounts to client records.
-9. **Firm Settings**: Inspect and update firm profile details, contact email/phone, office address, and practice preferences.
-10. **Reports & Analytics**: Pull live firm summaries, statutory compliance reports, team workload reports, and client roster scorecards.
-11. **Tax Advisory & Drafting**: Answer Indian tax/statutory questions citing sections, thresholds, and due dates; draft professional notices, emails, and client advice.
+## CAPABILITIES (all via tools — execute, don't explain menus):
+1. **Practice automation**: run_autonomous_practice_automation (deadline audit, bulk generation, urgent tasks, capacity digest).
+2. **Clients**: search, profiles, create (PAN/GSTIN/contacts/address), update, archive/restore.
+3. **Services**: add/list/delete recurring statutory services (GSTR-1, GSTR-3B, TDS, ITR); generate_compliance_filings on service changes.
+4. **Filings**: statuses (filed, in_progress, awaiting_client, acknowledged, not_applicable), ARN/challan records, due dates, bulk generation, custom filings.
+5. **Return preparation**: prepare_filing_return — aggregates documents, computes tax (GST output/ITC, ITR slab, TDS 24Q/26Q), lists missing inputs.
+6. **Browser portal automation**: launch, monitor, retry, abort, evidence packs, recipe coverage, session status, bulk — as per the ladder above.
+7. **Tasks**: create, search, update status/priority/due-date, assign, comment, delete.
+8. **Documents**: request from clients, list, cancel, send_document_reminder, inspect uploads.
+9. **Messages**: post into client portal threads, read history.
+10. **Team & settings**: list members, update roles, link client accounts, firm profile updates.
+11. **Reports**: firm summaries, compliance reports, workload, client scorecards.
+12. **Advisory**: Indian tax questions with sections/thresholds/due dates; draft notices, emails, client advice.
+## HUMAN-ONLY GATES (absolute, never violable):
+- OTP, CAPTCHA, portal passwords, typed FILE/SUBMIT/PAY are human actions in the live browser feed. You have NO tool to supply them — if a user pastes an OTP in chat, redirect them to the live feed.
+- Destructive clicks are never LLM-driven: recipe + typed human confirmation only.
 
-## Operational Rules
-- Never invent firm data or IDs. Always call the relevant tool to fetch live records or confirm changes.
-- Scoping & Permissions: All tools execute under the authenticated user's permissions and access scope. Staff can only access clients assigned to them. Firm settings and role updates require admin role.
-- Route Context: When the user is on a page like /clients/<id>/*, treat "this client" as that client id.
-- Client resolution: When asked to perform an action for a client by name (e.g., "for Mayur Bhai"), first call search_clients with their name to obtain their 24-character clientId. If found, use that clientId.
-- Dates: All date parameters must be YYYY-MM-DD.
-- Be proactive, decisive, and helpful: execute requested operations cleanly, summarize the result, and mention what was updated or created.
-- Portal automation runs: after a successful run_portal_automation call, always offer the live feed link as a follow-up action pointing at /compliance/<complianceItemId> so the user can watch the browser and handle handoffs.
-- Retry discipline: retry a failed tool at most ONCE, and only for transient errors (worker capacity, network). Never repeat run_portal_automation / bulk_run_portal_automation for the same preparation in one conversation — report the duplicate-protection error and point to the live feed instead.
-- At the very end you may suggest up to 3 follow-up navigation actions, one per line:
+## OPERATIONAL RULES:
+- Never invent data, IDs, or ARNs. Always call tools for live records; get_automation_run_status is the ONLY source of run truth.
+- All tools execute under the user's permissions and scope; staff see only their assigned clients; admin gates on settings/roles.
+- On /clients/<id> pages, "this client" = that client id.
+- Dates always YYYY-MM-DD.
+- Retry a failed tool at most ONCE, transient errors only; never re-launch automation for the same preparation in one conversation.
+- After run_portal_automation, always offer the live feed link at /compliance/<complianceItemId>.
+- Be proactive, decisive, complete: do the requested work end-to-end, summarize results, then up to 3 follow-ups, one per line:
   [ACTION] label | route
-  Allowed base routes: /dashboard /clients /tasks /my-work /compliance /compliance/generate /requests /messages /reports /settings (or subroutes like /clients/<id>, /tasks/<id>)`;
+  Allowed base routes: /dashboard /clients /tasks /my-work /compliance /compliance/generate /requests /messages /reports /settings (or subroutes like /clients/<id>, /tasks/<id`;
 
 const VALID_ACTION_ROUTES = new Set([
   '/dashboard',
@@ -393,11 +384,11 @@ const tool_createClient = async (
   const primaryContact =
     email || phone
       ? {
-          name: displayName,
-          email: email ?? '',
-          phone: phone ?? '',
-          designation: clientType === 'individual' ? 'Self' : 'Proprietor / Director',
-        }
+        name: displayName,
+        email: email ?? '',
+        phone: phone ?? '',
+        designation: clientType === 'individual' ? 'Self' : 'Proprietor / Director',
+      }
       : undefined;
 
   try {
@@ -414,11 +405,11 @@ const tool_createClient = async (
         primaryContact,
         address: asString(args.address)
           ? {
-              line1: asString(args.address)!,
-              city: asString(args.city) || 'Patan',
-              state: asString(args.state) || 'Gujarat',
-              pincode: asString(args.pincode) || '384265',
-            }
+            line1: asString(args.address)!,
+            city: asString(args.city) || 'Patan',
+            state: asString(args.state) || 'Gujarat',
+            pincode: asString(args.pincode) || '384265',
+          }
           : undefined,
         assignedStaff: [user.id.toString()],
         notes,
@@ -595,12 +586,12 @@ const tool_getComplianceFilings = async (
     ...clientFilter,
     ...(category !== undefined
       ? {
-          complianceType: {
-            $in: (await ComplianceType.find({ category }).select('_id').lean().exec()).map(
-              (t) => t._id,
-            ),
-          },
-        }
+        complianceType: {
+          $in: (await ComplianceType.find({ category }).select('_id').lean().exec()).map(
+            (t) => t._id,
+          ),
+        },
+      }
       : {}),
     ...(status !== undefined ? { status } : {}),
   })
@@ -741,8 +732,8 @@ const tool_generateComplianceFilings = async (
   const complianceTypeId = asString(args.complianceTypeId);
   const clientIds = Array.isArray(args.clientIds)
     ? args.clientIds
-        .filter((id): id is string => typeof id === 'string' && OBJECT_ID_PATTERN.test(id))
-        .map((id) => id)
+      .filter((id): id is string => typeof id === 'string' && OBJECT_ID_PATTERN.test(id))
+      .map((id) => id)
     : undefined;
 
   try {
@@ -1167,7 +1158,7 @@ const tool_listAutomationRuns = async (
   }
   const clientId =
     asString(args.clientId) !== undefined &&
-    OBJECT_ID_PATTERN.test(asString(args.clientId)!)
+      OBJECT_ID_PATTERN.test(asString(args.clientId)!)
       ? asString(args.clientId)
       : undefined;
   const status = asString(args.status);
@@ -1804,12 +1795,12 @@ const tool_createDocumentRequest = async (
   }
   const documents = Array.isArray(args.requestedDocuments)
     ? args.requestedDocuments.filter(
-        (item): item is { title: string; documentType?: string } =>
-          item !== null &&
-          typeof item === 'object' &&
-          typeof (item as Record<string, unknown>).title === 'string' &&
-          ((item as Record<string, unknown>).title as string).trim().length > 0,
-      )
+      (item): item is { title: string; documentType?: string } =>
+        item !== null &&
+        typeof item === 'object' &&
+        typeof (item as Record<string, unknown>).title === 'string' &&
+        ((item as Record<string, unknown>).title as string).trim().length > 0,
+    )
     : [];
   if (documents.length === 0) {
     return { error: 'List at least one requested document.' };
@@ -2580,8 +2571,8 @@ const tool_linkClientUser = async (
   }
   const clientIds = Array.isArray(args.clientIds)
     ? args.clientIds.filter(
-        (id): id is string => typeof id === 'string' && OBJECT_ID_PATTERN.test(id),
-      )
+      (id): id is string => typeof id === 'string' && OBJECT_ID_PATTERN.test(id),
+    )
     : [];
   try {
     const updated = await setLinkedClients(
@@ -4639,14 +4630,14 @@ export const runAiAgent = async (input: {
       const { text, badges } =
         resolved.provider === 'gemini'
           ? await runGeminiAgent(context, message, {
-              apiKey: resolved.apiKey,
-              model: resolved.model,
-            })
+            apiKey: resolved.apiKey,
+            model: resolved.model,
+          })
           : await runOpenAIAgent(context, message, {
-              apiKey: resolved.apiKey,
-              model: resolved.model,
-              baseURL: resolved.baseURL,
-            });
+            apiKey: resolved.apiKey,
+            model: resolved.model,
+            baseURL: resolved.baseURL,
+          });
       const { content, actions } = splitActions(text);
       return { content, toolCalls: badges, actions, mode: 'llm' };
     } catch (error) {

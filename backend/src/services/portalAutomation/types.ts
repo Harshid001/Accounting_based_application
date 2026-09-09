@@ -27,6 +27,8 @@ export interface RecipeStep {
   url?: string;
   /** CSS selector for click/fill steps */
   selector?: string;
+  /** Ordered list of fallback priority CSS selectors */
+  selectors?: string[];
   /** ARIA role for click steps */
   role?: string;
   /** ARIA name for click steps */
@@ -102,6 +104,30 @@ export interface HandoffResolution {
   handoffId: string;
   /** The secret value provided by the human — NEVER logged, NEVER persisted */
   value: string;
+}
+
+// ---------------------------------------------------------------------------
+// Probe types
+// ---------------------------------------------------------------------------
+
+export interface ProbedElement {
+  tag: string;
+  id: string | null;
+  name: string | null;
+  role: string | null;
+  text: string | null;
+  placeholder: string | null;
+  type: string | null;
+  suggestedSelectors: string[];
+}
+
+export interface ProbeScreenSnapshot {
+  stepKey: string;
+  url: string;
+  title: string;
+  timestamp: string;
+  elements: ProbedElement[];
+  domHtml?: string;
 }
 
 // ---------------------------------------------------------------------------

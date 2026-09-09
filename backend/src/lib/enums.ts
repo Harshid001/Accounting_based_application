@@ -186,7 +186,7 @@ export const AUTOMATION_STEP_STATUSES = [
 ] as const;
 export type AutomationStepStatus = (typeof AUTOMATION_STEP_STATUSES)[number];
 
-export const AUTOMATION_RUN_MODES = ['recipe', 'assisted'] as const;
+export const AUTOMATION_RUN_MODES = ['recipe', 'assisted', 'probe'] as const;
 export type AutomationRunMode = (typeof AUTOMATION_RUN_MODES)[number];
 
 export const HANDOFF_TYPES = ['password', 'captcha', 'otp', 'confirm_submit', 'sign'] as const;

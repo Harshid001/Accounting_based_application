@@ -15,6 +15,7 @@ import type {
   HandoffType,
   PortalKey,
 } from '../lib/enums.js';
+import type { ProbedElement, ProbeScreenSnapshot } from '../services/portalAutomation/types.js';
 
 // ---------------------------------------------------------------------------
 // Subdocument interfaces
@@ -62,6 +63,7 @@ export interface AutomationRunAttributes {
   actorRole: string;
   steps: AutomationStepRecord[];
   handoffs: AutomationHandoffRecord[];
+  probeSnapshots: ProbeScreenSnapshot[];
   result: AutomationRunResult;
   error: string | null;
   finishedAt: Date | null;
@@ -104,6 +106,32 @@ const handoffSchema = new Schema<AutomationHandoffRecord>(
   { _id: false },
 );
 
+const probedElementSchema = new Schema<ProbedElement>(
+  {
+    tag: { type: String, required: true },
+    id: { type: String, default: null },
+    name: { type: String, default: null },
+    role: { type: String, default: null },
+    text: { type: String, default: null },
+    placeholder: { type: String, default: null },
+    type: { type: String, default: null },
+    suggestedSelectors: { type: [String], default: [] },
+  },
+  { _id: false },
+);
+
+const probeScreenSnapshotSchema = new Schema<ProbeScreenSnapshot>(
+  {
+    stepKey: { type: String, required: true },
+    url: { type: String, required: true },
+    title: { type: String, required: true },
+    timestamp: { type: String, required: true },
+    elements: { type: [probedElementSchema], default: [] },
+    domHtml: { type: String, default: null },
+  },
+  { _id: false },
+);
+
 const resultSchema = new Schema<AutomationRunResult>(
   {
     arn: { type: String, default: null, maxlength: 60 },
@@ -131,6 +159,7 @@ const automationRunSchema = new Schema<AutomationRunAttributes>(
     actorRole: { type: String, required: true, trim: true, maxlength: 20 },
     steps: { type: [stepSchema], default: [] },
     handoffs: { type: [handoffSchema], default: [] },
+    probeSnapshots: { type: [probeScreenSnapshotSchema], default: [] },
     result: {
       type: resultSchema,
       default: () => ({ arn: null, acknowledgementRef: null, portalRef: null }),

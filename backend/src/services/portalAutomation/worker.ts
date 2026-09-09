@@ -44,7 +44,8 @@ export class AutomationWorker extends EventEmitter {
 
   constructor(options: AutomationWorkerOptions = {}) {
     super();
-    this.headless = options.headless ?? true;
+    const envHeadless = process.env.AUTOMATION_HEADLESS !== 'false';
+    this.headless = options.headless ?? envHeadless;
   }
 
   private async getBrowser(): Promise<Browser> {
@@ -59,6 +60,7 @@ export class AutomationWorker extends EventEmitter {
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-gpu',
+            '--disable-blink-features=AutomationControlled',
           ],
         })
         .catch((err) => {
