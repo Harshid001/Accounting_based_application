@@ -81,6 +81,8 @@ export const CAPABILITIES = {
   'books:delete_draft': ['admin'],
   'books:lock': ['admin'],
   'books:export': ['admin', 'staff'],
+  'books:tally': ['admin', 'staff'],
+  'desktop:workstation': ['admin', 'staff'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Capability = keyof typeof CAPABILITIES;

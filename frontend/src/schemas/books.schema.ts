@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { rupeesStringToPaise } from '@/lib/format';
+import { formatPaise, rupeesStringToPaise } from '@/lib/format';
 import { ACCOUNT_SUB_TYPES, ACCOUNT_TYPES, VOUCHER_TYPES } from '@/types/enums';
 import type { AccountView, VoucherView } from '@/types/models';
 
@@ -135,10 +135,12 @@ export const voucherSchema = z
     lines: z.array(voucherLineSchema).min(2, 'A voucher needs at least two lines.'),
   })
   .superRefine((value, ctx) => {
+    let hasLineError = false;
     value.lines.forEach((line, index) => {
       const debit = rupeesStringToPaise(line.debit) ?? 0;
       const credit = rupeesStringToPaise(line.credit) ?? 0;
       if (debit > 0 === credit > 0) {
+        hasLineError = true;
         ctx.addIssue({
           code: 'custom',
           path: ['lines', index, 'debit'],
@@ -148,6 +150,7 @@ export const voucherSchema = z
       const hasSection = line.tdsSection.length > 0;
       const hasRate = line.tdsRatePct.length > 0;
       if (hasSection !== hasRate) {
+        hasLineError = true;
         ctx.addIssue({
           code: 'custom',
           path: ['lines', index, 'tdsSection'],
@@ -155,6 +158,20 @@ export const voucherSchema = z
         });
       }
     });
+    // Block unbalanced vouchers client-side, projecting the duty lines the
+    // engine will append (GST same side, TDS opposite, <=99p auto-rounded)
+    // so GST-inclusive entries are not rejected wrongly.
+    if (!hasLineError) {
+      const projected = projectTotalsWithDuties(value.lines);
+      if (projected.residual !== 0) {
+        const side = projected.residual > 0 ? 'Debits' : 'Credits';
+        ctx.addIssue({
+          code: 'custom',
+          path: ['lines'],
+          message: `${side} exceed the other side by ${formatPaise(Math.abs(projected.residual))} after tax lines. Adjust the entries so the voucher balances.`,
+        });
+      }
+    }
   });
 export type VoucherFormValues = z.infer<typeof voucherSchema>;
 
@@ -238,3 +255,71 @@ export const lineTotals = (
     }),
     { debit: 0, credit: 0 },
   );
+
+// ---------------------------------------------------------------------------
+// Client-side projection of the backend's duty-line materialisation
+// (backend/src/lib/books.ts): GST goes on the SAME side as its base line,
+// TDS on the OPPOSITE side, and a residual of at most 99p is absorbed by
+// the rounding line. Mirrors the engine so the form can block unbalanced
+// vouchers before they ever reach the server.
+// ---------------------------------------------------------------------------
+
+/** Mirrors backend applyRatePct: basis-point maths, half-up to the paisa. */
+const applyRatePct = (basePaise: number, ratePct: number): number => {
+  const rateBp = Math.round(ratePct * 100);
+  return Math.round((basePaise * rateBp) / 10_000);
+};
+
+/** Backend ROUNDING_TOLERANCE_PAISE. */
+const ROUNDING_TOLERANCE_PAISE = 99;
+
+/**
+ * Projects the final Dr/Cr totals after the engine appends GST/TDS duty
+ * lines (and the rounding line, when the residual fits the tolerance).
+ * The base-line account types are not needed: GST always follows its base
+ * line's side and TDS always flips.
+ */
+export const projectTotalsWithDuties = (
+  lines: readonly VoucherLineFormValues[],
+): { debit: number; credit: number; residual: number } => {
+  let debit = 0;
+  let credit = 0;
+  for (const line of lines) {
+    const lineDebit = rupeesStringToPaise(line.debit) ?? 0;
+    const lineCredit = rupeesStringToPaise(line.credit) ?? 0;
+    debit += lineDebit;
+    credit += lineCredit;
+    const isDebit = lineDebit > 0;
+    const base = isDebit ? lineDebit : lineCredit;
+    const gst = pctValue(line.gstRatePct);
+    if (gst !== null && gst > 0 && base > 0) {
+      const amount = applyRatePct(base, gst);
+      if (isDebit) {
+        debit += amount;
+      } else {
+        credit += amount;
+      }
+    }
+    const tds = pctValue(line.tdsRatePct);
+    if (tds !== null && tds > 0 && base > 0) {
+      const amount = applyRatePct(base, tds);
+      if (isDebit) {
+        credit += amount;
+      } else {
+        debit += amount;
+      }
+    }
+  }
+  const residual = debit - credit;
+  if (residual !== 0 && Math.abs(residual) <= ROUNDING_TOLERANCE_PAISE) {
+    // The rounding line closes a residual within the tolerance.
+    return { debit: Math.max(debit, credit), credit: Math.max(debit, credit), residual: 0 };
+  }
+  return { debit, credit, residual };
+};
+
+const pctValue = (raw: string): number | null => {
+  if (raw.length === 0) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+};

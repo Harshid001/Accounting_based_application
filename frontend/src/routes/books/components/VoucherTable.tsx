@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/table';
 import type { TableColumn } from '@/components/ui/table';
 import { formatDate } from '@/lib/date';
@@ -90,6 +91,37 @@ export function VoucherTable({
       cell: (row) => <span className="numeric font-medium">{row.total.display}</span>,
     },
     { id: 'status', header: 'Status', cell: (row) => <VoucherStatusPill status={row.status} /> },
+    {
+      id: 'tallySync',
+      header: 'Tally',
+      hideBelow: 'lg',
+      cell: (row) => {
+        if (row.tallySync === null) {
+          return <span className="text-[var(--fd-text-tertiary)]">—</span>;
+        }
+        const sync = row.tallySync;
+        switch (sync.status) {
+          case 'synced':
+            return sync.voucherRef ? (
+              <span title={`Tally ref ${sync.voucherRef}`}>
+                <Badge tone="done">Synced</Badge>
+              </span>
+            ) : (
+              <Badge tone="done">Synced</Badge>
+            );
+          case 'pending':
+            return <Badge tone="waiting">Pending</Badge>;
+          case 'failed':
+            return (
+              <span title={sync.error ?? undefined}>
+                <Badge tone="danger">Failed</Badge>
+              </span>
+            );
+          default:
+            return <span className="text-[var(--fd-text-tertiary)]">{sync.status}</span>;
+        }
+      },
+    },
   ];
 
   return (

@@ -63,6 +63,8 @@ export const CAPABILITY_KEYS = [
   'books:delete_draft',
   'books:lock',
   'books:export',
+  'books:tally',
+  'desktop:workstation',
 ] as const;
 
 export type Capability = (typeof CAPABILITY_KEYS)[number];

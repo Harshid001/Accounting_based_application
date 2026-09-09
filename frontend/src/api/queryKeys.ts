@@ -137,6 +137,7 @@ export const queryKeys = {
     ledger: (params?: QueryParams) => ['books', 'ledger', scoped(params)] as const,
     trialBalance: (params?: QueryParams) => ['books', 'trial-balance', scoped(params)] as const,
     periods: (clientId: string) => ['books', 'periods', clientId] as const,
+    tally: (clientId: string) => ['books', 'tally', clientId] as const,
   },
 } as const;
 

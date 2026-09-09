@@ -52,6 +52,11 @@ export default tseslint.config(
     files: ['src/config/env.ts', 'tests/**/*.ts', 'scripts/**/*.ts'],
     rules: { 'no-restricted-syntax': 'off' },
   },
+
+  {
+    files: ['scripts/**/*.ts'],
+    rules: { 'no-console': 'off' },
+  },
   {
     files: ['tests/**/*.ts'],
     rules: {

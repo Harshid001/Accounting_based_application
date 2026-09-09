@@ -20,7 +20,9 @@ describe('capability list', () => {
     expect(CAPABILITY_KEYS).toContain('portal:write');
     expect(CAPABILITY_KEYS).toContain('books:read');
     expect(CAPABILITY_KEYS).toContain('books:lock');
-    expect(CAPABILITY_KEYS).toHaveLength(62);
+    expect(CAPABILITY_KEYS).toContain('books:tally');
+    expect(CAPABILITY_KEYS).toContain('desktop:workstation');
+    expect(CAPABILITY_KEYS).toHaveLength(64);
   });
 
   it('recognises a real capability and rejects an invented one', () => {

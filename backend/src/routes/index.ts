@@ -25,6 +25,7 @@ import { storageRouter } from './storage.routes.js';
 import { myWorkRouter, taskCommentRouter, taskRouter } from './task.routes.js';
 import { automationRouter } from './automation.routes.js';
 import { booksRouter } from './books.routes.js';
+import { booksTallyRouter, desktopRouter } from './desktop.routes.js';
 
 export const apiRouter: Router = Router();
 
@@ -51,6 +52,8 @@ apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/portal', portalRouter);
 apiRouter.use('/automation', automationRouter);
 apiRouter.use('/books', booksRouter);
+apiRouter.use('/books/tally', booksTallyRouter);
+apiRouter.use('/desktop', desktopRouter);
 apiRouter.use('/reports', reportRouter);
 apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/audit', auditRouter);

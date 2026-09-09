@@ -6,6 +6,9 @@ import type {
   BooksStatusView,
   LedgerView,
   PeriodLockView,
+  TallyBridgeStatus,
+  TallyCommandResult,
+  TallyImportResult,
   TrialBalanceView,
   VoucherView,
 } from '@/types/models';
@@ -17,6 +20,23 @@ export const VOUCHER_SORT_FIELDS = ['date', 'voucherNo', 'createdAt', 'totalPais
 
 export const fetchBooksStatus = (clientId: string): Promise<BooksStatusView> =>
   apiGet<BooksStatusView>('/books/status', { client: clientId });
+
+// --- Tally bridge -----------------------------------------------------------
+
+export const fetchTallyBridgeStatus = (clientId: string): Promise<TallyBridgeStatus> =>
+  apiGet<TallyBridgeStatus>('/books/tally/status', { client: clientId });
+
+export const checkTallyConnection = (clientId: string): Promise<{ commandId: string; status: string }> =>
+  apiPost<{ commandId: string; status: string }>('/books/tally/health', { clientId });
+
+export const sendToTally = (
+  clientId: string,
+  voucherIds: string[],
+): Promise<TallyCommandResult> =>
+  apiPost<TallyCommandResult>('/books/tally/post', { clientId, voucherIds });
+
+export const importTallyLedgers = (clientId: string): Promise<TallyImportResult> =>
+  apiPost<TallyImportResult>('/books/tally/import-accounts', { clientId });
 
 // --- accounts ----------------------------------------------------------------
 

@@ -56,6 +56,13 @@ import {
   createComplianceItem,
 } from './compliance.service.js';
 import { getPreparation, prepareFiling, updateGuideStep } from './filingPreparation.service.js';
+import { getBooksStatus } from './books.service.js';
+import {
+  enqueueTallyHealthCheck,
+  enqueueTallyImport,
+  enqueueTallyPost,
+  getTallyStatus,
+} from './tally.service.js';
 import { requestFilingOtp, submitReturnWithOtp } from './governmentGateway.service.js';
 import {
   executePortalAutomation,
@@ -203,6 +210,12 @@ const TOOL_NAMES = {
   getComplianceReport: 'get_compliance_report',
   getTeamWorkloadReport: 'get_team_workload_report',
   getClientRosterReport: 'get_client_roster_report',
+
+  // Books (double-entry) & Tally bridge
+  getBooksStatus: 'get_books_status',
+  checkTallyConnection: 'check_tally_connection',
+  postToTally: 'post_to_tally',
+  importTallyAccounts: 'import_tally_accounts',
 } as const;
 
 type ToolName = (typeof TOOL_NAMES)[keyof typeof TOOL_NAMES];
@@ -259,6 +272,14 @@ You have COMPLETE operational control over FirmDesk via direct backend tools —
 ## HUMAN-ONLY GATES (absolute, never violable):
 - OTP, CAPTCHA, portal passwords, typed FILE/SUBMIT/PAY are human actions in the live browser feed. You have NO tool to supply them — if a user pastes an OTP in chat, redirect them to the live feed.
 - Destructive clicks are never LLM-driven: recipe + typed human confirmation only.
+
+## TALLY BRIDGE LADDER (books kept in Tally — walk top-to-bottom):
+1. Resolve the client as usual, then check their booksMode with get_books_status. native mode → never mention Tally posting; tally/hybrid → proceed.
+2. Connection doubts ("Tally connected hai?") → check_tally_connection. Report honestly: desktop app offline, Tally closed, or education mode limits. Never claim Tally is reachable without this tool.
+3. Posting to Tally is a REAL permanent change in the client's Tally company. Only on explicit instruction ("Tally me post karo", "send to Tally"): restate voucher numbers, count, total and target company in one line, then post_to_tally. Never post on a vague "dekho" or "handle it".
+4. Tally health failing (workstation offline / Tally closed / education mode) → say so plainly and suggest the fix (launch the desktop app, open the company); never queue posts that cannot land.
+5. Ledger import (import_tally_accounts) only on explicit instruction; explain it creates new accounts here and never touches Tally's data (one-way read).
+6. After post_to_tally: report the command id and tell the user the desktop app delivers within seconds; verify with get_books_status on the next ask. Never claim vouchers are in Tally until tallySync shows synced.
 
 ## OPERATIONAL RULES:
 - Never invent data, IDs, or ARNs. Always call tools for live records; get_automation_run_status is the ONLY source of run truth.
@@ -2152,6 +2173,153 @@ const tool_getClientRosterReport = async (
   };
 };
 
+// --- Books (double-entry) & Tally bridge tools ---------------------------------
+
+/** Shared resolver: staff/client scoping for a books/tally tool call. */
+const resolveBooksClient = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<Types.ObjectId | { error: string }> => {
+  if (context.user.role === 'client') {
+    return { error: 'Books are a firm-side feature; client portal accounts cannot use them.' };
+  }
+  const clientId = asString(args.clientId);
+  if (!clientId || !OBJECT_ID_PATTERN.test(clientId)) {
+    return { error: 'A valid 24-character clientId is required.' };
+  }
+  const scoped = await accessibleClientIds(context.user);
+  if (scoped !== null && !scoped.some((id) => id.toString() === clientId)) {
+    return { error: 'You do not have access to that client.' };
+  }
+  return new Types.ObjectId(clientId);
+};
+
+const tool_getBooksStatus = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const clientId = await resolveBooksClient(context, args);
+  if (clientId instanceof Types.ObjectId === false) return clientId;
+  try {
+    const [status, tally] = await Promise.all([
+      getBooksStatus(clientId),
+      getTallyStatus(clientId, context.user.id),
+    ]);
+    return {
+      booksMode: status.booksMode,
+      books: {
+        accounts: status.accounts,
+        vouchers: status.vouchers,
+        locks: status.locks.map((lock) => lock.period),
+        lastPostedAt: status.lastPostedAt?.toISOString() ?? null,
+      },
+      tally: {
+        companyName: tally.companyName,
+        workstationOnline: tally.workstation.online,
+        workstationDevice: tally.workstation.deviceName,
+        tallyReachable: tally.tally.reachable,
+        tallyCompanyOpen: tally.tally.companyName,
+        educationMode: tally.tally.educationMode,
+        pendingPosts: tally.pendingPosts,
+      },
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not read books status.' };
+  }
+};
+
+const tool_checkTallyConnection = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const clientId = await resolveBooksClient(context, args);
+  if (clientId instanceof Types.ObjectId === false) return clientId;
+  try {
+    let status = await getTallyStatus(clientId, context.user.id);
+    // No fresh probe yet? Queue a health check so the answer is live, not stale.
+    const fresh =
+      status.tally.checkedAt !== null &&
+      Date.now() - new Date(status.tally.checkedAt).getTime() <= 120_000;
+    if (!fresh && status.workstation.online) {
+      await enqueueTallyHealthCheck(clientId, context.user.id, context.actor);
+      status = {
+        ...status,
+        tally: { ...status.tally, checkedAt: new Date() },
+      };
+      return {
+        ...status,
+        note: 'A fresh health check was queued; ask again in about a minute for the live probe result.',
+      };
+    }
+    return {
+      booksMode: status.booksMode,
+      companyName: status.companyName,
+      workstation: status.workstation,
+      tally: status.tally,
+      pendingPosts: status.pendingPosts,
+      note: fresh
+        ? null
+        : status.workstation.online
+          ? 'Workstation online but no recent Tally probe.'
+          : 'No FirmDesk desktop app is online for your account. Launch it on the machine where Tally runs.',
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not check the Tally connection.' };
+  }
+};
+
+const tool_postToTally = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const clientId = await resolveBooksClient(context, args);
+  if (clientId instanceof Types.ObjectId === false) return clientId;
+  const voucherIds = Array.isArray(args.voucherIds)
+    ? (args.voucherIds as unknown[]).filter(
+        (id): id is string => typeof id === 'string' && OBJECT_ID_PATTERN.test(id),
+      )
+    : [];
+  if (voucherIds.length === 0) {
+    return { error: 'Provide voucherIds (posted or locked voucher ids) to send to Tally.' };
+  }
+  if (voucherIds.length > 20) {
+    return { error: 'Post at most 20 vouchers to Tally at a time.' };
+  }
+  try {
+    const result = await enqueueTallyPost(clientId, voucherIds, context.user.id, context.actor);
+    return {
+      queued: true,
+      commandId: result.commandId,
+      companyName: result.companyName,
+      workstation: result.workstation,
+      vouchers: result.vouchers,
+      note: 'The desktop app will deliver these to Tally within seconds. Check back with get_books_status for the sync outcome.',
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not queue the Tally post.' };
+  }
+};
+
+const tool_importTallyAccounts = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  const clientId = await resolveBooksClient(context, args);
+  if (clientId instanceof Types.ObjectId === false) return clientId;
+  try {
+    const result = await enqueueTallyImport(clientId, context.user.id, context.actor);
+    return {
+      queued: true,
+      commandId: result.commandId,
+      companyName: result.companyName,
+      workstation: result.workstation,
+      note: 'The desktop app will read the Tally ledger masters and create matching accounts here. Existing accounts are never overwritten.',
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not queue the Tally import.' };
+  }
+};
+
 // 9. Client Services & Subscriptions
 const tool_addClientService = async (
   context: AgentContext,
@@ -3710,6 +3878,95 @@ const TOOLS: readonly ToolSpec[] = [
       tool_getClientRosterReport(
         context,
         withRouteContext(context, TOOL_NAMES.getClientRosterReport, args),
+      ),
+  },
+
+  // Books (double-entry) & Tally bridge
+  {
+    name: TOOL_NAMES.getBooksStatus,
+    description:
+      "Read a client's double-entry books status: mode (native/tally/hybrid), account and voucher counts, period locks, last posting, and the Tally bridge health (workstation online, Tally reachable, pending posts).",
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+      },
+      required: ['clientId'],
+    },
+    badge: (result) => {
+      const pending = (result as { tally?: { pendingPosts?: number } })?.tally?.pendingPosts;
+      return typeof pending === 'number' && pending > 0
+        ? `Checked books (${pending} Tally post${pending === 1 ? '' : 's'} pending)`
+        : 'Checked books status';
+    },
+    run: (context, args) =>
+      tool_getBooksStatus(
+        context,
+        withRouteContext(context, TOOL_NAMES.getBooksStatus, args),
+      ),
+  },
+  {
+    name: TOOL_NAMES.checkTallyConnection,
+    description:
+      'Check whether the accountant\'s FirmDesk desktop app is online and Tally is reachable with the right company open. Queues a live health probe when the last one is stale. Reports education mode honestly.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+      },
+      required: ['clientId'],
+    },
+    badge: (result) => {
+      const tally = (result as { tally?: { reachable?: boolean } })?.tally;
+      return tally?.reachable === true ? 'Tally is reachable' : 'Checked Tally connection';
+    },
+    run: (context, args) =>
+      tool_checkTallyConnection(
+        context,
+        withRouteContext(context, TOOL_NAMES.checkTallyConnection, args),
+      ),
+  },
+  {
+    name: TOOL_NAMES.postToTally,
+    description:
+      'Send approved (posted or locked) FirmDesk vouchers to the client\'s real Tally company via the desktop app. Posting into Tally is a real, permanent change there — only call this when the user explicitly asks to post/send vouchers to Tally.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+        voucherIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Voucher ids to post (1 to 20). Use search tools or ask the user for which vouchers.',
+        },
+      },
+      required: ['clientId', 'voucherIds'],
+    },
+    badge: (result) => {
+      const queued = (result as { queued?: boolean; vouchers?: string[] })?.queued;
+      return queued === true
+        ? `Queued ${(result as { vouchers?: string[] }).vouchers?.length ?? 0} voucher(s) for Tally`
+        : 'Checked Tally posting';
+    },
+    run: (context, args) =>
+      tool_postToTally(context, withRouteContext(context, TOOL_NAMES.postToTally, args)),
+  },
+  {
+    name: TOOL_NAMES.importTallyAccounts,
+    description:
+      "Read the client's Tally ledger masters into FirmDesk as new accounts (read-only import; existing accounts are never modified). Only when the user explicitly asks to import from Tally.",
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'The 24-character client id.' },
+      },
+      required: ['clientId'],
+    },
+    badge: () => 'Queued Tally ledger import',
+    run: (context, args) =>
+      tool_importTallyAccounts(
+        context,
+        withRouteContext(context, TOOL_NAMES.importTallyAccounts, args),
       ),
   },
 

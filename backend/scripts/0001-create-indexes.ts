@@ -20,6 +20,8 @@ import '../src/models/ledgerAccount.model.js';
 import '../src/models/journalVoucher.model.js';
 import '../src/models/periodLock.model.js';
 import '../src/models/voucherSequence.model.js';
+import '../src/models/workstation.model.js';
+import '../src/models/desktopCommand.model.js';
 
 const run = async (): Promise<void> => {
   await connectDatabase();

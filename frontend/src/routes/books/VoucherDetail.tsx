@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { CheckCircle2, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { deleteVoucher, getVoucher, postVoucher, reverseVoucher } from '@/api/books.api';
+import { deleteVoucher, getVoucher, postVoucher, reverseVoucher, sendToTally } from '@/api/books.api';
 import { queryKeys } from '@/api/queryKeys';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
@@ -139,6 +139,24 @@ export function VoucherDetail() {
     },
   });
 
+  const [tallyOpen, setTallyOpen] = useState(false);
+  const canSendToTally = clientId !== null && allows('books:tally');
+
+  const tally = useMutation({
+    mutationFn: () => sendToTally(clientId ?? '', [voucherId]),
+    onSuccess: (result) => {
+      setTallyOpen(false);
+      invalidate();
+      success(
+        'Sent to Tally',
+        `Queued for ${result.companyName} via ${result.workstation}. The desktop app delivers it within seconds.`,
+      );
+    },
+    onError: (error: unknown) => {
+      errorToast(error, 'The voucher was not sent to Tally');
+    },
+  });
+
   const [reverseOpen, setReverseOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [reverseDate, setReverseDate] = useState<string | null>(null);
@@ -269,6 +287,19 @@ export function VoucherDetail() {
                 Reverse
               </Button>
             ) : null}
+            {canSendToTally && !isDraft && voucher.tallySync?.status !== 'synced' ? (
+              <Button
+                variant="secondary"
+                iconLeft={<Send size={14} aria-hidden="true" />}
+                loading={tally.isPending}
+                loadingLabel="Queuing"
+                onClick={() => {
+                  setTallyOpen(true);
+                }}
+              >
+                Send to Tally
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -387,6 +418,18 @@ export function VoucherDetail() {
           onConfirm={confirm.confirm}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={tallyOpen}
+        onOpenChange={setTallyOpen}
+        title="Send this voucher to Tally?"
+        body={`This posts a real voucher in the client's Tally company — a permanent change there. ${VOUCHER_TYPE_LABELS[voucher.type]} ${voucher.voucherNo ?? ''} dated ${formatDate(voucher.date)} for ${voucher.total.display}. The desktop app delivers it within seconds.`}
+        confirmLabel="Send to Tally"
+        pending={tally.isPending}
+        onConfirm={() => {
+          tally.mutate();
+        }}
+      />
 
       <Dialog
         open={reverseOpen}

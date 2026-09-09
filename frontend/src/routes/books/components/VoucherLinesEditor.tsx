@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/cn';
 import { formatPaise } from '@/lib/format';
 import { AccountPicker } from '@/routes/books/components/AccountPicker';
-import { emptyLine, lineTotals } from '@/schemas/books.schema';
+import { emptyLine, lineTotals, projectTotalsWithDuties } from '@/schemas/books.schema';
 import type { VoucherFormValues } from '@/schemas/books.schema';
 
 export interface VoucherLinesEditorProps {
@@ -37,6 +37,7 @@ export function VoucherLinesEditor({
   const lines = useWatch({ control, name: 'lines' });
   const totals = lineTotals(lines);
   const diff = totals.debit - totals.credit;
+  const projected = projectTotalsWithDuties(lines);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const linesError = errors.lines?.message ?? errors.lines?.root?.message;
@@ -287,13 +288,17 @@ export function VoucherLinesEditor({
         <p
           className={cn(
             'numeric text-sm',
-            diff === 0 ? 'text-[var(--fd-text-secondary)]' : 'text-[var(--fd-status-danger)]',
+            projected.residual === 0 ? 'text-[var(--fd-text-secondary)]' : 'text-[var(--fd-status-danger)]',
           )}
           aria-live="polite"
         >
-          {diff === 0
-            ? 'Base lines balance. GST/TDS lines will be added on save.'
-            : `${diff > 0 ? 'Debits' : 'Credits'} lead by ${formatPaise(Math.abs(diff))} — tax lines may close this gap.`}
+          {projected.residual === 0
+            ? diff === 0
+              ? 'Voucher balances.'
+              : 'Voucher balances once GST/TDS lines are added on save.'
+            : `${projected.residual > 0 ? 'Debits' : 'Credits'} exceed the other side by ${formatPaise(
+                Math.abs(projected.residual),
+              )} after tax lines — fix this before saving.`}
         </p>
       </div>
       {linesError ? <p className="text-xs text-[var(--fd-status-danger)]">{linesError}</p> : null}

@@ -25,6 +25,7 @@ import {
   ChooseClientState,
   useBooksClient,
 } from '@/routes/books/components/BooksShell';
+import { TallyBridgeCard } from '@/routes/books/components/TallyBridgeCard';
 
 export function BooksOverview() {
   usePageTitle('Books');
@@ -224,6 +225,10 @@ export function BooksOverview() {
               ) : null}
             </Card>
           </div>
+
+          {status && status.booksMode !== 'native' ? (
+            <TallyBridgeCard clientId={clientId} />
+          ) : null}
         </div>
       )}
 

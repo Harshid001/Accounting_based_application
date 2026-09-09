@@ -720,6 +720,43 @@ export interface TallyConfig {
   workstationHint?: string | null;
 }
 
+export interface TallyBridgeStatus {
+  booksMode: BooksMode;
+  companyName: string | null;
+  workstation: {
+    online: boolean;
+    deviceName: string | null;
+    lastSeenAt: string | null;
+  };
+  tally: {
+    reachable: boolean;
+    companyName: string | null;
+    educationMode: boolean;
+    checkedAt: string | null;
+  };
+  pendingPosts: number;
+  recentCommands: Array<{
+    id: string;
+    type: string;
+    status: string;
+    createdAt: string;
+    error: string | null;
+  }>;
+}
+
+export interface TallyCommandResult {
+  commandId: string;
+  companyName: string;
+  workstation: string;
+  vouchers?: string[];
+}
+
+export interface TallyImportResult {
+  commandId: string;
+  companyName: string;
+  workstation: string;
+}
+
 export interface MoneyView {
   paise: number;
   display: string;

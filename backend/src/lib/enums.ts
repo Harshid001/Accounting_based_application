@@ -143,6 +143,8 @@ export const AUDIT_ACTIONS = [
   'post',
   'reverse',
   'lock_period',
+  'tally_sync_enqueue',
+  'tally_sync_result',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -164,6 +166,8 @@ export const AUDIT_ENTITY_KINDS = [
   'account',
   'journalVoucher',
   'periodLock',
+  'workstation',
+  'desktopCommand',
 ] as const;
 export type AuditEntityKind = (typeof AUDIT_ENTITY_KINDS)[number];
 
@@ -227,6 +231,25 @@ export type VoucherSource = (typeof VOUCHER_SOURCES)[number];
 
 export const TALLY_SYNC_STATUSES = ['pending', 'synced', 'failed'] as const;
 export type TallySyncStatus = (typeof TALLY_SYNC_STATUSES)[number];
+
+// ---------------------------------------------------------------------------
+// Desktop coordination (workstation registry + command queue)
+// ---------------------------------------------------------------------------
+
+export const DESKTOP_COMMAND_TYPES = ['tally_post', 'tally_import', 'tally_health'] as const;
+export type DesktopCommandType = (typeof DESKTOP_COMMAND_TYPES)[number];
+
+export const DESKTOP_COMMAND_STATUSES = [
+  'queued',
+  'dispatched',
+  'succeeded',
+  'failed',
+  'abandoned',
+] as const;
+export type DesktopCommandStatus = (typeof DESKTOP_COMMAND_STATUSES)[number];
+
+/** Heartbeats older than this window mark the workstation offline. */
+export const WORKSTATION_FRESHNESS_MS = 120_000;
 
 export const PERIOD_LOCK_KINDS = ['monthly', 'fy'] as const;
 export type PeriodLockKind = (typeof PERIOD_LOCK_KINDS)[number];
