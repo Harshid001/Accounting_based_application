@@ -11,6 +11,7 @@ import { chromium } from 'playwright';
 import type { Browser, BrowserContext, Page } from 'playwright';
 import type { Types } from 'mongoose';
 
+import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 import { AutomationRun } from '../../models/automationRun.model.js';
 import { HandoffBroker } from './handoffBroker.js';
@@ -44,8 +45,7 @@ export class AutomationWorker extends EventEmitter {
 
   constructor(options: AutomationWorkerOptions = {}) {
     super();
-    const envHeadless = process.env.AUTOMATION_HEADLESS !== 'false';
-    this.headless = options.headless ?? envHeadless;
+    this.headless = options.headless ?? env.AUTOMATION_HEADLESS;
   }
 
   private async getBrowser(): Promise<Browser> {

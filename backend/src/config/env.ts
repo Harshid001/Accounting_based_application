@@ -72,6 +72,7 @@ const schema = z.object({
   SCHEDULER_ENABLED: booleanish.default(false),
   SCHEDULER_TIMEZONE: z.string().min(1).default('Asia/Kolkata'),
   COMPLIANCE_HORIZON_DAYS: z.coerce.number().int().min(1).max(1095).default(120),
+  AUTOMATION_HEADLESS: booleanish.default(true),
 
   BOOTSTRAP_ADMIN_EMAIL: z.union([z.email(), z.literal('')]).optional(),
   BOOTSTRAP_ADMIN_NAME: z.string().optional(),
