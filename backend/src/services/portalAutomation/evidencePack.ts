@@ -7,8 +7,8 @@
 // ---------------------------------------------------------------------------
 
 import type { Readable } from 'node:stream';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import archiver = require('archiver');
+
+import { ZipArchive } from 'archiver';
 
 import { logger } from '../../config/logger.js';
 import { AutomationRun } from '../../models/automationRun.model.js';
@@ -85,20 +85,14 @@ export const buildEvidencePack = async (
     content: JSON.stringify(handoffLog, null, 2),
   });
 
-  // Build zip using archiver
-  /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
-  const archive = (archiver as any)('zip', { zlib: { level: 6 } });
+  // Build zip using archiver v8 (ESM named export, class-based API)
+  const archive = new ZipArchive({ zlib: { level: 6 } });
 
   for (const entry of entries) {
-    if (typeof entry.content === 'string') {
-      archive.append(entry.content, { name: entry.filename });
-    } else {
-      archive.append(entry.content, { name: entry.filename });
-    }
+    archive.append(entry.content, { name: entry.filename });
   }
 
   void archive.finalize();
-  /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
 
   const sanitizedForm = run.form.replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `evidence_${sanitizedForm}_${run._id.toString().slice(-8)}.zip`;
