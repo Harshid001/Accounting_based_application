@@ -107,6 +107,9 @@ const buildAuth = () =>
     basePath: '/api/auth',
     secret: env.BETTER_AUTH_SECRET,
     database: mongodbAdapter(getDb(), { transaction: false }),
+    account: {
+      skipStateCookieCheck: true,
+    },
     trustedOrigins: [...new Set([...env.CORS_ORIGINS, env.APP_BASE_URL, env.BETTER_AUTH_URL])],
     rateLimit: { enabled: false },
     emailAndPassword: {
