@@ -3,11 +3,15 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['firmdesk-desktop-v*']
   pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: write
 
 jobs:
   backend:
@@ -113,10 +117,13 @@ jobs:
           name: firmdesk-portable
           path: frontend/src-tauri/target/release/firmdesk.exe
           if-no-files-found: warn
-      # Signed release with updater manifest, only on version tags.
+      # Signed release with updater manifest, only on version tags and
+      # only on the canonical repo (the mirror push remote must not
+      # produce a second, divergent release; the updater endpoint and
+      # download URLs point at Harshid001/Accounting_based_website).
       - name: tauri release (tag)
         id: tauri_release
-        if: startsWith(github.ref, 'refs/tags/firmdesk-desktop-v')
+        if: startsWith(github.ref, 'refs/tags/firmdesk-desktop-v') && github.repository == 'Harshid001/Accounting_based_website'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -140,13 +147,13 @@ jobs:
       # custom-protocol binary tauri build already produced, attached to
       # the same draft release as an extra asset.
       - name: portable exe release asset (tag)
-        if: startsWith(github.ref, 'refs/tags/firmdesk-desktop-v')
+        if: startsWith(github.ref, 'refs/tags/firmdesk-desktop-v') && github.repository == 'Harshid001/Accounting_based_website'
         shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $version = "${{ steps.tauri_release.outputs.appVersion }}"
           $tag = "firmdesk-desktop-v$version"
           $portable = "FirmDesk-$version-portable-x64.exe"
           Copy-Item "src-tauri/target/release/firmdesk.exe" $portable
-          gh release upload $tag $portable --clobber
+          gh release upload $tag $portable --repo $env:GITHUB_REPOSITORY --clobber

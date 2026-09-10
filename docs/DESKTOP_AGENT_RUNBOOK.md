@@ -93,34 +93,32 @@ No wildcard URL scopes exist at the webview layer; Tally's port is
 reachable only through the Rust relay and is never proxied to the
 network.
 
-## Updater key ceremony (first signed release)
+## Updater key ceremony (DONE — 2026-09-10)
 
-1. Generate a keypair once (never repeat — new keys orphan old installs):
-   `npx @tauri-apps/cli signer generate -w ~/.tauri/firmdesk.key`
-2. Store the **private key password** and the private key in GitHub
-   encrypted secrets: `TAURI_SIGNING_PRIVATE_KEY`,
-   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the `desktop-build` CI job
-   already wires them).
-3. Paste the **public key** into `plugins.updater.pubkey` in
-   `src-tauri/tauri.conf.json` and add the signed manifest endpoint
-   (`plugins.updater.endpoints` there; `VITE_DESKTOP_UPDATE_URL` /
-   `DESKTOP_UPDATE_URL` feed the download-link fallback). Tauri v2 has
-   no `updater.active` flag — the plugin is enabled by adding
-   `pubkey` + `endpoints`; with `pubkey` empty the in-app updater
-   checks fail open (no-op) but builds bundle fine.
-4. CI (tauri-action) then produces NSIS installers plus the signed
-   `latest.json` update manifest attached to each release. Keys never
-   appear in the repo, logs, or the app bundle.
+The keypair is generated and wired:
 
-**Until step 3 happens, release builds will FAIL at the bundling
-step:** `bundle.createUpdaterArtifacts: true` requires
-`TAURI_SIGNING_PRIVATE_KEY` when signing updater artifacts. The CI
-`desktop-build` job only runs the full bundle on version tags — do the
-key ceremony (steps 1–3) before tagging the first
-`firmdesk-desktop-v*` release. Main pushes only compile-check Rust
-(`cargo build --release --features custom-protocol`), which needs no
-signing env. In the meantime version gating still works through the
-backend manifest + 426 wall.
+1. ✅ Keypair generated once; the private key lives in the operator's
+   `~/.tauri/firmdesk.key` (never in the repo) — do NOT regenerate it,
+   new keys orphan old installs.
+2. ✅ `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+   are set as GitHub encrypted secrets on both
+   `Harshid001/Accounting_based_website` and
+   `Harshid001/Accounting_based_application`.
+3. ✅ The public key is in `plugins.updater.pubkey` in
+   `src-tauri/tauri.conf.json`; `plugins.updater.endpoints` points at the
+   GitHub Releases `latest.json`
+   (`https://github.com/Harshid001/Accounting_based_website/releases/latest/download/latest.json`).
+   The release job is gated to the `Accounting_based_website` repo so the
+   mirror push remote never produces a divergent release.
+4. Tagging `firmdesk-desktop-v<version>` makes CI (tauri-action) produce
+   the NSIS installer, the signed `latest.json` updater manifest, and the
+   `FirmDesk-<version>-portable-x64.exe` portable asset attached to a
+   draft GitHub release. Keys never appear in the repo, logs, or bundle.
+
+**Rotating the key** (only if the private key leaks): generate a new
+keypair, update `pubkey` + both GitHub secrets, ship one release with the
+new key — installs on the old key must manually update once (the runbook
+download page link always carries the latest installer).
 
 ## Manual smoke checklist (per release, spec §9.4)
 

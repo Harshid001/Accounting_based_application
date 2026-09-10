@@ -47,8 +47,10 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
-      "endpoints": []
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU1RTE4QTE3NTE0RUM5RTIKUldUaXlVNVJGNHJoNVhEc2lHdmZINzJIYWhGS1ZycmFjbnJCSllaMWJCaTJTOEZubWp4NUpFbisK",
+      "endpoints": [
+        "https://github.com/Harshid001/Accounting_based_website/releases/latest/download/latest.json"
+      ]
     }
   }
 }
