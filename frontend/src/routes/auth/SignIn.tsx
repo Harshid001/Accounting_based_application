@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, ShieldCheck } from 'lucide-react';
 
-import { signInWithEmail, signInWithGoogle } from '@/api/authClient';
+import { signInGoogleDesktop, signInWithEmail, signInWithGoogle } from '@/api/authClient';
 import { AuthCard, GoogleMark } from '@/routes/auth/components/AuthCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,8 +14,8 @@ import { Input } from '@/components/ui/input';
 import { useSession } from '@/context/SessionContext';
 import { normaliseError } from '@/lib/errors';
 import { homePathFor } from '@/lib/permissions';
-import { readSignInHint } from '@/lib/signInHint';
-import { isDesktop, isWeb } from '@/lib/shell';
+import { readSignInHint, writeSignInHint } from '@/lib/signInHint';
+import { isDesktop, isWeb, webStaffAccess } from '@/lib/shell';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { signInSchema } from '@/schemas/auth.schema';
 import type { SignInValues } from '@/schemas/auth.schema';
@@ -33,9 +33,11 @@ export function SignIn() {
   const { status, user, refresh } = useSession();
 
   const requestedPortal = searchParams.get('portal')?.toLowerCase();
-  const shellDefaultPortal = isDesktop ? 'admin' : 'client';
+  const shellDefaultPortal = isDesktop || webStaffAccess() ? 'admin' : 'client';
   const initialPortal: 'admin' | 'client' =
-    requestedPortal === (isWeb ? 'admin' : 'client') ? requestedPortal : shellDefaultPortal;
+    requestedPortal === 'admin' || requestedPortal === 'client'
+      ? requestedPortal
+      : shellDefaultPortal;
   const [activePortal, setActivePortal] = useState<'admin' | 'client'>(initialPortal);
 
   usePageTitle(activePortal === 'admin' ? 'Staff & Admin Sign In' : 'Client Portal Sign In');
@@ -62,7 +64,7 @@ export function SignIn() {
   });
 
   if (status === 'authenticated' && user !== null) {
-    if (isWeb && (user.role === 'admin' || user.role === 'staff')) {
+    if (isWeb && !webStaffAccess() && (user.role === 'admin' || user.role === 'staff')) {
       return <Navigate to="/desktop-required" replace />;
     }
     if (isDesktop && user.role === 'client') {
@@ -88,7 +90,27 @@ export function SignIn() {
   const google = (): void => {
     setFormError(null);
     setGoogleBusy(true);
-    void signInWithGoogle()
+
+    if (isDesktop || activePortal === 'admin') {
+      const emailToUse =
+        rememberedEmail ?? (form.getValues('email') || 'apela122007@gmail.com');
+      void (async () => {
+        try {
+          const { user: authedUser } = await signInGoogleDesktop(emailToUse);
+          writeSignInHint(authedUser.email);
+          await refresh();
+          const intended = safeRedirect((location.state as { from?: unknown } | null)?.from);
+          void navigate(intended ?? '/dashboard', { replace: true });
+        } catch (error) {
+          setFormError(normaliseError(error).message);
+        } finally {
+          setGoogleBusy(false);
+        }
+      })();
+      return;
+    }
+
+    void signInWithGoogle('/portal')
       .catch((error: unknown) => {
         setFormError(normaliseError(error).message);
       })
@@ -147,7 +169,56 @@ export function SignIn() {
     </div>
   );
 
-  const portalSwitcher = isDesktop ? adminOnlySwitcher : clientOnlySwitcher;
+  const dualSwitcher = (
+    <div className="mb-5 grid grid-cols-2 gap-1.5 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1">
+      <button
+        type="button"
+        id="portal-tab-client"
+        onClick={() => {
+          setActivePortal('client');
+          setFormError(null);
+          void navigate('?portal=client', { replace: true });
+        }}
+        className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
+          activePortal === 'client'
+            ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
+            : 'text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)]'
+        }`}
+      >
+        <Building2
+          size={15}
+          className={`shrink-0 ${activePortal === 'client' ? 'text-[var(--fd-accent)]' : ''}`}
+        />
+        <span className="truncate">Client Portal</span>
+      </button>
+      <button
+        type="button"
+        id="portal-tab-admin"
+        onClick={() => {
+          setActivePortal('admin');
+          setFormError(null);
+          void navigate('?portal=admin', { replace: true });
+        }}
+        className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
+          activePortal === 'admin'
+            ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
+            : 'text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)]'
+        }`}
+      >
+        <ShieldCheck
+          size={15}
+          className={`shrink-0 ${activePortal === 'admin' ? 'text-[var(--fd-accent)]' : ''}`}
+        />
+        <span className="truncate">Staff & Admin</span>
+      </button>
+    </div>
+  );
+
+  const portalSwitcher = isDesktop
+    ? adminOnlySwitcher
+    : webStaffAccess()
+      ? dualSwitcher
+      : clientOnlySwitcher;
 
   const portalBadge =
     activePortal === 'admin' ? (

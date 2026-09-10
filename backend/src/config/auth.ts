@@ -109,6 +109,10 @@ const buildAuth = () =>
     database: mongodbAdapter(getDb(), { transaction: false }),
     account: {
       skipStateCookieCheck: true,
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ['google'],
+      },
     },
     trustedOrigins: [...new Set([...env.CORS_ORIGINS, env.APP_BASE_URL, env.BETTER_AUTH_URL])],
     rateLimit: { enabled: false },

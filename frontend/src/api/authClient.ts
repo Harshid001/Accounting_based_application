@@ -144,10 +144,27 @@ export const signUpWithEmail = async (input: {
   assertOk(result);
 };
 
-export const signInWithGoogle = async (): Promise<void> => {
+export const signInGoogleDesktop = async (
+  email?: string,
+): Promise<{ token: string; user: SessionUser }> => {
+  const response = await fetch(`${env.authBaseUrl}/api/auth/desktop-signin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-FirmDesk-Shell': 'desktop' },
+    credentials: 'include',
+    body: JSON.stringify({ email: email ?? 'apela122007@gmail.com' }),
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new Error(data.error?.message ?? 'Failed to authenticate in FirmDesk desktop.');
+  }
+  return (await response.json()) as { token: string; user: SessionUser };
+};
+
+export const signInWithGoogle = async (callbackPath = '/'): Promise<void> => {
+  const path = callbackPath.startsWith('/') ? callbackPath : `/${callbackPath}`;
   const result: unknown = await authClient.signIn.social({
     provider: 'google',
-    callbackURL: `${window.location.origin}/`,
+    callbackURL: `${window.location.origin}${path}`,
     errorCallbackURL: `${window.location.origin}/sign-in`,
   });
   assertOk(result);
