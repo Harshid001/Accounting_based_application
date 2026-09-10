@@ -137,6 +137,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: frontend
+          # package.json has no "tauri" script (build:desktop/desktop:dev
+          # instead), so point the action at the local CLI directly.
+          tauriScript: 'npx tauri'
           tagName: firmdesk-desktop-v__VERSION__
           releaseName: 'FirmDesk Desktop v__VERSION__'
           releaseBody: 'NSIS installer for admin & staff. Run the smoke checklist in docs/DESKTOP_AGENT_RUNBOOK.md before deploying.'
