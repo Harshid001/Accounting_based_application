@@ -30,6 +30,7 @@ const FALLBACK_MESSAGES: Record<NormalisedErrorCode, string> = {
   CONFLICT: 'That change conflicts with something already saved.',
   PAYLOAD_TOO_LARGE: 'That file is larger than the 25 MB limit.',
   UNSUPPORTED_MEDIA_TYPE: 'FirmDesk does not accept that file type.',
+  UPGRADE_REQUIRED: 'This FirmDesk Desktop version is too old. Update the app and sign in again.',
   RATE_LIMITED: 'Too many requests. Wait a moment and try again.',
   INTERNAL: 'Something went wrong on our side. Try again in a moment.',
   NETWORK: 'FirmDesk could not reach the server. Check your connection and try again.',
@@ -77,6 +78,8 @@ const codeForStatus = (status: number): NormalisedErrorCode => {
       return 'PAYLOAD_TOO_LARGE';
     case 415:
       return 'UNSUPPORTED_MEDIA_TYPE';
+    case 426:
+      return 'UPGRADE_REQUIRED';
     case 429:
       return 'RATE_LIMITED';
     default:

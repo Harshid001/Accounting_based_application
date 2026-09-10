@@ -1,7 +1,8 @@
 import { Types } from 'mongoose';
 
+import { env } from '../config/env.js';
 import { WORKSTATION_FRESHNESS_MS } from '../lib/enums.js';
-import { conflict, forbidden, notFound } from '../lib/errors.js';
+import { conflict, forbidden, notFound, upgradeRequired } from '../lib/errors.js';
 import type { PageRequest } from '../lib/pagination.js';
 import { buildPageMeta } from '../lib/pagination.js';
 import { DesktopCommand } from '../models/desktopCommand.model.js';
@@ -35,6 +36,31 @@ export interface WorkstationView {
 const isOnline = (record: { lastSeenAt: Date; revoked: boolean }): boolean =>
   !record.revoked && Date.now() - record.lastSeenAt.getTime() <= WORKSTATION_FRESHNESS_MS;
 
+/** Semver compare without depending on a semver package (a.b.c only). */
+const versionKey = (version: string): number => {
+  const [major = 0, minor = 0, patch = 0] = version
+    .split('.')
+    .map((part) => Number.parseInt(part, 10) || 0)
+    .slice(0, 3);
+  return major * 1_000_000 + minor * 1_000 + patch;
+};
+
+/**
+ * Rule 7 (spec §8): an outdated shell must not run sensitive operations.
+ * Enforced at registration AND at every heartbeat — a shell that skips or
+ * fails registration can never stay online past its next ping. Below
+ * DESKTOP_MIN_SHELL_VERSION the desktop gets a hard 426 upgrade-required
+ * wall and never enters the poll loop.
+ */
+export const assertShellVersionAllowed = (appVersion: string | undefined): void => {
+  if (appVersion === undefined) return;
+  if (versionKey(appVersion) < versionKey(env.DESKTOP_MIN_SHELL_VERSION)) {
+    throw upgradeRequired(
+      `This FirmDesk Desktop version (${appVersion}) is too old. Update to ${env.DESKTOP_LATEST_SHELL_VERSION} or newer and sign in again.`,
+    );
+  }
+};
+
 // ---------------------------------------------------------------------------
 // Registration + heartbeat
 // ---------------------------------------------------------------------------
@@ -44,6 +70,7 @@ export const registerWorkstation = async (
   body: { deviceId: string; deviceName: string; platform?: string; appVersion?: string },
   actor: RequestActor,
 ): Promise<Lean<WorkstationAttributes>> => {
+  assertShellVersionAllowed(body.appVersion);
   const existing = await Workstation.findOne({ user: userId, deviceId: body.deviceId }).exec();
   const now = new Date();
   if (existing) {
@@ -72,7 +99,9 @@ export const registerWorkstation = async (
     action: 'create',
     entityKind: 'workstation',
     entityId: doc._id,
-    summary: `Registered workstation "${body.deviceName}"`,
+    summary: `Registered workstation "${body.deviceName}"${
+      body.appVersion === undefined ? ' (desktop shell)' : ` (desktop shell v${body.appVersion})`
+    }`,
   });
   return doc.toObject();
 };
@@ -81,13 +110,21 @@ export const pingWorkstation = async (
   userId: Types.ObjectId,
   deviceId: string,
   tally?: { reachable: boolean; companyName?: string | null; educationMode?: boolean; version?: string | null },
+  appVersion?: string,
 ): Promise<{ online: boolean }> => {
   const record = await Workstation.findOne({ user: userId, deviceId }).exec();
   if (!record) throw notFound('workstation');
   if (record.revoked) {
     throw forbidden('This workstation was revoked. Re-register it from the desktop app after an admin restores access.');
   }
+  // The heartbeat also refreshes the shell version (the agent reports it on
+  // every ping), so a stale shell ages out within one beat even if it
+  // somehow skipped the registration gate.
+  assertShellVersionAllowed(appVersion ?? record.appVersion ?? undefined);
   record.set('lastSeenAt', new Date());
+  if (appVersion !== undefined) {
+    record.set('appVersion', appVersion);
+  }
   if (tally) {
     record.set('tallyReachable', tally.reachable);
     record.set('tallyCompanyName', tally.companyName ?? null);

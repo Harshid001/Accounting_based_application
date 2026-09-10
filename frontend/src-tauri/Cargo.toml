@@ -1,0 +1,30 @@
+[package]
+name = "firmdesk"
+version = "0.1.0"
+description = "FirmDesk desktop app for admin & staff — the Tally bridge workstation."
+authors = ["JV Accounting"]
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-updater = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+keyring = { version = "3", features = ["windows-native"] }
+whoami = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.60", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_RemoteDesktop",
+] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

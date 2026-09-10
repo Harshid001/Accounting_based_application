@@ -79,7 +79,12 @@ export const workstationPing = async (
   input: { body: WorkstationPingBody },
   ctx: RouteContext,
 ): Promise<void> => {
-  const result = await pingWorkstation(ctx.user.id, input.body.deviceId, input.body.tally);
+  const result = await pingWorkstation(
+    ctx.user.id,
+    input.body.deviceId,
+    input.body.tally,
+    input.body.appVersion,
+  );
   sendData(ctx.res, result);
 };
 

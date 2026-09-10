@@ -3,6 +3,7 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import { Button } from '@/components/ui/button';
 
+/** Web-shell only: PWA new-version prompt. Loaded via app/appshell.web. */
 export function UpdatePrompt() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],

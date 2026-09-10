@@ -11,6 +11,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { SessionProvider } from '@/context/SessionContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { SHELL } from '@/lib/shell';
 import { makeQueryClient } from '../helpers/render';
 import { makeMe, permissionsFor, stubFetch } from '../helpers/server';
 import type { StubRoute } from '../helpers/server';
@@ -68,6 +69,14 @@ const renderGuarded = (routes: readonly StubRoute[], entry = '/dashboard') => {
             <Route path="/unlinked" element={<h1>Your firm has been notified</h1>} />
             <Route path="/verify-email" element={<h1>Verify your email</h1>} />
             <Route path="/403" element={<h1>You do not have access to that</h1>} />
+            <Route
+              path="/desktop-required"
+              element={<h1>Staff access is desktop-only</h1>}
+            />
+            <Route
+              path="/web-portal-required"
+              element={<h1>Clients use the web portal</h1>}
+            />
           </Routes>
         </SessionProvider>
       </MemoryRouter>
@@ -116,7 +125,14 @@ describe('a freshly signed-up account', () => {
       '/portal',
     );
 
-    expect(await screen.findByRole('heading', { name: 'Portal' })).toBeInTheDocument();
+    if (SHELL === 'web') {
+      expect(await screen.findByRole('heading', { name: 'Portal' })).toBeInTheDocument();
+    } else {
+      // Desktop shell: the same client is pointed at the web portal.
+      expect(
+        await screen.findByRole('heading', { name: 'Clients use the web portal' }),
+      ).toBeInTheDocument();
+    }
   });
 });
 
@@ -149,10 +165,18 @@ describe('workspace boundaries', () => {
       '/settings/users',
     );
 
-    expect(
-      await screen.findByRole('heading', { name: 'You do not have access to that' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Users' })).not.toBeInTheDocument();
+    if (SHELL === 'web') {
+      // Split-surface rule: staff never reach the workspace from the web at
+      // all — the interstitial fires before role checks inside the shell.
+      expect(
+        await screen.findByRole('heading', { name: 'Staff access is desktop-only' }),
+      ).toBeInTheDocument();
+    } else {
+      expect(
+        await screen.findByRole('heading', { name: 'You do not have access to that' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Users' })).not.toBeInTheDocument();
+    }
   });
 
   it('redirects a client account away from the staff dashboard', async () => {
@@ -171,8 +195,17 @@ describe('workspace boundaries', () => {
       '/dashboard',
     );
 
-    expect(await screen.findByRole('heading', { name: 'Portal' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
+    if (SHELL === 'web') {
+      // Clients bounce to the portal, not the staff interstitial: the
+      // interstitial is the admin/staff redirect target only.
+      expect(await screen.findByRole('heading', { name: 'Portal' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
+    } else {
+      // Desktop shell: clients are pointed at the web portal instead.
+      expect(
+        await screen.findByRole('heading', { name: 'Clients use the web portal' }),
+      ).toBeInTheDocument();
+    }
   });
 
   it('redirects an admin away from the client portal', async () => {
@@ -181,8 +214,15 @@ describe('workspace boundaries', () => {
       '/portal',
     );
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Portal' })).not.toBeInTheDocument();
+    if (SHELL === 'web') {
+      expect(
+        await screen.findByRole('heading', { name: 'Staff access is desktop-only' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Portal' })).not.toBeInTheDocument();
+    } else {
+      expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Portal' })).not.toBeInTheDocument();
+    }
   });
 
   it('lets an admin through to an admin-only screen', async () => {
@@ -191,6 +231,12 @@ describe('workspace boundaries', () => {
       '/settings/users',
     );
 
-    expect(await screen.findByRole('heading', { name: 'Users' })).toBeInTheDocument();
+    if (SHELL === 'web') {
+      expect(
+        await screen.findByRole('heading', { name: 'Staff access is desktop-only' }),
+      ).toBeInTheDocument();
+    } else {
+      expect(await screen.findByRole('heading', { name: 'Users' })).toBeInTheDocument();
+    }
   });
 });

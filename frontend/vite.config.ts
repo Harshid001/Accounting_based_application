@@ -31,59 +31,89 @@ const proxyTarget = (apiBaseUrl: string | undefined): string => {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const appName = env.VITE_APP_NAME ?? 'FirmDesk';
+  const appShell = mode === 'desktop' || env.VITE_APP_SHELL === 'desktop' ? 'desktop' : 'web';
   const target = proxyTarget(env.VITE_API_BASE_URL);
 
   return {
+    // The shell flag is a BUILD constant, never a runtime guess: the same
+    // line decides the alias, the PWA plugin, and `import.meta.env.VITE_APP_SHELL`
+    // inside src/lib/env.ts — so a desktop build cannot boot as a web shell
+    // even when no .env.desktop file is present (e.g. CI).
+    define: {
+      'import.meta.env.VITE_APP_SHELL': JSON.stringify(appShell),
+    },
     plugins: [
       react(),
       tailwindcss(),
-      VitePWA({
-        registerType: 'prompt',
-        injectRegister: null,
-        includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],
-        manifest: {
-          name: appName,
-          short_name: appName,
-          description: 'Compliance, documents and client work for one accounting practice.',
-          lang: 'en-IN',
-          start_url: '/',
-          scope: '/',
-          display: 'standalone',
-          background_color: '#0B0F17',
-          theme_color: '#0B0F17',
-          icons: [
-            { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-            { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-            {
-              src: 'maskable-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'maskable',
-            },
-          ],
-        },
-        workbox: {
-          // Precache app-shell assets only; exclude heavy landing-page images
-          // (hero PNGs, generated images) which are fetched on demand and must
-          // not bloat the service-worker precache manifest.
-          globPatterns: ['**/*.{js,mjs,css,html,svg,ico,woff2}'],
-          globIgnores: ['**/images/**', '**/Gemini_Generated_Image*'],
-          // Safety-net: raise limit so large assets that slip through don't
-          // break the build; they are excluded above but belt-and-suspenders.
-          maximumFileSizeToCacheInBytes: 7 * 1024 * 1024, // 7 MiB
-          navigateFallback: 'index.html',
-          navigateFallbackDenylist: [/^\/api\//],
-          cleanupOutdatedCaches: true,
-          clientsClaim: false,
-          skipWaiting: false,
-        },
-        devOptions: { enabled: false },
-      }),
+      ...(appShell === 'web'
+        ? [
+            VitePWA({
+              registerType: 'prompt',
+              injectRegister: null,
+              includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],
+              manifest: {
+                name: appName,
+                short_name: appName,
+                description: 'Compliance, documents and client work for one accounting practice.',
+                lang: 'en-IN',
+                start_url: '/',
+                scope: '/',
+                display: 'standalone',
+                background_color: '#0B0F17',
+                theme_color: '#0B0F17',
+                icons: [
+                  { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+                  { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+                  {
+                    src: 'maskable-512x512.png',
+                    sizes: '512x512',
+                    type: 'image/png',
+                    purpose: 'maskable',
+                  },
+                ],
+              },
+              workbox: {
+                globPatterns: ['**/*.{js,mjs,css,html,svg,ico,woff2}'],
+                globIgnores: ['**/images/**', '**/Gemini_Generated_Image*'],
+                maximumFileSizeToCacheInBytes: 7 * 1024 * 1024,
+                navigateFallback: 'index.html',
+                navigateFallbackDenylist: [/^\/api\//],
+                cleanupOutdatedCaches: true,
+                clientsClaim: false,
+                skipWaiting: false,
+              },
+              devOptions: { enabled: false },
+            }),
+          ]
+        : []),
     ],
     resolve: {
-      alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url)),
-      },
+      alias: [
+        // Shell selection (spec §3 rule 1). The more specific keys must come
+        // first: array aliases match in order, and '@' alone would swallow
+        // these paths. Fixed at config time, the bundler never traces the
+        // other surface's modules — web bundle has zero staff route code,
+        // desktop bundle zero portal route code and no PWA modules.
+        {
+          find: /^@\/app\/routes\.shell$/,
+          replacement: fileURLToPath(
+            new URL(
+              `./src/app/routes.${appShell === 'desktop' ? 'desktop' : 'web'}.tsx`,
+              import.meta.url,
+            ),
+          ),
+        },
+        {
+          find: /^@\/app\/appshell$/,
+          replacement: fileURLToPath(
+            new URL(
+              `./src/app/appshell.${appShell === 'desktop' ? 'desktop' : 'web'}.tsx`,
+              import.meta.url,
+            ),
+          ),
+        },
+        { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      ],
     },
     server: {
       port: 5173,

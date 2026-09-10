@@ -87,6 +87,10 @@ export const authSessionLimiter: RequestHandler = build(
 
 export const readLimiter: RequestHandler = build('read', MINUTE, 600, keyByUserOrIp);
 export const mutationLimiter: RequestHandler = build('mutation', MINUTE, 120, keyByUserOrIp);
+/** Dedicated bucket for the desktop 10s command poll: steady 6 req/min per
+ *  workstation user, sized with headroom so the global read limiter never
+ *  429s a healthy poller and a rogue poller never eats the global budget. */
+export const desktopPollLimiter: RequestHandler = build('desktop-poll', MINUTE, 30, keyByUserOrIp);
 export const uploadLimiter: RequestHandler = build('upload', HOUR, 60, keyByUserOrIp);
 export const exportLimiter: RequestHandler = build('export', HOUR, 10, keyByUserOrIp);
 export const searchLimiter: RequestHandler = build('search', MINUTE, 120, keyByUserOrIp);

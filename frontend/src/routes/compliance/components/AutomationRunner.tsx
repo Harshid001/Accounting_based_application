@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bot, CheckCircle2, Circle, RefreshCw, XCircle, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { abortAutomationRun, createSseUrl, downloadEvidencePack, getAutomationRun, submitHandoff } from '@/api/automation.api';
+import { abortAutomationRun, downloadEvidencePack, getAutomationRun, submitHandoff } from '@/api/automation.api';
+import { subscribeSse } from '@/api/sse';
 import { queryKeys } from '@/api/queryKeys';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,53 +49,53 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
     if (!runStatus) return;
     if (runStatus === 'succeeded' || runStatus === 'failed' || runStatus === 'aborted') return;
 
-    const source = new EventSource(createSseUrl(runId), { withCredentials: true });
+    const subscription = subscribeSse(`/automation/runs/${runId}/events`, {
+      onMessage: (raw) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const event: SseEvent = JSON.parse(raw);
 
-    source.onmessage = (e: MessageEvent) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const event: SseEvent = JSON.parse(String(e.data));
-
-      switch (event.kind) {
-        case 'frame':
-          setFrame(event.frameData ?? null);
-          break;
-        case 'step_start':
-        case 'step_done':
-        case 'step_failed':
-          void refetch();
-          break;
-        case 'handoff_required':
-          setHandoff({
-            id: event.handoffId ?? '',
-            type: event.handoffType ?? '',
-            prompt: event.handoffPrompt ?? ''
-          });
-          void refetch();
-          break;
-        case 'handoff_resolved':
-          setHandoff(null);
-          setHandoffValue('');
-          void refetch();
-          break;
-        case 'run_done':
-        case 'run_failed':
-        case 'run_aborted':
-          source.close();
-          void refetch();
-          void queryClient.invalidateQueries({ queryKey: queryKeys.filingPreparations.all });
-          void queryClient.invalidateQueries({ queryKey: queryKeys.compliance.all });
-          if (event.kind === 'run_done') {
-             success('Automation complete', 'The portal run has finished successfully.');
-             onDone?.();
-          } else {
-             errorToast(event.error ?? 'Unknown error', 'Automation run failed');
-          }
-          break;
-      }
-    };
+        switch (event.kind) {
+          case 'frame':
+            setFrame(event.frameData ?? null);
+            break;
+          case 'step_start':
+          case 'step_done':
+          case 'step_failed':
+            void refetch();
+            break;
+          case 'handoff_required':
+            setHandoff({
+              id: event.handoffId ?? '',
+              type: event.handoffType ?? '',
+              prompt: event.handoffPrompt ?? ''
+            });
+            void refetch();
+            break;
+          case 'handoff_resolved':
+            setHandoff(null);
+            setHandoffValue('');
+            void refetch();
+            break;
+          case 'run_done':
+          case 'run_failed':
+          case 'run_aborted':
+            subscription.close();
+            void refetch();
+            void queryClient.invalidateQueries({ queryKey: queryKeys.filingPreparations.all });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.compliance.all });
+            if (event.kind === 'run_done') {
+               success('Automation complete', 'The portal run has finished successfully.');
+               onDone?.();
+            } else {
+               errorToast(event.error ?? 'Unknown error', 'Automation run failed');
+            }
+            break;
+        }
+      },
+    });
 
     return () => {
-      source.close();
+      subscription.close();
     };
   }, [runId, runStatus, refetch, queryClient, success, errorToast, onDone]);
 

@@ -33,6 +33,30 @@ describe('entries are written', () => {
     expect(entry?.actorRole).toBe('staff');
   });
 
+  it('records WHICH shell the sign-in came from (spec §8)', async () => {
+    // The test harness signs in via supertest without the Tauri marker, so
+    // the web shell is what an honest audit must report.
+    const entry = await AuditLog.findOne({ action: 'sign_in', actor: admin.id }).lean().exec();
+    expect(entry?.summary).toBe('Signed in (web shell)');
+  });
+
+  it('identifies a desktop-shell sign-in by its Tauri origin', async () => {
+    const { getAuth } = await import('../../src/config/auth.js');
+    await getAuth().api.signInEmail({
+      body: { email: admin.email, password: 'quiet ledger monsoon 42 tally' },
+      headers: { 'user-agent': 'Mozilla/5.0 FirmdeskDesktop/0.1.0 tauri.localhost' },
+      asResponse: true,
+    });
+    const entry = await AuditLog.findOne({
+      action: 'sign_in',
+      summary: 'Signed in (desktop shell)',
+    })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+    expect(entry?.actor?.toString()).toBe(admin.id.toString());
+  });
+
   it('records a client creation with the affected client', async () => {
     const response = await request(app())
       .post('/api/v1/clients')

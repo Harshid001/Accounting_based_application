@@ -243,17 +243,23 @@ const buildAuth = () =>
               .select('role')
               .lean<{ role: 'admin' | 'staff' | 'client' } | null>()
               .exec();
+            // Spec §8: the audit must say WHICH shell a sign-in came from.
+            // The desktop webview identifies itself by its Tauri origin
+            // (http://tauri.localhost on Windows) in the UA string; the web
+            // build never carries that marker.
+            const ua = typeof session.userAgent === 'string' ? session.userAgent : null;
+            const shell = ua?.includes('tauri.localhost') === true ? 'desktop' : 'web';
             await recordAudit({
               actor: {
                 id: session.userId as unknown as null,
                 role: owner?.role ?? 'client',
                 ip: typeof session.ipAddress === 'string' ? session.ipAddress : null,
-                userAgent: typeof session.userAgent === 'string' ? session.userAgent : null,
+                userAgent: ua,
                 requestId: null,
               },
               action: 'sign_in',
               entityKind: 'session',
-              summary: 'Signed in',
+              summary: `Signed in (${shell} shell)`,
             });
           },
         },

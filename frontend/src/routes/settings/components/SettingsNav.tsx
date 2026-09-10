@@ -6,6 +6,7 @@ const TABS = [
   { to: '/settings/firm', label: 'Firm' },
   { to: '/settings/ai', label: 'AI Copilot' },
   { to: '/settings/users', label: 'Users' },
+  { to: '/settings/workstations', label: 'Workstations' },
   { to: '/settings/catalogue', label: 'Catalogue' },
   { to: '/settings/unlinked-accounts', label: 'Unlinked accounts' },
   { to: '/settings/audit', label: 'Audit log' },

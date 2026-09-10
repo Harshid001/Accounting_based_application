@@ -1,7 +1,7 @@
 import { Router } from 'express';
 
 import * as controller from '../controllers/desktop.controller.js';
-import { mutationLimiter, readLimiter } from '../middleware/rateLimit.js';
+import { desktopPollLimiter, mutationLimiter, readLimiter } from '../middleware/rateLimit.js';
 import { requireClientScope } from '../middleware/requireClientScope.js';
 import { requireCapability } from '../middleware/requireRole.js';
 import { handle } from '../middleware/validate.js';
@@ -73,7 +73,7 @@ desktopRouter.post(
 
 desktopRouter.get(
   '/workstation/commands',
-  readLimiter,
+  desktopPollLimiter,
   requireCapability('desktop:workstation'),
   handle({ query: workstationCommandsQuery }, controller.workstationCommands),
 );

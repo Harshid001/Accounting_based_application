@@ -114,6 +114,11 @@ export const queryKeys = {
     list: (params?: QueryParams) => ['jobs', 'list', scoped(params)] as const,
   },
 
+  desktop: {
+    workstations: (params?: QueryParams) => ['desktop', 'workstations', scoped(params)] as const,
+    manifest: ['desktop', 'manifest'] as const,
+  },
+
   automation: {
     all: ['automation'] as const,
     detail: (id: string) => ['automation', 'detail', id] as const,

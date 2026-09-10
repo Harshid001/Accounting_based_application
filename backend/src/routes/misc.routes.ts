@@ -250,6 +250,7 @@ searchRouter.get(
 export const publicRouter: Router = Router();
 
 publicRouter.get('/health', health.health);
+publicRouter.get('/desktop/manifest', health.desktopManifest);
 publicRouter.post(
   '/client-errors',
   publicReportLimiter,

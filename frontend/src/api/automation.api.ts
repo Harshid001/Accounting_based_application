@@ -1,5 +1,4 @@
 import { apiBlob, apiGet, apiPost } from '@/api/client';
-import { env } from '@/lib/env';
 import type { AutomationRunView, AutomationSupportView } from '@/types/models';
 
 export const getAutomationRun = (id: string): Promise<AutomationRunView> =>
@@ -50,7 +49,4 @@ export const downloadEvidencePack = async (id: string, filename: string): Promis
   }, 2000);
 };
 
-export const createSseUrl = (id: string): string => {
-  const baseUrl = env.apiBaseUrl.replace(/\/$/, '');
-  return `${baseUrl}/automation/runs/${id}/events`;
-};
+export const automationSsePath = (id: string): string => `/automation/runs/${id}/events`;

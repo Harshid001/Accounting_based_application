@@ -14,6 +14,8 @@ import { Input } from '@/components/ui/input';
 import { useSession } from '@/context/SessionContext';
 import { normaliseError } from '@/lib/errors';
 import { homePathFor } from '@/lib/permissions';
+import { readSignInHint } from '@/lib/signInHint';
+import { isDesktop, isWeb } from '@/lib/shell';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { signInSchema } from '@/schemas/auth.schema';
 import type { SignInValues } from '@/schemas/auth.schema';
@@ -31,7 +33,9 @@ export function SignIn() {
   const { status, user, refresh } = useSession();
 
   const requestedPortal = searchParams.get('portal')?.toLowerCase();
-  const initialPortal: 'admin' | 'client' = requestedPortal === 'client' ? 'client' : 'admin';
+  const shellDefaultPortal = isDesktop ? 'admin' : 'client';
+  const initialPortal: 'admin' | 'client' =
+    requestedPortal === (isWeb ? 'admin' : 'client') ? requestedPortal : shellDefaultPortal;
   const [activePortal, setActivePortal] = useState<'admin' | 'client'>(initialPortal);
 
   usePageTitle(activePortal === 'admin' ? 'Staff & Admin Sign In' : 'Client Portal Sign In');
@@ -48,12 +52,22 @@ export function SignIn() {
         : null;
   const displayError = formError ?? urlErrorMessage;
 
+  // Desktop boot-restore (spec §5.3): pre-fill the remembered account
+  // from the keychain-backed hint; web shells always start empty.
+  const rememberedEmail = isDesktop ? readSignInHint() : null;
+
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
-    defaultValues: { email: '', password: '', rememberMe: true },
+    defaultValues: { email: rememberedEmail ?? '', password: '', rememberMe: true },
   });
 
   if (status === 'authenticated' && user !== null) {
+    if (isWeb && (user.role === 'admin' || user.role === 'staff')) {
+      return <Navigate to="/desktop-required" replace />;
+    }
+    if (isDesktop && user.role === 'client') {
+      return <Navigate to="/web-portal-required" replace />;
+    }
     const intended = safeRedirect((location.state as { from?: unknown } | null)?.from);
     return <Navigate to={intended ?? homePathFor(user.role)} replace />;
   }
@@ -83,8 +97,8 @@ export function SignIn() {
       });
   };
 
-  const portalSwitcher = (
-    <div className="mb-5 grid grid-cols-2 gap-1.5 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1">
+  const adminOnlySwitcher = (
+    <div className="mb-5 grid grid-cols-1 gap-1.5 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1">
       <button
         type="button"
         id="portal-tab-admin"
@@ -93,16 +107,23 @@ export function SignIn() {
           setFormError(null);
           void navigate('?portal=admin', { replace: true });
         }}
-        className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-md py-2 sm:py-2.5 px-2 sm:px-3 text-2xs sm:text-xs font-semibold transition-all ${
+        className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
           activePortal === 'admin'
             ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
             : 'text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)]'
         }`}
       >
-        <ShieldCheck size={15} className={`shrink-0 ${activePortal === 'admin' ? 'text-[var(--fd-accent)]' : ''}`} />
+        <ShieldCheck
+          size={15}
+          className={`shrink-0 ${activePortal === 'admin' ? 'text-[var(--fd-accent)]' : ''}`}
+        />
         <span className="truncate">Staff & Admin</span>
       </button>
+    </div>
+  );
 
+  const clientOnlySwitcher = (
+    <div className="mb-5 grid grid-cols-1 gap-1.5 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1">
       <button
         type="button"
         id="portal-tab-client"
@@ -111,17 +132,22 @@ export function SignIn() {
           setFormError(null);
           void navigate('?portal=client', { replace: true });
         }}
-        className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-md py-2 sm:py-2.5 px-2 sm:px-3 text-2xs sm:text-xs font-semibold transition-all ${
+        className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
           activePortal === 'client'
             ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
             : 'text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)]'
         }`}
       >
-        <Building2 size={15} className={`shrink-0 ${activePortal === 'client' ? 'text-[var(--fd-accent)]' : ''}`} />
+        <Building2
+          size={15}
+          className={`shrink-0 ${activePortal === 'client' ? 'text-[var(--fd-accent)]' : ''}`}
+        />
         <span className="truncate">Client Portal</span>
       </button>
     </div>
   );
+
+  const portalSwitcher = isDesktop ? adminOnlySwitcher : clientOnlySwitcher;
 
   const portalBadge =
     activePortal === 'admin' ? (
@@ -146,57 +172,40 @@ export function SignIn() {
   const emailPlaceholder =
     activePortal === 'admin' ? 'e.g. harshidsoni01@gmail.com' : 'e.g. name@company.com';
 
-  const submitLabel = activePortal === 'admin' ? 'Sign In to Admin Console' : 'Sign In to Client Portal';
+  const submitLabel =
+    activePortal === 'admin' ? 'Sign In to Admin Console' : 'Sign In to Client Portal';
   const googleLabel =
     activePortal === 'admin'
       ? 'Continue with Google as Admin / Staff'
       : 'Continue with Google as Client';
 
-  const portalFooter =
-    activePortal === 'admin' ? (
-      <div className="space-y-2 text-xs text-[var(--fd-text-secondary)]">
-        <p>
-          Client looking for your tax records?{' '}
-          <button
-            type="button"
-            onClick={() => {
-              setActivePortal('client');
-              setFormError(null);
-              void navigate('?portal=client', { replace: true });
-            }}
-            className="font-medium text-[var(--fd-accent)] underline underline-offset-4"
-          >
-            Switch to Client Portal
-          </button>
-        </p>
-        <p className="text-2xs text-[var(--fd-text-tertiary)]">
-          Internal access is restricted to authorized practice personnel.
-        </p>
-      </div>
-    ) : (
-      <div className="space-y-2 text-xs text-[var(--fd-text-secondary)]">
-        <p>
-          New client?{' '}
-          <Link to="/sign-up" className="font-medium text-[var(--fd-accent)] underline underline-offset-4">
-            Start onboarding & register account
-          </Link>
-        </p>
-        <p>
-          Practice staff or partner?{' '}
-          <button
-            type="button"
-            onClick={() => {
-              setActivePortal('admin');
-              setFormError(null);
-              void navigate('?portal=admin', { replace: true });
-            }}
-            className="text-[var(--fd-accent)] underline underline-offset-4"
-          >
-            Switch to Staff & Admin Portal
-          </button>
-        </p>
-      </div>
-    );
+  const adminFooter = (
+    <div className="space-y-2 text-xs text-[var(--fd-text-secondary)]">
+      <p className="text-2xs text-[var(--fd-text-tertiary)]">
+        Internal access is restricted to authorized practice personnel using the FirmDesk desktop
+        app.
+      </p>
+    </div>
+  );
+
+  const clientFooter = (
+    <div className="space-y-2 text-xs text-[var(--fd-text-secondary)]">
+      <p>
+        New client?{' '}
+        <Link
+          to="/sign-up"
+          className="font-medium text-[var(--fd-accent)] underline underline-offset-4"
+        >
+          Start onboarding & register account
+        </Link>
+      </p>
+      <p className="text-2xs text-[var(--fd-text-tertiary)]">
+        Practice staff and partners sign in through the FirmDesk desktop app.
+      </p>
+    </div>
+  );
+
+  const portalFooter = activePortal === 'admin' ? adminFooter : clientFooter;
 
   return (
     <AuthCard

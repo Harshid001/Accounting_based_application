@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { z } from 'zod';
 
 import { databaseState } from '../config/db.js';
+import { env } from '../config/env.js';
 import { sendData } from '../lib/http.js';
 import type { clientErrorBody } from '../validators/user.validators.js';
 
@@ -10,6 +11,23 @@ export const health = (req: Request, res: Response): void => {
     data: { status: 'ok', uptime: Math.round(process.uptime()), db: databaseState() },
     meta: { requestId: req.requestId },
   });
+};
+
+/**
+ * Desktop shell version manifest (spec §5.4). Public on purpose: the desktop
+ * app must learn its update fate BEFORE sign-in — an outdated shell gets a
+ * hard update gate at login. minShellVersion is enforced client-side at
+ * login and server-side on sensitive ops via the registered appVersion.
+ */
+export const desktopManifest = (_req: Request, res: Response): void => {
+  sendData(
+    res,
+    {
+      minShellVersion: env.DESKTOP_MIN_SHELL_VERSION,
+      latestShellVersion: env.DESKTOP_LATEST_SHELL_VERSION,
+      updateUrl: env.DESKTOP_UPDATE_URL,
+    },
+  );
 };
 
 const sanitizeLogLine = (val: string | undefined | null, maxLen: number): string => {

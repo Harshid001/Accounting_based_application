@@ -74,6 +74,10 @@ const schema = z.object({
   COMPLIANCE_HORIZON_DAYS: z.coerce.number().int().min(1).max(1095).default(120),
   AUTOMATION_HEADLESS: booleanish.default(true),
 
+  DESKTOP_MIN_SHELL_VERSION: z.string().min(1).default('0.1.0'),
+  DESKTOP_LATEST_SHELL_VERSION: z.string().min(1).default('0.1.0'),
+  DESKTOP_UPDATE_URL: z.string().min(1).default('https://jvaccounting.in/desktop-download'),
+
   BOOTSTRAP_ADMIN_EMAIL: z.union([z.email(), z.literal('')]).optional(),
   BOOTSTRAP_ADMIN_NAME: z.string().optional(),
   BOOTSTRAP_ADMIN_PASSWORD: z.string().optional(),

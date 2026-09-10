@@ -8,6 +8,7 @@ export const ERROR_CODES = {
   CONFLICT: 409,
   PAYLOAD_TOO_LARGE: 413,
   UNSUPPORTED_MEDIA_TYPE: 415,
+  UPGRADE_REQUIRED: 426,
   RATE_LIMITED: 429,
   INTERNAL: 500,
 } as const;
@@ -63,6 +64,9 @@ export const conflict = (message: string, details?: FieldError[]): AppError =>
 
 export const payloadTooLarge = (message: string): AppError =>
   new AppError('PAYLOAD_TOO_LARGE', message);
+
+export const upgradeRequired = (message: string): AppError =>
+  new AppError('UPGRADE_REQUIRED', message);
 
 export const unsupportedMediaType = (message: string): AppError =>
   new AppError('UNSUPPORTED_MEDIA_TYPE', message);

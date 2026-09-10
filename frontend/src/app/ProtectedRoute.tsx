@@ -4,6 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { ErrorState } from '@/components/ui/error-state';
 import { Spinner } from '@/components/ui/skeleton';
 import { useSession } from '@/context/SessionContext';
+import { isDesktop, isWeb } from '@/lib/shell';
 
 export interface ProtectedRouteProps {
   children: ReactNode;
@@ -46,6 +47,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (user !== null && user.unlinked) {
     return <Navigate to="/unlinked" replace />;
+  }
+
+  if (isWeb && (user?.role === 'admin' || user?.role === 'staff')) {
+    return <Navigate to="/desktop-required" replace />;
+  }
+
+  if (isDesktop && user?.role === 'client') {
+    return <Navigate to="/web-portal-required" replace />;
   }
 
   return <>{children}</>;

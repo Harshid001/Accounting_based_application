@@ -33,6 +33,8 @@ export const workstationRegisterBody = z.object({
 
 export const workstationPingBody = z.object({
   deviceId: trimmedString(8, 64),
+  /** Shell version reported on every beat — the server re-checks the min gate. */
+  appVersion: trimmedString(1, 40).optional(),
   /** Optional live Tally probe outcome relayed by the desktop app. */
   tally: z
     .object({

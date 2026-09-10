@@ -8,6 +8,7 @@ import { MobileDrawer } from '@/layouts/components/MobileDrawer';
 import { Sidebar } from '@/layouts/components/Sidebar';
 import { Topbar } from '@/layouts/components/Topbar';
 import { AiChatSidebar } from '@/components/domain/AiChatDropdown';
+import { DesktopShellGate } from '@/layouts/components/DesktopShellGate';
 import { SIDEBAR_STORAGE_KEY } from '@/lib/constants';
 import { useHotkey } from '@/hooks/useHotkey';
 import { useFeatureGuide } from '@/context/FeatureGuideContext';
@@ -97,6 +98,7 @@ export function StaffLayout() {
   return (
     <div className="flex h-dvh overflow-hidden bg-[var(--fd-bg)]">
       <SkipLink />
+      <DesktopShellGate />
 
       <div className="hidden lg:block">
         <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />

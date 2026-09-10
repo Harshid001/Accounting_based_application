@@ -26,6 +26,9 @@ missing variable. Nothing else in the codebase reads `import.meta.env`. If the a
 |---|---|
 | `VITE_API_BASE_URL` | Absolute origin of the API, including `/api/v1`. |
 | `VITE_APP_NAME` | Display name in the document title and the PWA manifest. |
+| `VITE_APP_SHELL` | `web` (default: clients only) or `desktop` (admin/staff Tauri shell). |
+| `VITE_DESKTOP_DOWNLOAD_URL` | Where staff download the desktop app (web interstitial). |
+| `VITE_DESKTOP_UPDATE_URL` | Update manifest URL for the desktop shell's updater. |
 
 Every `VITE_`-prefixed value is compiled into the bundle and is public. No secret may carry that
 prefix; the frontend holds no keys of any kind.
@@ -36,13 +39,32 @@ in development.
 
 | Script | What it does |
 |---|---|
-| `npm run dev` | Vite dev server with HMR on port 5173 |
-| `npm run build` | `vite build` to static `dist/` |
+| `npm run dev` | Vite dev server (web shell) with HMR on port 5173 |
+| `npm run desktop:dev` | Vite dev server in desktop-shell mode (Tauri attaches) |
+| `npm run build:web` | Web bundle to static `dist/` — clients only, PWA enabled |
+| `npm run build:desktop` | Desktop bundle — staff workspace only, no PWA |
 | `npm run preview` | Serves the built output on port 4173 |
 | `npm run typecheck` | `tsc --noEmit` over `src`, `tests` and the build configs |
 | `npm run lint` | ESLint, zero warnings tolerated |
-| `npm test` | Vitest with React Testing Library and jsdom |
-| `npm run verify` | typecheck → lint → test → build. The CI contract. |
+| `npm run test:web` / `test:desktop` | Vitest in the matching shell mode |
+| `npm run verify` | typecheck → lint → both test shells → both builds. The CI contract. |
+
+## Two shells, one codebase (split-surface)
+
+The route tables live in `src/app/routes.web.tsx` (landing, auth client tab,
+`/portal/*`) and `src/app/routes.desktop.tsx` (the admin/staff workspace).
+`vite.config.ts` aliases `@/app/routes.shell` and `@/app/appshell` to the
+right module per `VITE_APP_SHELL` at config time, so the bundler never
+traces the other surface: the web bundle contains zero staff route code
+and the desktop bundle zero portal route code (CI checks this). Staff who
+sign in on the web hit the `/desktop-required` interstitial; clients in
+the desktop app are pointed back to the browser.
+
+The Tauri desktop shell lives in `src-tauri/` (Windows-first, WebView2):
+Tally bridge to `localhost:9000` only, OS keychain, tray, single-instance
+lock, and the workstation agent loop (`src/hooks/useWorkstationAgent.ts`)
+that replaced the retired `desktop/agent.mjs` script. See
+`docs/DESKTOP_AGENT_RUNBOOK.md` for the release smoke checklist.
 
 ## Shape
 
