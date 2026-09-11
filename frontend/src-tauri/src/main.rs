@@ -448,9 +448,10 @@ fn main() {
             // Google sign-in handoff from the URL (firmdesk://auth-complete).
             // The URL itself is forwarded verbatim; the front end validates
             // the shape and the key before using it.
-            handle.deep_link().on_open_url(|event| {
+            let deep_link_handle = handle.clone();
+            handle.deep_link().on_open_url(move |event| {
                 for url in event.urls() {
-                    let _ = handle.emit("firmdesk://deep-link", url.to_string());
+                    let _ = deep_link_handle.emit("firmdesk://deep-link", url.to_string());
                 }
             });
 

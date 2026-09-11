@@ -36,6 +36,14 @@ services:
       #   FIELD_ENCRYPTION_KEY_VERSION, SMTP_*, MAIL_FROM,
       #   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
       #
+      # Google sign-in (web portal + FirmDesk desktop handoff): set
+      # GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET TOGETHER in the dashboard —
+      # env validation refuses to boot on a partial pair. Without them the
+      # Google provider is not registered and the desktop handoff start
+      # endpoint returns "Google sign-in is not configured on this FirmDesk
+      # deployment." The Google Cloud Console OAuth client must also list
+      # the redirect URI: <BETTER_AUTH_URL>/api/auth/callback/google
+      #
       # Free-plan note: the service sleeps after ~15 min of inactivity, which
       # clears the in-memory LRU cache and rate-limit counters. First request
       # after wake-up will be slow and rate limits start fresh — expected
