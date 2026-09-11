@@ -1,6 +1,6 @@
 [package]
 name = "firmdesk"
-version = "0.1.0"
+version = "0.1.1"
 description = "FirmDesk desktop app for admin & staff — the Tally bridge workstation."
 authors = ["JV Accounting"]
 edition = "2021"

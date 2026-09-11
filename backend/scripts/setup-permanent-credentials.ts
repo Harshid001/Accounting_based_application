@@ -22,6 +22,12 @@ const CREDENTIALS: CredentialSpec[] = [
     name: 'Harshid Soni (Admin)',
   },
   {
+    email: 'harshidsoni@gmail.com',
+    password: 'Harshid@123',
+    role: 'admin',
+    name: 'Harshid Soni (Admin)',
+  },
+  {
     email: 'staff@gmail.com',
     password: 'Staff@123',
     role: 'staff',
