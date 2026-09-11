@@ -10,6 +10,21 @@ export const bootstrapAdmin = async (): Promise<{ created: boolean }> => {
   const name = env.BOOTSTRAP_ADMIN_NAME;
 
   if (email === undefined || email === '') {
+    const anyAdmin = await User.findOne({ role: 'admin' }).select('_id').lean().exec();
+    if (!anyAdmin) {
+      const firstUser = await User.findOne({ status: 'active' }).sort({ createdAt: 1 }).exec();
+      if (firstUser && firstUser.role !== 'admin') {
+        await User.updateOne(
+          { _id: firstUser._id },
+          { $set: { role: 'admin', status: 'active', emailVerified: true } },
+        ).exec();
+        logger.info(
+          { event: 'bootstrap.promoted', email: firstUser.email },
+          'promoted first existing active user to administrator role',
+        );
+        return { created: true };
+      }
+    }
     return { created: false };
   }
 

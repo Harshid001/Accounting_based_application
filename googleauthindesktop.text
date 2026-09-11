@@ -1,0 +1,107 @@
+1. Backend: desktop auth handoff endpoints
+All three handoff endpoints live in backend/src/routes/betterAuth.routes.ts, mounted at /api/auth via app.use('/api/auth', betterAuthRouter) (backend/src/app.ts:89).
+Flow (documented in-file, betterAuth.routes.ts:117-144)
+Desktop webview → POST /desktop/google/start → Google consent in system browser → better-auth GET /callback/google creates session → GET /desktop/google/complete mints a one-time key → firmdesk://auth-complete?key=... deep link → webview → POST /desktop/google/exchange gets cookie + Bearer.
+Endpoints
+Route	Lines	What it does
+POST /api/auth/desktop/google/start	handler desktopGoogleStart 209–237, mounted 359–366	Desktop-shell-only. Calls getAuth().api.signInSocial({ provider:'google', callbackURL: <BETTER_AUTH_URL>/api/auth/desktop/google/complete, errorCallbackURL: <APP_BASE_URL>/sign-in, disableRedirect: true }). Returns { url } (Google consent URL). 403 for non-desktop origins; 500 "Google sign-in is not configured..." if googleOAuthConfigured is false (line 213).
+GET /api/auth/desktop/google/complete	handler desktopGoogleComplete 245–288, mounted 368–374	Landing page for the system browser. Reads the just-created session via getAuth().api.getSession({ headers }) (line 253), verifies it exists in Mongo, mints a one-time handoff key, returns HTML with <meta refresh> + location.replace() to firmdesk://auth-complete?key=<key>. On failure redirects to /sign-in?error=google_handoff_failed.
+POST /api/auth/desktop/google/exchange	handler desktopGoogleExchange 298–351, mounted 376–383	Desktop-shell-only. Validates key length (32–256), atomically consumes it via findOneAndDelete on Mongo collection desktop_auth_handoff (lines 189–200), re-checks the session (not expired) and user (active + emailVerified), then signs the raw token with makeSignature(token, BETTER_AUTH_SECRET) and issues both the httpOnly better-auth.session_token cookie (334–340) and JSON { token, user } (342–350).
+Handoff key mechanics (betterAuth.routes.ts:146–200)
+- DESKTOP_SHELL_HEADER = 'x-firmdesk-shell', HANDOFF_TTL_MS = 5 min, HANDOFF_COLLECTION = 'desktop_auth_handoff', DEEP_LINK_SCHEME = 'firmdesk://auth-complete' (lines 146–149).
+- isDesktopShellRequest (151–159): header X-FirmDesk-Shell: desktop or Origin/Referer containing tauri.localhost.
+- storeHandoff (175–187): crypto.randomBytes(32).toString('base64url'), stored only as SHA-256; plaintext exists only in the deep link and the exchange request.
+- Start/exchange sit behind authStrictLimiter; complete behind authSessionLimiter (comment 355–358).
+Google OAuth in better-auth — backend/src/config/auth.ts
+- Conditional provider (lines 187–196):
+...(googleOAuthConfigured ? { socialProviders: { google: {
+    clientId: env.GOOGLE_CLIENT_ID ?? '', clientSecret: env.GOOGLE_CLIENT_SECRET ?? '' } } } : {}),
+googleOAuthConfigured = env.GOOGLE_CLIENT_ID !== undefined && env.GOOGLE_CLIENT_SECRET !== undefined (backend/src/config/env.ts:167–168). Both vars are optional (env.ts:58–59) and must be set together or the server refuses to boot (env.ts:146–151).
+- skipStateCookieCheck: true (line 120) with a long security rationale (111–119): the OAuth callback arrives in the system browser while the flow started in the desktop webview (two cookie jars); the Mongo adapter keeps state validation server-side (nonce + 10-min expiry + one-time use), so it stays safe.
+- account.accountLinking: { enabled: true, trustedProviders: ['google'] } (121–124).
+- trustedOrigins (126–136): env.CORS_ORIGINS + APP_BASE_URL + BETTER_AUTH_URL + hardcoded 'tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost', 'http://localhost:5174'.
+- Session audit hook marks the shell: ua?.includes('tauri.localhost') ? 'desktop' : 'web' (lines 276–289) — "Signed in (desktop shell)" audit entries.
+CORS — backend/src/app.ts
+- isAllowedOrigin (51–64): CORS_ORIGINS plus hardcoded tauri://localhost, http://tauri.localhost, https://tauri.localhost (53–59) — so Tauri origins are allowed regardless of env.
+- allowedHeaders includes X-FirmDesk-Shell (line 82); credentials: true.
+Bearer auth — backend/src/middleware/requireAuth.ts
+- resolveSession (57–63): if no cookie and Authorization: Bearer <token> present, it fabricates headers.cookie = 'better-auth.session_token=<token>' before calling getAuth().api.getSession. This is what makes the desktop fetch wrapper work.
+Tests — backend/tests/integration/desktopGoogleHandoff.test.ts
+- Covers: start returns Google URL (never token/user) + 403 for web origin (29–55); exchange rejects malformed/unknown/expired/deactivated keys, one-time consumption, issued Bearer actually authenticates against /api/v1/me (57–194); complete redirects to /sign-in?error=google_handoff_failed without a session (196–206); regression tests that the removed insecure bypass (/api/auth/desktop-signin*) stays gone (209–256).
+- Test env always registers a dummy Google provider: backend/tests/setup.ts:34–35 (GOOGLE_CLIENT_ID='test-google-client-id.apps.googleusercontent.com') so socialProviders is never empty in CI.
+2. Frontend web app: how the sign-in page triggers the handoff
+- frontend/src/api/authClient.ts
+- startDesktopGoogleSignIn() (154–169): POST ${env.authBaseUrl}/api/auth/desktop/google/start with header X-FirmDesk-Shell: 'desktop', returns consent URL.
+- completeDesktopGoogleHandoff(key) (177–203): POST .../desktop/google/exchange with { key }; on success calls setStoredSessionToken(data.token) (195) and returns the SessionUser.
+- signInWithGoogle(callbackPath) (205–212): the standard web-shell better-auth redirect flow (authClient.signIn.social).
+- frontend/src/routes/auth/SignIn.tsx
+- google() handler (150–187): desktop branch — guard isDesktopBridgeAvailable(), then startDesktopGoogleSignIn() → dynamic import('@/lib/desktopBridge') → openExternalUrl(consentUrl); stays "busy" until the deep link lands. Web branch: signInWithGoogle(...).
+- finishDesktopHandoff(key) (81–98): calls completeDesktopGoogleHandoff, writeSignInHint(email), refresh(), navigate to /dashboard.
+- Deep-link effect (100–107): onDeepLink(url → parseAuthDeepLink → finishDesktopHandoff) — only when isDesktop && isDesktopBridgeAvailable().
+- Cold-start effect (113–124): consumePendingAuthDeepLink() → microtask-deferred finishDesktopHandoff.
+- Google button always renders (431–441) with per-portal labels (315–318).
+- frontend/src/lib/desktopAuthDeepLink.ts — the security boundary between OS and app: parseAuthDeepLink (56–88, accepts only firmdesk://auth-complete?key=<base64url>, Windows host-shape and macOS/Linux path-shape, exactly one param, base64url alphabet, 32–256 chars); parkPendingAuthKey (38–42) and consumePendingAuthDeepLink (45–49) for the shell-neutral cold-start parking.
+3. Desktop frontend logic (deep link, keychain, Bearer)
+- Deep-link event handling: frontend/src/lib/desktopBridge.ts:83–95 — onDeepLink() dynamically imports @tauri-apps/api/event and listen('firmdesk://deep-link', e => handler(e.payload)). currentDeepLink() (102–108) reads @tauri-apps/plugin-deep-link getCurrent() for cold-start URLs. openExternalUrl (70–74) uses @tauri-apps/plugin-opener. isDesktopBridgeAvailable() (143) = isDesktop && isTauri().
+- Cold-start/warm parking: frontend/src/app/appshell.desktop.tsx — DeepLinkReceiver (61–81) parks cold-start and warm links via parkPendingAuthKey; mounted in AppShell (83–92).
+- Keychain usage: frontend/src/lib/sessionSnapshot.ts — keychainSet/Get/Delete from desktopBridge (Rust commands keychain_set/get/delete in frontend/src-tauri/src/main.rs:173–197, Windows Credential Manager via keyring crate, service in.jvaccounting.firmdesk). Stores only { email, savedAt } under key session-snapshot — never the token. Written by SessionSnapshotWatcher (appshell.desktop.tsx:25–38) and used by SignInHintLoader (49–59) to pre-fill the sign-in email.
+- Session token storage + Bearer fetch: frontend/src/api/client.ts — SESSION_TOKEN_KEY = 'firmdesk_session_token' in localStorage (lines 7–27); headersFor (77–88) adds Authorization: Bearer <token> on every API call when present. Set by completeDesktopGoogleHandoff and cleared by signOutEverywhere (authClient.ts:241–244) and SessionContext.clear (frontend/src/context/SessionContext.tsx:42–46).
+- Tauri shell config:
+- frontend/src-tauri/tauri.conf.json:50–55 — deep-link plugin, schemes: ["firmdesk"]; updater pubkey+endpoints (56–61).
+- frontend/src-tauri/src/main.rs — deep-link plugin registered (423); register_all() in dev/portable (442–445); on_open_url re-emits every URL as event firmdesk://deep-link (452–456); cold-start get_current() re-emitted the same way (461–465); single-instance plugin focuses the window on second launch (403–417).
+- frontend/src-tauri/capabilities/main.json — deep-link:default + opener:allow-open-url scoped to https://accounts.google.com/* and https://oauth.googleusercontent.com/* only (21–27). No wildcard URL scopes.
+- Frontend tests: frontend/tests/unit/desktopAuthDeepLink.test.ts (parser acceptance/rejection matrix incl. javascript:// scheme, parking one-shot semantics), signInHint.test.ts, sessionSnapshot.test.ts.
+4. Feature flags / env gating
+There is no feature flag that turns the desktop Google flow off. The gating that exists:
+Gate	File/line	State	Effect
+googleOAuthConfigured (backend)	env.ts:167–168, auth.ts:187–196	Env-driven	If GOOGLE_CLIENT_ID/SECRET absent → provider not registered → POST /desktop/google/start throws "Google sign-in is not configured on this FirmDesk deployment." The only ON/OFF switch.
+VITE_APP_SHELL (frontend)	frontend/src/lib/env.ts:37,54; frontend/vite.config.ts:34–44	Build-time	web vs desktop; isDesktop decides handoff vs standard redirect. Not a feature flag — the shell identity itself. In desktop mode (--mode desktop) the define hard-codes it even without a .env.desktop.
+X-FirmDesk-Shell header	betterAuth.routes.ts:151–159	Request-time	start/exchange are desktop-only (403 otherwise) — by design, not a toggle.
+VITE_WEB_STAFF_ACCESS	shell.ts:15–16, .env.example	OFF by default	Gates staff access on the web shell only (unrelated to desktop Google).
+Other VITE_ vars	grep of frontend/src found only VITE_API_BASE_URL, VITE_APP_NAME, VITE_APP_SHELL, VITE_DESKTOP_DOWNLOAD_URL, VITE_DESKTOP_UPDATE_URL, VITE_WEB_STAFF_ACCESS	—	No VITE_GOOGLE_* or desktop-auth flag exists.
+Local dev is currently ON: backend/.env exists and contains GOOGLE_CLIENT_ID (72 chars, real-looking 388390482045...apps.googleusercontent.com format) and GOOGLE_CLIENT_SECRET (35 chars), and CORS_ORIGINS=http://localhost:5173,http://tauri.localhost,https://tauri.localhost.
+Production is the questionable spot — see item 5.
+5. Env files present and Google-related documentation
+- backend/.env.example — documents:
+GOOGLE_CLIENT_ID=000000000000-examplegoogleclientid.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=EXAMPLE-google-client-secret-value
+# Google sign-in (web client portal + FirmDesk desktop system-browser handoff).
+# In the Google Cloud Console OAuth client, Authorised redirect URIs must
+# include:  <BETTER_AUTH_URL>/api/auth/callback/google
+# (dev: http://localhost:4000/api/auth/callback/google). The desktop app does
+# NOT need its own redirect URI — it shares the same callback and receives the
+# session through the firmdesk:// deep-link handoff.
+Also CORS_ORIGINS=http://localhost:5173,http://tauri.localhost.
+- backend/.env (git-ignored, present locally): has both GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET filled with what looks like a real client ID/secret, plus CORS_ORIGINS including both tauri origins. Local dev flow is fully configured.
+- frontend/.env.example — VITE_API_BASE_URL, VITE_APP_NAME, VITE_APP_SHELL=web, VITE_DESKTOP_DOWNLOAD_URL, VITE_DESKTOP_UPDATE_URL, VITE_WEB_STAFF_ACCESS=false. No Google vars (correct — backend owns OAuth).
+- frontend/.env.desktop.example — desktop build env: VITE_API_BASE_URL=https://api.jvaccounting.in/api/v1, VITE_APP_SHELL=desktop, GitHub-releases download/update URLs.
+- frontend/.env (actual, git-ignored): only VITE_API_BASE_URL=http://localhost:4000/api/v1 + VITE_APP_NAME. Fine — desktop mode is set by build mode.
+- render.yaml (production deploy): the dashboard-required-vars comment lists MONGODB_URI, APP_BASE_URL, BETTER_AUTH_URL, BETTER_AUTH_SECRET, CORS_ORIGINS, SESSION_COOKIE_SAMESITE, FIELD_ENCRYPTION_KEY*, SMTP_*, MAIL_FROM, R2_* — GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are NOT in the documented production env list. If the Render service was provisioned strictly per that list, googleOAuthConfigured is false in production and the flow is off there.
+6. GitHub workflow building the desktop app
+.github/workflows/ci.yml (single workflow; also has keep-alive.yml which is unrelated):
+- Triggers: push to main, tags firmdesk-desktop-v*, PRs (lines 3–7).
+- desktop-build job (lines 75–162, runs-on: windows-latest, needs frontend):
+- On main pushes: npm run build:desktop + cargo build --release --features custom-protocol (compile check only, no bundling) with VITE_API_BASE_URL from vars.DESKTOP_API_BASE_URL defaulting to https://api.jvaccounting.in/api/v1 (lines 103–119); portable exe uploaded as artifact.
+- On firmdesk-desktop-v* tags (canonical repo only, line 126): tauri-apps/tauri-action@v0 producing NSIS + signed updater manifest as a draft release (124–148), plus a portable exe asset (152–162).
+- Secrets needed: GITHUB_TOKEN, TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD (lines 136–137). Per docs/DESKTOP_AGENT_RUNBOOK.md:96–116, the signing keypair is already generated and the secrets are set on both repos — the updater key ceremony is marked DONE (2026-09-10).
+- The frontend job (34–73) runs typecheck/lint/test/build in a web + desktop shell matrix (VITE_APP_SHELL env, lines 44–46) with bundle-isolation greps.
+- The backend job (17–32) runs npm run verify, which includes the desktopGoogleHandoff.test.ts integration suite (with dummy Google creds injected by tests/setup.ts).
+Verdict
+DONE (all code paths implemented and tested)
+1. Backend handoff — /desktop/google/start|complete|exchange with one-time SHA-256-hashed keys, 5-min TTL, atomic consumption, session + user re-validation, signed cookie + Bearer issuance. Integration-tested end to end, including replay, expiry, deactivation, and origin enforcement.
+2. better-auth Google config — conditionally registered, account linking, skipStateCookieCheck with a documented rationale, trustedOrigins/CORS hardcoded for tauri://localhost / http(s)://tauri.localhost in both Express CORS and better-auth.
+3. Bearer support — resolveSession maps Authorization: Bearer to the session cookie; frontend fetch wrapper sends it; exchange stores it.
+4. Frontend desktop flow — start/open-external/parse/park/exchange, warm + cold-start deep-link handling, unit + integration coverage; opener capability scoped to Google domains only.
+5. Tauri shell — deep-link scheme registered (incl. dev register_all()), events forwarded verbatim, keychain snapshot (email only), OS-lock, single-instance.
+6. CI — desktop build matrix + signed release pipeline; updater signing ceremony complete.
+7. Local dev — real Google credentials present in backend/.env; flow is fully ON locally.
+MISSING / gated off
+1. Production (Render) Google env vars are not documented/confirmed — render.yaml's required-env comment omits GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET. If unset in the Render dashboard, googleOAuthConfigured is false in prod and /desktop/google/start fails with "Google sign-in is not configured on this FirmDesk deployment." This is the only real OFF-switch in the system.
+2. Google Cloud Console redirect URI for prod must exist: https://<prod-api-origin>/api/auth/callback/google (documented in .env.example but deployment-dependent).
+3. Minor design note (not a gap per se): the Bearer session token lives in WebView localStorage (firmdesk_session_token), not the OS keychain — the keychain is used only for the email snapshot. That's the deliberate design from commit a5787af, but worth knowing if hardening later.
+4. Note: frontend/.env lacks VITE_APP_SHELL, so plain npm run dev is a web shell; desktop requires desktop:dev / build:desktop (by design, not a defect).
+Actual remaining work to "turn it on"
+1. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET together (env.ts hard-fails on partial) in the Render dashboard for firmdesk-api.
+2. Verify/add the Google Cloud Console authorized redirect URI for the production API origin (https://api.jvaccounting.in/api/auth/callback/google per .env.desktop.example's API base).
+3. Confirm prod CORS_ORIGINS includes the web origin (Tauri origins are already hardcoded in both CORS layers, so nothing extra needed for the desktop origin).
+4. No frontend flag needs flipping; no code changes are required — the whole desktop handoff is code-complete and green in CI. Optionally update render.yaml's comment to list the GOOGLE_* pair so future deploys don't silently drop it.

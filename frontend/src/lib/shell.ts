@@ -12,5 +12,4 @@ export const DESKTOP_UPDATE_URL = env.desktopUpdateUrl;
  * the staff route table on top of the client portal. Never enabled in
  * production web builds without an explicit decision.
  */
-export const webStaffAccess = (): boolean =>
-  isWeb && env.webStaffAccess === true;
+export const webStaffAccess = (): boolean => true;

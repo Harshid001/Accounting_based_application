@@ -102,14 +102,18 @@ describe(`shell isolation (${SHELL} build)`, () => {
       expect((await screen.findAllByText(/hello|overview|compliance|documents/i)).length).toBeGreaterThan(0);
     });
 
-    it('shows the desktop-required interstitial for an admin session instead of staff routes', async () => {
+    it('serves the staff dashboard for an admin session on web', async () => {
       await renderAppAt('/dashboard', 'admin');
-      expect(await screen.findByText(/desktop-only/i)).toBeTruthy();
+      await waitFor(() => {
+        expect(screen.queryAllByText(/dashboard|workload|filings|due/i).length).toBeGreaterThan(0);
+      });
     });
 
-    it('shows the desktop-required interstitial for a staff session', async () => {
+    it('serves the clients view for a staff session on web', async () => {
       await renderAppAt('/clients', 'staff');
-      expect(await screen.findByText(/desktop-only/i)).toBeTruthy();
+      await waitFor(() => {
+        expect(screen.queryAllByText(/clients|records|search/i).length).toBeGreaterThan(0);
+      });
     });
 
     it('keeps client-only auth flows (sign-up) available', async () => {

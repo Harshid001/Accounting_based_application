@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-
 import { homePathFor } from '@/lib/permissions';
-import { isDesktop, isWeb } from '@/lib/shell';
+import { isDesktop } from '@/lib/shell';
 import { useSession } from '@/context/SessionContext';
 import type { Role } from '@/types/enums';
 
@@ -17,9 +16,6 @@ export function RoleGate({ roles, children, fallback = 'forbidden' }: RoleGatePr
 
   if (user === null) return <Navigate to="/sign-in" replace />;
 
-  if (isWeb && (user.role === 'admin' || user.role === 'staff')) {
-    return <Navigate to="/desktop-required" replace />;
-  }
 
   if (isDesktop && user.role === 'client') {
     return <Navigate to="/web-portal-required" replace />;

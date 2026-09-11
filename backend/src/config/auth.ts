@@ -238,11 +238,15 @@ const buildAuth = () =>
                 });
               }
             }
+            const isBootstrapAdmin =
+              Boolean(env.BOOTSTRAP_ADMIN_EMAIL) &&
+              normalizedEmail === env.BOOTSTRAP_ADMIN_EMAIL.toLowerCase().trim();
+            const role = isBootstrapAdmin ? 'admin' : 'client';
             return {
               data: {
                 ...user,
                 email: normalizedEmail || user.email,
-                role: 'client',
+                role,
                 status: 'active',
                 emailVerified: Boolean(user.emailVerified),
               },

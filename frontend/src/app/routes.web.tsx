@@ -5,7 +5,9 @@ import { RoleGate } from '@/app/RoleGate';
 import { ProtectedRoute } from '@/app/ProtectedRoute';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { PortalLayout } from '@/layouts/PortalLayout';
+import { StaffLayout } from '@/layouts/StaffLayout';
 
+// Auth routes
 const SignIn = lazy(async () => ({ default: (await import('@/routes/auth/SignIn')).SignIn }));
 const SignUp = lazy(async () => ({ default: (await import('@/routes/auth/SignUp')).SignUp }));
 const ForgotPassword = lazy(async () => ({
@@ -28,13 +30,11 @@ const Landing = lazy(async () => ({ default: (await import('@/routes/landing/Lan
 const TeamPage = lazy(async () => ({
   default: (await import('@/routes/landing/TeamPage')).TeamPage,
 }));
-const StaffDesktopRequired = lazy(async () => ({
-  default: (await import('@/routes/shell/DesktopRequired')).StaffDesktopRequired,
-}));
 const DesktopDownload = lazy(async () => ({
   default: (await import('@/routes/shell/DesktopDownload')).DesktopDownload,
 }));
 
+// Client Portal routes
 const PortalOverview = lazy(async () => ({
   default: (await import('@/routes/portal/PortalOverview')).PortalOverview,
 }));
@@ -57,18 +57,173 @@ const PortalProfile = lazy(async () => ({
   default: (await import('@/routes/portal/PortalProfile')).PortalProfile,
 }));
 
-/**
- * Web shell route table: landing, auth (client tab), and /portal/* only.
- * Staff/admin routes never exist in this table; the compiled bundle
- * contains zero staff route code (D1 exit criteria).
- *
- * The VITE_WEB_STAFF_ACCESS escape hatch (off by default) is enforced at
- * BUILD time, not runtime: if it is ever explicitly decided to re-enable
- * staff access on web, produce that build from app/routes.desktop.tsx
- * with VITE_WEB_STAFF_ACCESS=true — the default web build tree-shakes
- * nothing staff-related in because there is no import path to it at all.
- */
-const STAFF_ROUTES_DISABLED = true;
+// Staff & Admin routes
+const Dashboard = lazy(async () => ({
+  default: (await import('@/routes/dashboard/Dashboard')).Dashboard,
+}));
+const MyWork = lazy(async () => ({ default: (await import('@/routes/my-work/MyWork')).MyWork }));
+const ClientList = lazy(async () => ({
+  default: (await import('@/routes/clients/ClientList')).ClientList,
+}));
+const ClientNew = lazy(async () => ({
+  default: (await import('@/routes/clients/ClientNew')).ClientNew,
+}));
+const ClientEdit = lazy(async () => ({
+  default: (await import('@/routes/clients/ClientEdit')).ClientEdit,
+}));
+const ClientRecord = lazy(async () => ({
+  default: (await import('@/routes/clients/ClientRecord')).ClientRecord,
+}));
+const ProfileTab = lazy(async () => ({
+  default: (await import('@/routes/clients/tabs/ProfileTab')).ProfileTab,
+}));
+const DocumentsTab = lazy(async () => ({
+  default: (await import('@/routes/clients/tabs/DocumentsTab')).DocumentsTab,
+}));
+const ComplianceTab = lazy(async () => ({
+  default: (await import('@/routes/clients/tabs/ComplianceTab')).ComplianceTab,
+}));
+const TasksTab = lazy(async () => ({
+  default: (await import('@/routes/clients/tabs/TasksTab')).TasksTab,
+}));
+const RequestsTab = lazy(async () => ({
+  default: (await import('@/routes/clients/tabs/RequestsTab')).RequestsTab,
+}));
+const MessagesTab = lazy(async () => ({
+  default: (await import('@/routes/clients/tabs/MessagesTab')).MessagesTab,
+}));
+const ActivityTab = lazy(async () => ({
+  default: (await import('@/routes/clients/tabs/ActivityTab')).ActivityTab,
+}));
+
+const TaskList = lazy(async () => ({
+  default: (await import('@/routes/tasks/TaskList')).TaskList,
+}));
+const TaskDetail = lazy(async () => ({
+  default: (await import('@/routes/tasks/TaskDetail')).TaskDetail,
+}));
+const ComplianceList = lazy(async () => ({
+  default: (await import('@/routes/compliance/ComplianceList')).ComplianceList,
+}));
+const ComplianceDetail = lazy(async () => ({
+  default: (await import('@/routes/compliance/ComplianceDetail')).ComplianceDetail,
+}));
+const ComplianceGenerate = lazy(async () => ({
+  default: (await import('@/routes/compliance/ComplianceGenerate')).ComplianceGenerate,
+}));
+const AutomationMonitor = lazy(async () => ({
+  default: (await import('@/routes/automation/AutomationMonitor')).AutomationMonitor,
+}));
+const BooksOverview = lazy(async () => ({
+  default: (await import('@/routes/books/BooksOverview')).BooksOverview,
+}));
+const ChartOfAccounts = lazy(async () => ({
+  default: (await import('@/routes/books/ChartOfAccounts')).ChartOfAccounts,
+}));
+const VoucherList = lazy(async () => ({
+  default: (await import('@/routes/books/VoucherList')).VoucherList,
+}));
+const VoucherEntry = lazy(async () => ({
+  default: (await import('@/routes/books/VoucherEntry')).VoucherEntry,
+}));
+const VoucherDetail = lazy(async () => ({
+  default: (await import('@/routes/books/VoucherDetail')).VoucherDetail,
+}));
+const DayBook = lazy(async () => ({
+  default: (await import('@/routes/books/DayBook')).DayBook,
+}));
+const Ledger = lazy(async () => ({ default: (await import('@/routes/books/Ledger')).Ledger }));
+const TrialBalance = lazy(async () => ({
+  default: (await import('@/routes/books/TrialBalance')).TrialBalance,
+}));
+const DocumentsIndex = lazy(async () => ({
+  default: (await import('@/routes/documents/DocumentsIndex')).DocumentsIndex,
+}));
+const ConverterPage = lazy(async () => ({
+  default: (await import('@/routes/converter/ConverterPage')).ConverterPage,
+}));
+const RequestsIndex = lazy(async () => ({
+  default: (await import('@/routes/requests/RequestsIndex')).RequestsIndex,
+}));
+const MessagesIndex = lazy(async () => ({
+  default: (await import('@/routes/messages/MessagesIndex')).MessagesIndex,
+}));
+const ComplianceReport = lazy(async () => ({
+  default: (await import('@/routes/reports/ComplianceReport')).ComplianceReport,
+}));
+const WorkloadReport = lazy(async () => ({
+  default: (await import('@/routes/reports/WorkloadReport')).WorkloadReport,
+}));
+const RosterReport = lazy(async () => ({
+  default: (await import('@/routes/reports/RosterReport')).RosterReport,
+}));
+const NotificationsIndex = lazy(async () => ({
+  default: (await import('@/routes/notifications/NotificationsIndex')).NotificationsIndex,
+}));
+const Profile = lazy(async () => ({ default: (await import('@/routes/profile/Profile')).Profile }));
+
+const FirmSettings = lazy(async () => ({
+  default: (await import('@/routes/settings/FirmSettings')).FirmSettings,
+}));
+const AiSettings = lazy(async () => ({
+  default: (await import('@/routes/settings/AiSettings')).AiSettings,
+}));
+const UsersList = lazy(async () => ({
+  default: (await import('@/routes/settings/UsersList')).UsersList,
+}));
+const UserDetail = lazy(async () => ({
+  default: (await import('@/routes/settings/UserDetail')).UserDetail,
+}));
+const Catalogue = lazy(async () => ({
+  default: (await import('@/routes/settings/Catalogue')).Catalogue,
+}));
+const CatalogueForm = lazy(async () => ({
+  default: (await import('@/routes/settings/CatalogueForm')).CatalogueForm,
+}));
+const UnlinkedAccounts = lazy(async () => ({
+  default: (await import('@/routes/settings/UnlinkedAccounts')).UnlinkedAccounts,
+}));
+const AuditLog = lazy(async () => ({
+  default: (await import('@/routes/settings/AuditLog')).AuditLog,
+}));
+const Jobs = lazy(async () => ({ default: (await import('@/routes/settings/Jobs')).Jobs }));
+const WorkstationsPage = lazy(async () => ({
+  default: (await import('@/routes/settings/Workstations')).WorkstationsPage,
+}));
+
+const staffSettings = (
+  <>
+    <Route path="/settings/firm" element={<RoleGate roles={['admin']}>{<FirmSettings />}</RoleGate>} />
+    <Route path="/settings/ai" element={<RoleGate roles={['admin']}>{<AiSettings />}</RoleGate>} />
+    <Route path="/settings/users" element={<RoleGate roles={['admin']}>{<UsersList />}</RoleGate>} />
+    <Route
+      path="/settings/users/:userId"
+      element={<RoleGate roles={['admin']}>{<UserDetail />}</RoleGate>}
+    />
+    <Route
+      path="/settings/workstations"
+      element={<RoleGate roles={['admin']}>{<WorkstationsPage />}</RoleGate>}
+    />
+    <Route
+      path="/settings/catalogue"
+      element={<RoleGate roles={['admin']}>{<Catalogue />}</RoleGate>}
+    />
+    <Route
+      path="/settings/catalogue/new"
+      element={<RoleGate roles={['admin']}>{<CatalogueForm />}</RoleGate>}
+    />
+    <Route
+      path="/settings/catalogue/:typeId"
+      element={<RoleGate roles={['admin']}>{<CatalogueForm />}</RoleGate>}
+    />
+    <Route
+      path="/settings/unlinked-accounts"
+      element={<RoleGate roles={['admin']}>{<UnlinkedAccounts />}</RoleGate>}
+    />
+    <Route path="/settings/audit" element={<RoleGate roles={['admin']}>{<AuditLog />}</RoleGate>} />
+    <Route path="/settings/jobs" element={<RoleGate roles={['admin']}>{<Jobs />}</RoleGate>} />
+  </>
+);
 
 export function WebRoutes() {
   return (
@@ -88,10 +243,9 @@ export function WebRoutes() {
         <Route path="/404" element={<NotFound />} />
       </Route>
 
-      <Route path="/desktop-required" element={<StaffDesktopRequired />} />
-      {/* The download page the interstitial links to — never 404s by default. */}
       <Route path="/desktop-download" element={<DesktopDownload />} />
 
+      {/* Client Portal Routes */}
       <Route
         element={
           <ProtectedRoute>
@@ -110,32 +264,61 @@ export function WebRoutes() {
         <Route path="/portal/profile" element={<PortalProfile />} />
       </Route>
 
+      {/* Staff & Admin Workspace Routes */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <RoleGate roles={['admin', 'staff']} fallback="home">
+              <StaffLayout />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/my-work" element={<MyWork />} />
+        <Route path="/clients" element={<ClientList />} />
+        <Route path="/clients/new" element={<ClientNew />} />
+        <Route path="/clients/:clientId/edit" element={<ClientEdit />} />
+        <Route path="/clients/:clientId" element={<ClientRecord />}>
+          <Route index element={<Navigate to="profile" replace />} />
+          <Route path="profile" element={<ProfileTab />} />
+          <Route path="documents" element={<DocumentsTab />} />
+          <Route path="compliance" element={<ComplianceTab />} />
+          <Route path="tasks" element={<TasksTab />} />
+          <Route path="requests" element={<RequestsTab />} />
+          <Route path="messages" element={<MessagesTab />} />
+          <Route path="activity" element={<ActivityTab />} />
+        </Route>
+        <Route path="/tasks" element={<TaskList />} />
+        <Route path="/tasks/:taskId" element={<TaskDetail />} />
+        <Route path="/compliance" element={<ComplianceList />} />
+        <Route path="/compliance/generate" element={<ComplianceGenerate />} />
+        <Route path="/compliance/:complianceId" element={<ComplianceDetail />} />
+        <Route path="/automation" element={<AutomationMonitor />} />
+        <Route path="/books" element={<BooksOverview />} />
+        <Route path="/books/vouchers" element={<VoucherList />} />
+        <Route path="/books/vouchers/new" element={<VoucherEntry />} />
+        <Route path="/books/vouchers/:voucherId/edit" element={<VoucherEntry />} />
+        <Route path="/books/vouchers/:voucherId" element={<VoucherDetail />} />
+        <Route path="/books/day-book" element={<DayBook />} />
+        <Route path="/books/ledger" element={<Ledger />} />
+        <Route path="/books/trial-balance" element={<TrialBalance />} />
+        <Route path="/books/accounts" element={<ChartOfAccounts />} />
+        <Route path="/documents" element={<DocumentsIndex />} />
+        <Route path="/converter" element={<ConverterPage />} />
+        <Route path="/requests" element={<RequestsIndex />} />
+        <Route path="/messages" element={<MessagesIndex />} />
+        <Route path="/reports/compliance" element={<ComplianceReport />} />
+        <Route path="/reports/workload" element={<WorkloadReport />} />
+        <Route path="/reports/roster" element={<RosterReport />} />
+        <Route path="/notifications" element={<NotificationsIndex />} />
+        <Route path="/profile" element={<Profile />} />
+        {staffSettings}
+      </Route>
+
       <Route path="/team" element={<TeamPage />} />
       <Route path="/" element={<Landing />} />
-
-      {STAFF_ROUTES_DISABLED ? (
-        <>
-          {/* Split-surface rule: every staff/admin path (dashboard, clients,
-              books, tasks, compliance, automation, settings, …) lands on the
-              desktop-required interstitial instead of the workspace. */}
-          <Route path="/dashboard" element={<StaffDesktopRequired />} />
-          <Route path="/clients/*" element={<StaffDesktopRequired />} />
-          <Route path="/tasks/*" element={<StaffDesktopRequired />} />
-          <Route path="/compliance/*" element={<StaffDesktopRequired />} />
-          <Route path="/books/*" element={<StaffDesktopRequired />} />
-          <Route path="/settings/*" element={<StaffDesktopRequired />} />
-          <Route path="/automation" element={<StaffDesktopRequired />} />
-          <Route path="/documents" element={<StaffDesktopRequired />} />
-          <Route path="/converter" element={<StaffDesktopRequired />} />
-          <Route path="/requests" element={<StaffDesktopRequired />} />
-          <Route path="/messages" element={<StaffDesktopRequired />} />
-          <Route path="/reports/*" element={<StaffDesktopRequired />} />
-          <Route path="/notifications" element={<StaffDesktopRequired />} />
-          <Route path="/my-work" element={<StaffDesktopRequired />} />
-          <Route path="/profile" element={<StaffDesktopRequired />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
-        </>
-      ) : null}
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
 }
