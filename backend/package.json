@@ -21,6 +21,7 @@
     "indexes": "tsx scripts/0001-create-indexes.ts",
     "reencrypt": "tsx scripts/0002-reencrypt-fields.ts",
     "verify-user": "tsx scripts/verify-user.ts",
+    "set-admin-credential": "tsx scripts/set-admin-credential.ts",
     "cleanup-test-accounts": "tsx scripts/cleanup-test-accounts.ts",
     "prepare": "git config core.hooksPath .githooks || true",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
