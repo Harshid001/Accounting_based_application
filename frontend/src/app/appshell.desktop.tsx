@@ -8,8 +8,6 @@ import {
   clearSessionSnapshot,
 } from '@/lib/sessionSnapshot';
 import { writeSignInHint, clearSignInHint } from '@/lib/signInHint';
-import { isDesktopBridgeAvailable, onDeepLink } from '@/lib/desktopBridge';
-import { parkPendingAuthKey } from '@/lib/desktopAuthDeepLink';
 
 /**
  * Desktop shell: routes + the phase-2 session snapshot. No PWA prompt —
@@ -58,34 +56,11 @@ function SignInHintLoader() {
   return null;
 }
 
-function DeepLinkReceiver() {
-  useEffect(() => {
-    if (!isDesktopBridgeAvailable()) return;
-
-    // Cold-start link: the plugin's current state is delivered before any
-    // route mounted its own listener.
-    void import('@/lib/desktopBridge').then(async ({ currentDeepLink }) => {
-      const url = await currentDeepLink();
-      if (url === null) return;
-      parkPendingAuthKey(url);
-    });
-
-    // Warm handoff while the sign-in screen is not mounted: park the key the
-    // same way. When the sign-in screen IS mounted it listens directly and
-    // consumes the key first (one-time, server-enforced).
-    const stop = onDeepLink(parkPendingAuthKey);
-    return stop;
-  }, []);
-
-  return null;
-}
-
 export function AppShell() {
   return (
     <>
       <SignInHintLoader />
       <SessionSnapshotWatcher />
-      <DeepLinkReceiver />
       <AppRoutes />
     </>
   );

@@ -1,15 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, ShieldCheck } from 'lucide-react';
 
-import {
-  completeDesktopGoogleHandoff,
-  signInWithEmail,
-  signInWithGoogle,
-  startDesktopGoogleSignIn,
-} from '@/api/authClient';
+import { signInWithEmail, signInWithGoogle } from '@/api/authClient';
 import { AuthCard, GoogleMark } from '@/routes/auth/components/AuthCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,14 +12,9 @@ import { FormField } from '@/components/ui/form-field';
 import { InlineError } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { useSession } from '@/context/SessionContext';
-import { isDesktopBridgeAvailable, onDeepLink } from '@/lib/desktopBridge';
 import { normaliseError } from '@/lib/errors';
-import {
-  consumePendingAuthDeepLink,
-  parseAuthDeepLink,
-} from '@/lib/desktopAuthDeepLink';
 import { homePathFor } from '@/lib/permissions';
-import { readSignInHint, writeSignInHint } from '@/lib/signInHint';
+import { readSignInHint } from '@/lib/signInHint';
 import { isDesktop, isWeb, webStaffAccess } from '@/lib/shell';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { signInSchema } from '@/schemas/auth.schema';
@@ -73,56 +63,6 @@ export function SignIn() {
     defaultValues: { email: rememberedEmail ?? '', password: '', rememberMe: true },
   });
 
-  // Desktop Google sign-in: the system-browser handoff. The deep link
-  // (firmdesk://auth-complete?key=...) may arrive while this screen is
-  // mounted — including cold-start links queued before the listener
-  // attached. The key is exchanged exactly once, server-validated.
-  // Defined before the early returns below so hook order stays stable.
-  const finishDesktopHandoff = useCallback(
-    async (key: string) => {
-      setFormError(null);
-      setGoogleBusy(true);
-      try {
-        const authedUser = await completeDesktopGoogleHandoff(key);
-        writeSignInHint(authedUser.email);
-        await refresh();
-        const intended = safeRedirect((location.state as { from?: unknown } | null)?.from);
-        void navigate(intended ?? '/dashboard', { replace: true });
-      } catch (error) {
-        setFormError(normaliseError(error).message);
-      } finally {
-        setGoogleBusy(false);
-      }
-    },
-    [location.state, navigate, refresh],
-  );
-
-  useEffect(() => {
-    if (!isDesktop || !isDesktopBridgeAvailable()) return () => undefined;
-    return onDeepLink((url) => {
-      const link = parseAuthDeepLink(url);
-      if (link === null) return;
-      void finishDesktopHandoff(link.key);
-    });
-  }, [finishDesktopHandoff]);
-
-  // Cold start: the app was launched by the firmdesk://auth-complete deep
-  // link before this screen mounted — the shell parked the key for us.
-  // Microtask-deferred so setGoogleBusy inside never runs synchronously
-  // during the effect body.
-  useEffect(() => {
-    if (!isDesktop || !isDesktopBridgeAvailable()) return;
-    const pending = consumePendingAuthDeepLink();
-    if (pending === null) return;
-    const cancelled = { current: false };
-    queueMicrotask(() => {
-      if (!cancelled.current) void finishDesktopHandoff(pending);
-    });
-    return () => {
-      cancelled.current = true;
-    };
-  }, [finishDesktopHandoff]);
-
   if (status === 'authenticated' && user !== null) {
     if (isWeb && !webStaffAccess() && (user.role === 'admin' || user.role === 'staff')) {
       return <Navigate to="/desktop-required" replace />;
@@ -149,30 +89,7 @@ export function SignIn() {
 
   const google = (): void => {
     setFormError(null);
-
-    // Desktop shell: real OAuth through the system browser. The app opens
-    // Google's consent page externally; the session comes back through the
-    // firmdesk:// deep link + one-time key exchange. Nothing is signed in
-    // until Google actually validates the account.
-    if (isDesktop) {
-      if (!isDesktopBridgeAvailable()) {
-        setFormError('Google sign-in needs the FirmDesk desktop app. Use email and password instead.');
-        return;
-      }
-      setGoogleBusy(true);
-      void (async () => {
-        try {
-          const consentUrl = await startDesktopGoogleSignIn();
-          const { openExternalUrl } = await import('@/lib/desktopBridge');
-          await openExternalUrl(consentUrl);
-          // Stay busy until the deep link lands (or the user retries).
-        } catch (error) {
-          setFormError(normaliseError(error).message);
-          setGoogleBusy(false);
-        }
-      })();
-      return;
-    }
+    if (isDesktop) return;
 
     // Web shell (client portal + staff tab): the standard better-auth
     // redirect flow in this browser.
@@ -320,8 +237,7 @@ export function SignIn() {
   const adminFooter = (
     <div className="space-y-2 text-xs text-[var(--fd-text-secondary)]">
       <p className="text-2xs text-[var(--fd-text-tertiary)]">
-        Internal access is restricted to authorized practice personnel using the FirmDesk desktop
-        app.
+        Internal access is restricted to authorized practice personnel. Sign in with your practice credentials.
       </p>
     </div>
   );
@@ -422,23 +338,27 @@ export function SignIn() {
         </Button>
       </form>
 
-      <div className="my-4 flex items-center gap-3">
-        <span className="h-px flex-1 bg-[var(--fd-border-subtle)]" aria-hidden="true" />
-        <span className="text-2xs text-[var(--fd-text-tertiary)] uppercase">or</span>
-        <span className="h-px flex-1 bg-[var(--fd-border-subtle)]" aria-hidden="true" />
-      </div>
+      {!isDesktop && (
+        <>
+          <div className="my-4 flex items-center gap-3">
+            <span className="h-px flex-1 bg-[var(--fd-border-subtle)]" aria-hidden="true" />
+            <span className="text-2xs text-[var(--fd-text-tertiary)] uppercase">or</span>
+            <span className="h-px flex-1 bg-[var(--fd-border-subtle)]" aria-hidden="true" />
+          </div>
 
-      <Button
-        variant="secondary"
-        size="lg"
-        className="w-full"
-        loading={googleBusy}
-        loadingLabel="Opening Google..."
-        iconLeft={<GoogleMark />}
-        onClick={google}
-      >
-        {googleLabel}
-      </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            className="w-full"
+            loading={googleBusy}
+            loadingLabel="Opening Google..."
+            iconLeft={<GoogleMark />}
+            onClick={google}
+          >
+            {googleLabel}
+          </Button>
+        </>
+      )}
     </AuthCard>
   );
 }

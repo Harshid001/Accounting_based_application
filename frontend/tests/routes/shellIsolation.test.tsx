@@ -122,6 +122,13 @@ describe(`shell isolation (${SHELL} build)`, () => {
         await screen.findByRole('button', { name: /create account|sign ?up|register|start/i }),
       ).toBeTruthy();
     });
+
+    it('displays Google sign-in button in web shell', async () => {
+      await renderAppAt('/sign-in', null);
+      expect(
+        await screen.findByRole('button', { name: /continue with google/i }, { timeout: 10000 }),
+      ).toBeTruthy();
+    });
   }
 
   if (SHELL === 'desktop') {
@@ -129,6 +136,12 @@ describe(`shell isolation (${SHELL} build)`, () => {
       await renderAppAt('/', null);
       expect(await screen.findByRole('button', { name: /staff & admin/i }, { timeout: 10000 })).toBeTruthy();
       expect(screen.queryByRole('button', { name: /client portal/i })).not.toBeInTheDocument();
+    });
+
+    it('does not display Google sign-in in desktop shell', async () => {
+      await renderAppAt('/sign-in', null);
+      expect(await screen.findByRole('button', { name: /staff & admin/i }, { timeout: 10000 })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /google/i })).not.toBeInTheDocument();
     });
 
     it('shows the web-portal-required screen for a client session', async () => {
