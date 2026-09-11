@@ -114,7 +114,17 @@ const buildAuth = () =>
         trustedProviders: ['google'],
       },
     },
-    trustedOrigins: [...new Set([...env.CORS_ORIGINS, env.APP_BASE_URL, env.BETTER_AUTH_URL])],
+    trustedOrigins: [
+      ...new Set([
+        ...env.CORS_ORIGINS,
+        env.APP_BASE_URL,
+        env.BETTER_AUTH_URL,
+        'tauri://localhost',
+        'http://tauri.localhost',
+        'https://tauri.localhost',
+        'http://localhost:5174',
+      ]),
+    ],
     rateLimit: { enabled: false },
     emailAndPassword: {
       enabled: true,

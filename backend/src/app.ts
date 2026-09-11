@@ -48,14 +48,25 @@ export const createApp = (): Express => {
   app.use(compression());
   app.use(requestContext);
 
+  const isAllowedOrigin = (origin: string): boolean => {
+    if (env.CORS_ORIGINS.includes(origin)) return true;
+    if (
+      origin === 'tauri://localhost' ||
+      origin === 'http://tauri.localhost' ||
+      origin === 'https://tauri.localhost'
+    ) {
+      return true;
+    }
+    if (!isProduction && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+      return true;
+    }
+    return false;
+  };
+
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (origin === undefined) {
-          callback(null, true);
-          return;
-        }
-        if (env.CORS_ORIGINS.includes(origin)) {
+        if (origin === undefined || isAllowedOrigin(origin)) {
           callback(null, true);
           return;
         }
@@ -63,7 +74,13 @@ export const createApp = (): Express => {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-Active-Client'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Request-Id',
+        'X-Active-Client',
+        'X-FirmDesk-Shell',
+      ],
       exposedHeaders: ['X-Request-Id', 'Retry-After'],
       maxAge: 600,
     }),
