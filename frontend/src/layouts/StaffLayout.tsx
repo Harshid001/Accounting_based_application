@@ -7,12 +7,12 @@ import { Spinner } from '@/components/ui/skeleton';
 import { MobileDrawer } from '@/layouts/components/MobileDrawer';
 import { Sidebar } from '@/layouts/components/Sidebar';
 import { Topbar } from '@/layouts/components/Topbar';
-import { AiChatSidebar } from '@/components/domain/AiChatDropdown';
 import { DesktopShellGate } from '@/layouts/components/DesktopShellGate';
 import { SIDEBAR_STORAGE_KEY } from '@/lib/constants';
 import { useHotkey } from '@/hooks/useHotkey';
 import { useFeatureGuide } from '@/context/FeatureGuideContext';
 import type { AttachedImageData } from '@/context/AiChatContext';
+import { cn } from '@/lib/cn';
 
 const readCollapsed = (): boolean => {
   try {
@@ -29,6 +29,11 @@ export function StaffLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteInitialImage, setPaletteInitialImage] = useState<AttachedImageData | null>(null);
   const { openGuide, isGuideOpen, closeGuide } = useFeatureGuide();
+
+  const isAgentRoute =
+    location.pathname.startsWith('/agent') ||
+    location.pathname === '/ai-agent' ||
+    location.pathname === '/copilot';
 
   useHotkey({ key: 'k', meta: true, allowInInput: true }, () => {
     setPaletteOpen(true);
@@ -100,7 +105,8 @@ export function StaffLayout() {
       <SkipLink />
       <DesktopShellGate />
 
-      <div className="hidden lg:block">
+      {/* Sidebar is accessed via the topbar hamburger drawer throughout the website, matching AI Copilot */}
+      <div className="hidden">
         <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
       </div>
 
@@ -130,9 +136,19 @@ export function StaffLayout() {
           <main
             id="main-content"
             tabIndex={-1}
-            className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 outline-none sm:px-6 transition-all duration-400 ease-in-out"
+            className={cn(
+              'min-h-0 min-w-0 flex-1 outline-none transition-all duration-400 ease-in-out',
+              isAgentRoute
+                ? 'overflow-hidden flex flex-col p-0'
+                : 'overflow-y-auto px-4 py-5 sm:px-6',
+            )}
           >
-            <div className="mx-auto w-full max-w-[1440px]">
+            <div
+              className={cn(
+                'mx-auto w-full',
+                isAgentRoute ? 'h-full flex-1 flex flex-col' : 'max-w-[1440px]',
+              )}
+            >
               <Suspense
                 fallback={
                   <div className="flex justify-center py-16">
@@ -140,14 +156,18 @@ export function StaffLayout() {
                   </div>
                 }
               >
-                <div key={location.pathname} className="page-transition">
+                <div
+                  key={location.pathname}
+                  className={cn(
+                    'page-transition',
+                    isAgentRoute && 'h-full flex-1 flex flex-col',
+                  )}
+                >
                   <Outlet />
                 </div>
               </Suspense>
             </div>
           </main>
-
-          <AiChatSidebar />
         </div>
       </div>
 

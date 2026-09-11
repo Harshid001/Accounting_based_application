@@ -44,6 +44,20 @@ const EMPTY_LIST: StubRoute[] = [
   { match: '/audit', data: [] },
   { match: '/jobs', data: [] },
   { match: '/me/sessions', data: [] },
+  {
+    match: '/ai/config',
+    data: {
+      provider: 'gemini',
+      enabled: true,
+      activeModel: 'gemini-2.5-flash',
+      gemini: { keySet: true, model: 'gemini-2.5-flash' },
+      openai: { keySet: false, model: '' },
+      custom: { keySet: false, model: '', baseUrl: '' },
+      hasKey: true,
+      source: 'env',
+      configuredAt: null,
+    },
+  },
 ];
 
 const RULES: axe.RunOptions = {
@@ -148,6 +162,7 @@ describe('accessibility smoke across the top-level routes', () => {
     '/reports/roster',
     '/notifications',
     '/profile',
+    '/agent',
   ];
   for (const route of staffRoutes) {
     it(`reports no violations on ${route}`, async () => {

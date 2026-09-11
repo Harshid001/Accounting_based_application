@@ -22,12 +22,36 @@ export const aiChatBody = z
       })
       .nullable()
       .optional(),
+    file: z
+      .object({
+        dataUrl: z.string().max(10_000_000),
+        name: z.string().max(300).optional(),
+        mimeType: z.string().max(100).optional(),
+        size: z.number().optional(),
+        category: z.string().max(50).optional(),
+      })
+      .nullable()
+      .optional(),
+    files: z
+      .array(
+        z.object({
+          dataUrl: z.string().max(10_000_000),
+          name: z.string().max(300).optional(),
+          mimeType: z.string().max(100).optional(),
+          size: z.number().optional(),
+          category: z.string().max(50).optional(),
+        }),
+      )
+      .max(10)
+      .optional(),
   })
   .refine(
     (data) =>
       (data.message !== undefined && data.message.trim().length > 0) ||
-      Boolean(data.image?.dataUrl),
-    { message: 'Provide either a message or an image.' },
+      Boolean(data.image?.dataUrl) ||
+      Boolean(data.file?.dataUrl) ||
+      Boolean(data.files && data.files.length > 0),
+    { message: 'Provide either a message, an image, or an attached file.' },
   );
 
 export type AiChatBody = z.infer<typeof aiChatBody>;

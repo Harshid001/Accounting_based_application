@@ -10,25 +10,25 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const BASE =
   'relative inline-flex items-center justify-center gap-2 rounded-md font-medium whitespace-nowrap ' +
-  'transition-colors duration-[var(--fd-duration-fast)] focus-visible:outline-2 ' +
-  'focus-visible:outline-offset-2 focus-visible:outline-[var(--fd-focus-ring)] ' +
-  'disabled:cursor-not-allowed disabled:opacity-55';
+  'transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ' +
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fd-focus-ring)] ' +
+  'disabled:cursor-not-allowed disabled:opacity-55 disabled:active:scale-100';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
     'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] hover:bg-[var(--fd-accent-hover)] ' +
-    'hover:shadow-[0_8px_24px_-8px_rgba(255,106,0,0.45)] ' +
-    'active:brightness-95 disabled:hover:bg-[var(--fd-accent)] disabled:hover:shadow-none',
+    'hover:shadow-[0_8px_24px_-8px_rgba(255,106,0,0.45)] hover:-translate-y-0.5 ' +
+    'active:translate-y-0 active:brightness-95 disabled:hover:bg-[var(--fd-accent)] disabled:hover:shadow-none disabled:hover:translate-y-0',
   secondary:
     'border border-[var(--fd-border)] bg-[var(--fd-surface-2)] text-[var(--fd-text-primary)] ' +
-    'hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)] ' +
-    'active:bg-[var(--fd-surface-2)] active:border-[var(--fd-border)] active:text-[var(--fd-text-primary)]',
+    'hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)] hover:-translate-y-0.5 hover:shadow-xs ' +
+    'active:translate-y-0 active:bg-[var(--fd-surface-2)] active:border-[var(--fd-border)] active:text-[var(--fd-text-primary)] disabled:hover:translate-y-0 disabled:hover:shadow-none',
   ghost:
     'text-[var(--fd-text-secondary)] hover:bg-[var(--fd-surface-3)] ' +
     'hover:text-[var(--fd-text-primary)] active:bg-[var(--fd-surface-2)]',
   danger:
-    'bg-[var(--fd-status-danger)] text-[var(--fd-accent-contrast)] hover:brightness-110 ' +
-    'active:brightness-95',
+    'bg-[var(--fd-status-danger)] text-[var(--fd-accent-contrast)] hover:brightness-110 hover:-translate-y-0.5 hover:shadow-xs ' +
+    'active:translate-y-0 active:brightness-95 disabled:hover:translate-y-0',
   link:
     'text-[var(--fd-accent)] underline underline-offset-4 hover:text-[var(--fd-accent-hover)] ' +
     'px-0',

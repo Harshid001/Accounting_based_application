@@ -153,7 +153,7 @@ export function DataTable<Row>({
                       key={rowKey(row)}
                       className={cn(
                         rowHeight,
-                        'transition-colors hover:bg-[var(--fd-surface-3)]',
+                        'transition-colors duration-150 ease-out hover:bg-[var(--fd-surface-3)]',
                         onRowClick === undefined ? '' : 'cursor-pointer',
                       )}
                       onClick={
@@ -215,7 +215,7 @@ export function DataTable<Row>({
           rows.map((row) => (
             <div
               key={rowKey(row)}
-              className="rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-3"
+              className="rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-3 transition-all duration-150 hover:border-[var(--fd-border-strong)] hover:shadow-xs"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1 space-y-1.5">

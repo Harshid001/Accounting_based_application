@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import { sendAiChat } from '@/api/ai.api';
 import type { AttachedImageData } from '@/context/AiChatContext';
@@ -237,21 +237,49 @@ const renderMarkdown = (nodes: BlockNode[]): React.ReactNode => (
 /**
  * Topbar Trigger Button for the AI Copilot
  */
-export function AiChatTrigger({ className }: { className?: string }) {
+export interface AiChatTriggerProps {
+  className?: string;
+  to?: string | null;
+  onClick?: () => void;
+}
+
+export function AiChatTrigger({ className, to = '/agent', onClick }: AiChatTriggerProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isAiChatOpen, toggleAiChat } = useAiChat();
+
+  const isAgentPage =
+    location.pathname.startsWith('/agent') ||
+    location.pathname === '/copilot' ||
+    location.pathname === '/ai-agent';
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
+    if (to) {
+      navigate(to);
+      return;
+    }
+    toggleAiChat();
+  };
 
   return (
     <button
       type="button"
-      onClick={toggleAiChat}
-      aria-expanded={isAiChatOpen}
+      onClick={handleClick}
+      aria-current={isAgentPage ? 'page' : undefined}
+      aria-expanded={to ? undefined : isAiChatOpen}
       aria-label="FirmDesk AI Assistant Chat"
+      title="AI Copilot • Open Agent"
       className={cn(
         'group relative inline-flex h-9 items-center gap-2 rounded-lg px-2.5 sm:px-3 text-xs font-semibold shadow-2xs transition-all cursor-pointer',
         'border border-[var(--fd-accent)]/30 bg-gradient-to-r from-[var(--fd-accent)]/10 via-[#FF8A1F]/10 to-[#FFB15C]/10 hover:from-[var(--fd-accent)]/20 hover:via-[#FF8A1F]/20 hover:to-[#FFB15C]/20',
         'text-[var(--fd-text-primary)] hover:border-[var(--fd-accent)]/50 hover:shadow-xs',
         'focus-visible:outline-2 focus-visible:outline-[var(--fd-focus-ring)]',
-        isAiChatOpen && 'border-[var(--fd-accent)] bg-[var(--fd-accent)]/20 ring-2 ring-[var(--fd-accent)]/20',
+        (isAgentPage || (!to && isAiChatOpen)) &&
+          'border-[var(--fd-accent)] bg-[var(--fd-accent)]/20 ring-2 ring-[var(--fd-accent)]/20',
         className,
       )}
     >
@@ -1170,9 +1198,10 @@ export function AiChatSidebar({ className }: { className?: string }) {
 }
 
 function StandaloneAiChat({ standalone = true }: { standalone?: boolean }) {
+  const { toggleAiChat } = useAiChat();
   return (
     <>
-      <AiChatTrigger />
+      <AiChatTrigger to={null} onClick={toggleAiChat} />
       {standalone && <AiChatSidebar />}
     </>
   );

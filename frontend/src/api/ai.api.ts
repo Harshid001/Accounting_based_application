@@ -22,6 +22,20 @@ export interface AiChatRequest {
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
   currentRoute?: string | null;
   image?: { dataUrl: string; mimeType?: string } | null;
+  file?: {
+    dataUrl: string;
+    name?: string;
+    mimeType?: string;
+    size?: number;
+    category?: string;
+  } | null;
+  files?: Array<{
+    dataUrl: string;
+    name?: string;
+    mimeType?: string;
+    size?: number;
+    category?: string;
+  }> | null;
 }
 
 export const sendAiChat = (body: AiChatRequest): Promise<AiChatReply> =>

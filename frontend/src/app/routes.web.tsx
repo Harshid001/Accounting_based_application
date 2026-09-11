@@ -114,6 +114,9 @@ const ComplianceGenerate = lazy(async () => ({
 const AutomationMonitor = lazy(async () => ({
   default: (await import('@/routes/automation/AutomationMonitor')).AutomationMonitor,
 }));
+const AiAgentPage = lazy(async () => ({
+  default: (await import('@/routes/agent/AiAgentPage')).AiAgentPage,
+}));
 const BooksOverview = lazy(async () => ({
   default: (await import('@/routes/books/BooksOverview')).BooksOverview,
 }));
@@ -295,6 +298,9 @@ export function WebRoutes() {
         <Route path="/compliance/generate" element={<ComplianceGenerate />} />
         <Route path="/compliance/:complianceId" element={<ComplianceDetail />} />
         <Route path="/automation" element={<AutomationMonitor />} />
+        <Route path="/agent" element={<AiAgentPage />} />
+        <Route path="/ai-agent" element={<Navigate to="/agent" replace />} />
+        <Route path="/copilot" element={<Navigate to="/agent" replace />} />
         <Route path="/books" element={<BooksOverview />} />
         <Route path="/books/vouchers" element={<VoucherList />} />
         <Route path="/books/vouchers/new" element={<VoucherEntry />} />

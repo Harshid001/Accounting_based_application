@@ -176,16 +176,16 @@ export function Sidebar({ collapsed, onToggle, onNavigate, variant = 'fixed' }: 
               title={narrow ? t(entry.labelKey) : undefined}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-md px-2.5 py-2 text-base transition-colors',
+                  'group flex items-center gap-3 rounded-md px-2.5 py-2 text-base transition-all duration-150 ease-out',
                   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fd-focus-ring)]',
-                  narrow && 'justify-center px-0',
+                  narrow ? 'justify-center px-0' : 'hover:translate-x-1',
                   isActive
-                    ? 'bg-[var(--fd-accent-subtle-bg)] font-medium text-[var(--fd-accent)]'
+                    ? 'bg-[var(--fd-accent-subtle-bg)] font-medium text-[var(--fd-accent)] shadow-xs'
                     : 'text-[var(--fd-text-secondary)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]',
                 )
               }
             >
-              <span className="shrink-0">{entry.icon}</span>
+              <span className="shrink-0 transition-transform duration-150 group-hover:scale-110">{entry.icon}</span>
               {narrow ? (
                 <span className="sr-only">{t(entry.labelKey)}</span>
               ) : (

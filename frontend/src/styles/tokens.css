@@ -1,17 +1,17 @@
 :root,
 :root[data-theme='dark'] {
-  /* Warm obsidian neutral ramp (Tailwind neutral-* utilities) */
-  --fd-neutral-50: #fafaf8;
-  --fd-neutral-100: #f5f2ed;
-  --fd-neutral-200: #e8e4de;
-  --fd-neutral-300: #d4cfc7;
-  --fd-neutral-400: #a3a3a3;
+  /* ChatGPT Black theme neutral ramp */
+  --fd-neutral-50: #ffffff;
+  --fd-neutral-100: #ececec;
+  --fd-neutral-200: #d4d4d4;
+  --fd-neutral-300: #b4b4b4;
+  --fd-neutral-400: #8e8e8e;
   --fd-neutral-500: #737373;
   --fd-neutral-600: #525252;
   --fd-neutral-700: #3f3f3f;
-  --fd-neutral-800: #262626;
-  --fd-neutral-900: #171717;
-  --fd-neutral-950: #0a0a0a;
+  --fd-neutral-800: #2f2f2f;
+  --fd-neutral-900: #212121;
+  --fd-neutral-950: #000000;
 
   /* Burnt orange accent ramp (Tailwind accent-* utilities) */
   --fd-accent-50: #fff4eb;
@@ -26,44 +26,44 @@
   --fd-accent-900: #5c2800;
   --fd-accent-950: #331700;
 
-  /* Obsidian Black core surfaces */
-  --fd-bg: #0a0a0a;
+  /* ChatGPT Black theme core surfaces (Pure OLED Black & Charcoal) */
+  --fd-bg: #000000;
   --fd-surface-1: #171717;
-  --fd-surface-2: #111111;
-  --fd-surface-3: #222222;
-  --fd-border-subtle: #1f1f1f;
-  --fd-border: #262626;
-  --fd-border-strong: #3a3a3a;
-  --fd-text-primary: #f5f2ed;
-  --fd-text-secondary: #a3a3a3;
+  --fd-surface-2: #212121;
+  --fd-surface-3: #2f2f2f;
+  --fd-border-subtle: #212121;
+  --fd-border: #303030;
+  --fd-border-strong: #424242;
+  --fd-text-primary: #ececec;
+  --fd-text-secondary: #b4b4b4;
   --fd-text-tertiary: #737373;
   --fd-accent: #ff6a00;
   --fd-accent-hover: #ff8a1f;
-  --fd-accent-contrast: #0a0a0a;
+  --fd-accent-contrast: #000000;
   --fd-accent-subtle-bg: rgb(255 106 0 / 0.12);
   --fd-focus-ring: #ff8a1f;
 
-  --fd-status-neutral: #a3a3a3;
+  --fd-status-neutral: #b4b4b4;
   --fd-status-progress: #38bdf8;
   --fd-status-waiting: #fbbf24;
   --fd-status-review: #a78bfa;
   --fd-status-done: #34d399;
   --fd-status-confirmed: #2dd4bf;
-  --fd-status-muted: #64748b;
+  --fd-status-muted: #737373;
   --fd-status-danger: #fb7185;
 
-  --fd-status-neutral-bg: rgb(163 163 163 / 0.14);
+  --fd-status-neutral-bg: rgb(180 180 180 / 0.12);
   --fd-status-progress-bg: rgb(56 189 248 / 0.14);
   --fd-status-waiting-bg: rgb(251 191 36 / 0.14);
   --fd-status-review-bg: rgb(167 139 250 / 0.14);
   --fd-status-done-bg: rgb(52 211 153 / 0.14);
   --fd-status-confirmed-bg: rgb(45 212 191 / 0.14);
-  --fd-status-muted-bg: rgb(100 116 139 / 0.12);
+  --fd-status-muted-bg: rgb(115 115 115 / 0.14);
   --fd-status-danger-bg: rgb(251 113 133 / 0.14);
 
-  --fd-overlay: rgb(0 0 0 / 0.7);
-  --fd-shadow-overlay: 0 12px 32px rgb(0 0 0 / 0.55);
-  --fd-skeleton: rgb(255 255 255 / 0.05);
+  --fd-overlay: rgb(0 0 0 / 0.85);
+  --fd-shadow-overlay: 0 16px 40px rgb(0 0 0 / 0.75);
+  --fd-skeleton: rgb(255 255 255 / 0.06);
 
   color-scheme: dark;
 }

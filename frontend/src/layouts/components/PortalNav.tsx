@@ -62,13 +62,11 @@ export function PortalNav({ onOpenDrawer }: { onOpenDrawer: () => void }) {
     >
       <div className="mx-auto flex h-14 max-w-[1080px] items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <span className="md:hidden">
-            <IconButton
-              label="Open the navigation menu"
-              icon={<Menu size={17} aria-hidden="true" />}
-              onClick={onOpenDrawer}
-            />
-          </span>
+          <IconButton
+            label="Open navigation menu"
+            icon={<Menu size={18} aria-hidden="true" />}
+            onClick={onOpenDrawer}
+          />
           <span className="flex items-center gap-2 shrink-0">
             <JVLogo size="sm" />
             <span className="hidden sm:block truncate text-sm font-semibold text-[var(--fd-text-primary)] tracking-tight">JV Tax Consultancy</span>

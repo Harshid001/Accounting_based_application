@@ -385,8 +385,73 @@
   }
 }
 
-@utility overlay-fade-in {
-  animation: fd-fade-in 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+@keyframes fd-message-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility message-enter {
+  animation: fd-message-enter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fd-scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility scale-in {
+  animation: fd-scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fd-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility fade-up {
+  animation: fd-fade-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fd-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 106, 0, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 106, 0, 0);
+  }
+}
+
+@utility pulse-glow {
+  animation: fd-pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@utility hover-lift {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.25);
+  }
+  &:active {
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -397,7 +462,12 @@
   .overlay-fade-in,
   .ai-logo-processing,
   .ai-bot-thinking,
-  .ai-reply-processing {
+  .ai-reply-processing,
+  .message-enter,
+  .scale-in,
+  .fade-up,
+  .pulse-glow,
+  .hover-lift {
     animation: none !important;
     transition: none !important;
   }

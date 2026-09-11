@@ -54,9 +54,10 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       disabled={disabled === true || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-md transition-colors',
-        'duration-[var(--fd-duration-fast)] focus-visible:outline-2 focus-visible:outline-offset-2',
-        'focus-visible:outline-[var(--fd-focus-ring)] disabled:cursor-not-allowed disabled:opacity-55',
+        'inline-flex shrink-0 items-center justify-center rounded-md transition-all',
+        'duration-150 ease-out active:scale-90 hover:scale-105 cursor-pointer',
+        'disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:scale-100 disabled:active:scale-100',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fd-focus-ring)]',
         VARIANTS[variant],
         SIZES[size],
         className,
