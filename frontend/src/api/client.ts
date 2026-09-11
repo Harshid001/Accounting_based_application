@@ -4,6 +4,27 @@ import { ApiError, errorFromEnvelope, networkError } from '@/lib/errors';
 import type { ApiEnvelope, ApiListEnvelope, Paged, QueryParams, ResponseMeta } from '@/types/api';
 
 let activeClientId: string | null = null;
+const SESSION_TOKEN_KEY = 'firmdesk_session_token';
+
+export const getStoredSessionToken = (): string | null => {
+  try {
+    return localStorage.getItem(SESSION_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const setStoredSessionToken = (token: string | null): void => {
+  try {
+    if (token && token.length > 0) {
+      localStorage.setItem(SESSION_TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+    }
+  } catch {
+    // LocalStorage may be unavailable
+  }
+};
 
 export const setActiveClientHeader = (clientId: string | null): void => {
   activeClientId = clientId;
@@ -58,6 +79,10 @@ const headersFor = (options: RequestOptions): HeadersInit => {
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.skipActiveClient !== true && activeClientId !== null) {
     headers[ACTIVE_CLIENT_HEADER] = activeClientId;
+  }
+  const token = getStoredSessionToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
 };

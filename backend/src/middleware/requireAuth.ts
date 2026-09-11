@@ -54,8 +54,15 @@ export const resolveSession: RequestHandler = (
 ) => {
   void (async () => {
     try {
+      const headers = { ...req.headers };
+      if (!headers.cookie && typeof headers.authorization === 'string' && headers.authorization.startsWith('Bearer ')) {
+        const bearerToken = headers.authorization.slice(7).trim();
+        if (bearerToken.length > 0) {
+          headers.cookie = `better-auth.session_token=${bearerToken}`;
+        }
+      }
       const result = await getAuth().api.getSession({
-        headers: fromNodeHeaders(req.headers),
+        headers: fromNodeHeaders(headers),
       });
       if (result?.user && Types.ObjectId.isValid(result.user.id)) {
         const doc = await User.findById(result.user.id).exec();

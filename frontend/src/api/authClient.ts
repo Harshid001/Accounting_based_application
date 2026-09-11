@@ -19,6 +19,7 @@ import { createAuthClient } from 'better-auth/react';
 import { env } from '@/lib/env';
 import { ApiError, networkError } from '@/lib/errors';
 import type { NormalisedError } from '@/lib/errors';
+import { setStoredSessionToken } from '@/api/client';
 
 export const authClient = createAuthClient({
   baseURL: env.authBaseUrl,
@@ -157,7 +158,11 @@ export const signInGoogleDesktop = async (
     const data = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
     throw new Error(data.error?.message ?? 'Failed to authenticate in FirmDesk desktop.');
   }
-  return (await response.json()) as { token: string; user: SessionUser };
+  const data = (await response.json()) as { token: string; user: SessionUser };
+  if (data.token) {
+    setStoredSessionToken(data.token);
+  }
+  return data;
 };
 
 export const signInWithGoogle = async (callbackPath = '/'): Promise<void> => {
@@ -165,7 +170,6 @@ export const signInWithGoogle = async (callbackPath = '/'): Promise<void> => {
   const result: unknown = await authClient.signIn.social({
     provider: 'google',
     callbackURL: `${window.location.origin}${path}`,
-    errorCallbackURL: `${window.location.origin}/sign-in`,
   });
   assertOk(result);
 };
@@ -198,6 +202,7 @@ export const resendVerificationEmail = async (email: string): Promise<void> => {
 };
 
 export const signOutEverywhere = async (): Promise<void> => {
+  setStoredSessionToken(null);
   const result: unknown = await authClient.signOut();
   assertOk(result);
 };

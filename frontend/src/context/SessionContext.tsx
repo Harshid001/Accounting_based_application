@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useMemo } from 'react';
 
 import { fetchSession } from '@/api/me.api';
 import type { SessionResult } from '@/api/me.api';
+import { setStoredSessionToken } from '@/api/client';
 import { queryKeys } from '@/api/queryKeys';
 import type { Capability } from '@/lib/permissions';
 import { can } from '@/lib/permissions';
@@ -35,10 +36,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   });
 
   const refresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    await queryClient.refetchQueries({ queryKey: queryKeys.me });
   }, [queryClient]);
 
   const clear = useCallback(() => {
+    setStoredSessionToken(null);
     queryClient.setQueryData<SessionResult>(queryKeys.me, { kind: 'anonymous' });
     queryClient.removeQueries({ predicate: (item) => item.queryKey[0] !== 'me' });
   }, [queryClient]);
