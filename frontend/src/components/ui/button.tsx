@@ -17,10 +17,12 @@ const BASE =
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
     'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] hover:bg-[var(--fd-accent-hover)] ' +
-    'active:brightness-95 disabled:hover:bg-[var(--fd-accent)]',
+    'hover:shadow-[0_8px_24px_-8px_rgba(255,106,0,0.45)] ' +
+    'active:brightness-95 disabled:hover:bg-[var(--fd-accent)] disabled:hover:shadow-none',
   secondary:
-    'border border-[var(--fd-border)] bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] ' +
-    'hover:bg-[var(--fd-surface-3)] active:bg-[var(--fd-surface-2)]',
+    'border border-[var(--fd-border)] bg-[var(--fd-surface-2)] text-[var(--fd-text-primary)] ' +
+    'hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)] ' +
+    'active:bg-[var(--fd-surface-2)] active:border-[var(--fd-border)] active:text-[var(--fd-text-primary)]',
   ghost:
     'text-[var(--fd-text-secondary)] hover:bg-[var(--fd-surface-3)] ' +
     'hover:text-[var(--fd-text-primary)] active:bg-[var(--fd-surface-2)]',

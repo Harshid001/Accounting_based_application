@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
@@ -35,43 +35,43 @@ const UI_TEXT = {
     elementNotVisible: 'This control is currently in a collapsed section or requires admin rights.',
   },
   hi: {
-    step: 'कदम',
-    of: 'का',
-    next: 'अगला बटन',
-    prev: 'पिछला',
-    finish: 'टूर समाप्त करें',
-    exit: 'बाहर निकलें',
-    proTip: 'सुझाव',
-    completedTitle: 'ट्यूटोरियल पूरा हुआ!',
-    completedDesc: 'अब आप इस स्क्रीन के सभी मुख्य बटनों के काम से भली-भांति परिचित हैं। आप कभी भी हेडर के "गाइड" बटन से इसे दोबारा देख सकते हैं।',
-    openGuide: 'पूर्ण गाइड खोलें',
-    elementNotVisible: 'यह बटन वर्तमान में स्क्रीन पर उपलब्ध नहीं है या व्यवस्थापक अधिकार चाहिए।',
+    step: 'à¤•à¤¦à¤®',
+    of: 'à¤•à¤¾',
+    next: 'à¤…à¤—à¤²à¤¾ à¤¬à¤Ÿà¤¨',
+    prev: 'à¤ªà¤¿à¤›à¤²à¤¾',
+    finish: 'à¤Ÿà¥‚à¤° à¤¸à¤®à¤¾à¤ªà¥à¤¤ à¤•à¤°à¥‡à¤‚',
+    exit: 'à¤¬à¤¾à¤¹à¤° à¤¨à¤¿à¤•à¤²à¥‡à¤‚',
+    proTip: 'à¤¸à¥à¤à¤¾à¤µ',
+    completedTitle: 'à¤Ÿà¥à¤¯à¥‚à¤Ÿà¥‹à¤°à¤¿à¤¯à¤² à¤ªà¥‚à¤°à¤¾ à¤¹à¥à¤†!',
+    completedDesc: 'à¤…à¤¬ à¤†à¤ª à¤‡à¤¸ à¤¸à¥à¤•à¥à¤°à¥€à¤¨ à¤•à¥‡ à¤¸à¤­à¥€ à¤®à¥à¤–à¥à¤¯ à¤¬à¤Ÿà¤¨à¥‹à¤‚ à¤•à¥‡ à¤•à¤¾à¤® à¤¸à¥‡ à¤­à¤²à¥€-à¤­à¤¾à¤‚à¤¤à¤¿ à¤ªà¤°à¤¿à¤šà¤¿à¤¤ à¤¹à¥ˆà¤‚à¥¤ à¤†à¤ª à¤•à¤­à¥€ à¤­à¥€ à¤¹à¥‡à¤¡à¤° à¤•à¥‡ "à¤—à¤¾à¤‡à¤¡" à¤¬à¤Ÿà¤¨ à¤¸à¥‡ à¤‡à¤¸à¥‡ à¤¦à¥‹à¤¬à¤¾à¤°à¤¾ à¤¦à¥‡à¤– à¤¸à¤•à¤¤à¥‡ à¤¹à¥ˆà¤‚à¥¤',
+    openGuide: 'à¤ªà¥‚à¤°à¥à¤£ à¤—à¤¾à¤‡à¤¡ à¤–à¥‹à¤²à¥‡à¤‚',
+    elementNotVisible: 'à¤¯à¤¹ à¤¬à¤Ÿà¤¨ à¤µà¤°à¥à¤¤à¤®à¤¾à¤¨ à¤®à¥‡à¤‚ à¤¸à¥à¤•à¥à¤°à¥€à¤¨ à¤ªà¤° à¤‰à¤ªà¤²à¤¬à¥à¤§ à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆ à¤¯à¤¾ à¤µà¥à¤¯à¤µà¤¸à¥à¤¥à¤¾à¤ªà¤• à¤…à¤§à¤¿à¤•à¤¾à¤° à¤šà¤¾à¤¹à¤¿à¤à¥¤',
   },
   gu: {
-    step: 'પગલું',
-    of: 'માંથી',
-    next: 'આગળનું બટન',
-    prev: 'પાછળ',
-    finish: 'ટૂર પૂર્ણ કરો',
-    exit: 'બહાર નીકળો',
-    proTip: 'ઉપયોગી ટિપ',
-    completedTitle: 'ટ્યુટોરિયલ પૂર્ણ થયું!',
-    completedDesc: 'તમે હવે આ સ્ક્રીનના તમામ મુખ્ય બટનોની કામગીરી સમજી ચૂક્યા છો. તમે હેડરમાં રહેલા "માર્ગદર્શિકા" બટનથી ગમે ત્યારે ફરી આ જોઈ શકો છો.',
-    openGuide: 'સંપૂર્ણ ગાઇડ ખોલો',
-    elementNotVisible: 'આ કંટ્રોલ હાલમાં સ્ક્રીન પર દેખાતું નથી અથવા એડમિન પરવાનગી જરૂરી છે.',
+    step: 'àªªàª—àª²à«àª‚',
+    of: 'àª®àª¾àª‚àª¥à«€',
+    next: 'àª†àª—àª³àª¨à«àª‚ àª¬àªŸàª¨',
+    prev: 'àªªàª¾àª›àª³',
+    finish: 'àªŸà«‚àª° àªªà«‚àª°à«àª£ àª•àª°à«‹',
+    exit: 'àª¬àª¹àª¾àª° àª¨à«€àª•àª³à«‹',
+    proTip: 'àª‰àªªàª¯à«‹àª—à«€ àªŸàª¿àªª',
+    completedTitle: 'àªŸà«àª¯à«àªŸà«‹àª°àª¿àª¯àª² àªªà«‚àª°à«àª£ àª¥àª¯à«àª‚!',
+    completedDesc: 'àª¤àª®à«‡ àª¹àªµà«‡ àª† àª¸à«àª•à«àª°à«€àª¨àª¨àª¾ àª¤àª®àª¾àª® àª®à«àª–à«àª¯ àª¬àªŸàª¨à«‹àª¨à«€ àª•àª¾àª®àª—à«€àª°à«€ àª¸àª®àªœà«€ àªšà«‚àª•à«àª¯àª¾ àª›à«‹. àª¤àª®à«‡ àª¹à«‡àª¡àª°àª®àª¾àª‚ àª°àª¹à«‡àª²àª¾ "àª®àª¾àª°à«àª—àª¦àª°à«àª¶àª¿àª•àª¾" àª¬àªŸàª¨àª¥à«€ àª—àª®à«‡ àª¤à«àª¯àª¾àª°à«‡ àª«àª°à«€ àª† àªœà«‹àªˆ àª¶àª•à«‹ àª›à«‹.',
+    openGuide: 'àª¸àª‚àªªà«‚àª°à«àª£ àª—àª¾àª‡àª¡ àª–à«‹àª²à«‹',
+    elementNotVisible: 'àª† àª•àª‚àªŸà«àª°à«‹àª² àª¹àª¾àª²àª®àª¾àª‚ àª¸à«àª•à«àª°à«€àª¨ àªªàª° àª¦à«‡àª–àª¾àª¤à«àª‚ àª¨àª¥à«€ àª…àª¥àªµàª¾ àªàª¡àª®àª¿àª¨ àªªàª°àªµàª¾àª¨àª—à«€ àªœàª°à«‚àª°à«€ àª›à«‡.',
   },
   mr: {
-    step: 'पायरी',
-    of: 'पैकी',
-    next: 'पुढील बटण',
-    prev: 'मागे',
-    finish: 'टूर पूर्ण करा',
-    exit: 'बाहेर पडा',
-    proTip: 'महत्त्वाची टीप',
-    completedTitle: 'ट्युटोरियल पूर्ण झाले!',
-    completedDesc: 'तुम्ही आता या स्क्रीनवरील सर्व मुख्य बटणांची कार्ये समजून घेतली आहेत. तुम्ही हेडरमधील "मार्गदर्शक" बटणावरून कधीही पुन्हा पाहू शकता.',
-    openGuide: 'संपूर्ण माहिती उघडा',
-    elementNotVisible: 'हे बटण सध्या स्क्रीनवर उपलब्ध नाही किंवा यासाठी ॲडमिन परवानगी आवश्यक आहे.',
+    step: 'à¤ªà¤¾à¤¯à¤°à¥€',
+    of: 'à¤ªà¥ˆà¤•à¥€',
+    next: 'à¤ªà¥à¤¢à¥€à¤² à¤¬à¤Ÿà¤£',
+    prev: 'à¤®à¤¾à¤—à¥‡',
+    finish: 'à¤Ÿà¥‚à¤° à¤ªà¥‚à¤°à¥à¤£ à¤•à¤°à¤¾',
+    exit: 'à¤¬à¤¾à¤¹à¥‡à¤° à¤ªà¤¡à¤¾',
+    proTip: 'à¤®à¤¹à¤¤à¥à¤¤à¥à¤µà¤¾à¤šà¥€ à¤Ÿà¥€à¤ª',
+    completedTitle: 'à¤Ÿà¥à¤¯à¥à¤Ÿà¥‹à¤°à¤¿à¤¯à¤² à¤ªà¥‚à¤°à¥à¤£ à¤à¤¾à¤²à¥‡!',
+    completedDesc: 'à¤¤à¥à¤®à¥à¤¹à¥€ à¤†à¤¤à¤¾ à¤¯à¤¾ à¤¸à¥à¤•à¥à¤°à¥€à¤¨à¤µà¤°à¥€à¤² à¤¸à¤°à¥à¤µ à¤®à¥à¤–à¥à¤¯ à¤¬à¤Ÿà¤£à¤¾à¤‚à¤šà¥€ à¤•à¤¾à¤°à¥à¤¯à¥‡ à¤¸à¤®à¤œà¥‚à¤¨ à¤˜à¥‡à¤¤à¤²à¥€ à¤†à¤¹à¥‡à¤¤. à¤¤à¥à¤®à¥à¤¹à¥€ à¤¹à¥‡à¤¡à¤°à¤®à¤§à¥€à¤² "à¤®à¤¾à¤°à¥à¤—à¤¦à¤°à¥à¤¶à¤•" à¤¬à¤Ÿà¤£à¤¾à¤µà¤°à¥‚à¤¨ à¤•à¤§à¥€à¤¹à¥€ à¤ªà¥à¤¨à¥à¤¹à¤¾ à¤ªà¤¾à¤¹à¥‚ à¤¶à¤•à¤¤à¤¾.',
+    openGuide: 'à¤¸à¤‚à¤ªà¥‚à¤°à¥à¤£ à¤®à¤¾à¤¹à¤¿à¤¤à¥€ à¤‰à¤˜à¤¡à¤¾',
+    elementNotVisible: 'à¤¹à¥‡ à¤¬à¤Ÿà¤£ à¤¸à¤§à¥à¤¯à¤¾ à¤¸à¥à¤•à¥à¤°à¥€à¤¨à¤µà¤° à¤‰à¤ªà¤²à¤¬à¥à¤§ à¤¨à¤¾à¤¹à¥€ à¤•à¤¿à¤‚à¤µà¤¾ à¤¯à¤¾à¤¸à¤¾à¤ à¥€ à¥²à¤¡à¤®à¤¿à¤¨ à¤ªà¤°à¤µà¤¾à¤¨à¤—à¥€ à¤†à¤µà¤¶à¥à¤¯à¤• à¤†à¤¹à¥‡.',
   },
 };
 
@@ -273,7 +273,7 @@ export function InteractiveTourOverlay() {
           y="0"
           width="100%"
           height="100%"
-          fill="rgba(5, 8, 16, 0.74)"
+          fill="rgba(5, 5, 5, 0.78)"
           mask="url(#tour-spotlight-mask)"
         />
       </svg>
@@ -291,12 +291,12 @@ export function InteractiveTourOverlay() {
             zIndex: 9993,
             transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)',
           }}
-          className="pointer-events-none border-2 border-indigo-400 ring-4 ring-indigo-500/25 shadow-[0_0_35px_rgba(99,102,241,0.5),inset_0_0_20px_rgba(255,255,255,0.06)] bg-white/[0.04]"
+          className="pointer-events-none border-2 border-[var(--fd-accent)] ring-4 ring-[var(--fd-accent)]/25 shadow-[0_0_35px_rgba(255,106,0,0.45),inset_0_0_20px_rgba(255,255,255,0.06)] bg-white/[0.04]"
         >
           {/* Animated beacon ring */}
           <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500 shadow-md ring-2 ring-white" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--fd-accent)] opacity-75" />
+            <span className="relative inline-flex rounded-full h-4 w-4 bg-[var(--fd-accent)] shadow-md ring-2 ring-white" />
           </span>
         </div>
       )}
@@ -356,14 +356,14 @@ export function InteractiveTourOverlay() {
           ref={cardRef}
           style={popoverStyle}
           className={cn(
-            'flex flex-col rounded-2xl border border-indigo-500/40 bg-[var(--fd-surface-1)] shadow-2xl overflow-hidden',
+            'flex flex-col rounded-2xl border border-[var(--fd-accent)]/40 bg-[var(--fd-surface-1)] shadow-2xl overflow-hidden',
             'transition-all duration-200 animate-in fade-in zoom-in-95',
           )}
         >
           {/* Progress Bar at top of card */}
           <div className="h-1.5 w-full bg-[var(--fd-surface-3)]">
             <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
+              className="h-full bg-gradient-to-r from-[var(--fd-accent)] to-[#FF8A1F] transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -372,7 +372,7 @@ export function InteractiveTourOverlay() {
             {/* Step Counter & Controls */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-[11px] font-bold text-indigo-400 border border-indigo-500/20">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--fd-accent)]/10 px-2.5 py-0.5 text-[11px] font-bold text-[var(--fd-accent)] border border-[var(--fd-accent)]/20">
                   <Sparkles className="h-3 w-3" />
                   <span>
                     {ui.step} {tourStepIndex + 1} {ui.of} {totalTourSteps}
@@ -400,7 +400,7 @@ export function InteractiveTourOverlay() {
             {currentTourStep && (
               <div className="space-y-1.5">
                 <h4 className="text-base font-bold text-[var(--fd-text-primary)] flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-600/20 text-indigo-400 text-xs font-bold">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--fd-accent)]/20 text-[var(--fd-accent)] text-xs font-bold">
                     #{tourStepIndex + 1}
                   </span>
                   <span>{currentTourStep.name}</span>
@@ -452,7 +452,7 @@ export function InteractiveTourOverlay() {
                 <button
                   type="button"
                   onClick={handleNextOrFinish}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-500 transition-all"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fd-accent)] px-3.5 py-1.5 text-xs font-bold text-[var(--fd-accent-contrast)] shadow-sm hover:bg-[var(--fd-accent-hover)] transition-all"
                 >
                   <span>
                     {tourStepIndex + 1 >= totalTourSteps ? ui.finish : ui.next}

@@ -186,7 +186,7 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
       </div>
 
       {/* Screen view */}
-      <div className="relative aspect-video w-full bg-slate-900 border-b border-[var(--fd-border-subtle)] overflow-hidden flex items-center justify-center">
+      <div className="relative aspect-video w-full bg-[var(--fd-surface-2)] border-b border-[var(--fd-border-subtle)] overflow-hidden flex items-center justify-center">
         {frame ? (
           <img 
             src={`data:image/jpeg;base64,${frame}`} 
@@ -194,10 +194,10 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
             className="w-full h-full object-contain"
           />
         ) : (
-          <div className="flex flex-col items-center text-slate-500 gap-2">
+          <div className="flex flex-col items-center text-[var(--fd-text-tertiary)] gap-2">
             {isActive ? (
               <>
-                <RefreshCw size={24} className="animate-spin text-slate-400" />
+                <RefreshCw size={24} className="animate-spin text-[var(--fd-text-secondary)]" />
                 <span className="text-sm">Connecting to browser stream...</span>
               </>
             ) : (
@@ -208,10 +208,10 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
         
         {/* Handoff overlay */}
         {handoff && (
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
-            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border-t-4 border-[var(--fd-accent)] space-y-4 animate-in fade-in zoom-in-95">
+          <div className="absolute inset-0 bg-[var(--fd-bg)]/60 backdrop-blur-sm flex items-center justify-center p-6">
+            <div className="bg-[var(--fd-surface-1)] rounded-xl shadow-2xl p-6 w-full max-w-md border-t-4 border-[var(--fd-accent)] space-y-4 animate-in fade-in zoom-in-95">
               <div className="space-y-1">
-                <h4 className="font-bold text-lg">Human Action Required</h4>
+                <h4 className="font-bold text-lg text-[var(--fd-text-primary)]">Human Action Required</h4>
                 <p className="text-sm text-[var(--fd-text-secondary)]">{handoff.prompt}</p>
               </div>
               <div className="flex gap-2">
@@ -238,7 +238,7 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
                   Submit
                 </Button>
               </div>
-              <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+              <p className="text-xs text-[var(--fd-status-waiting)] bg-[var(--fd-status-waiting)]/10 border border-[var(--fd-status-waiting)]/30 p-2 rounded">
                 This value is encrypted and injected directly into the browser. It is never logged or stored.
               </p>
             </div>
@@ -271,7 +271,7 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
         {expanded && (
           <div className="p-4 pt-0 border-t border-[var(--fd-border-subtle)] space-y-2 mt-2">
             {run.error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-900 mb-4">
+              <div className="bg-[var(--fd-status-danger)]/10 border border-[var(--fd-status-danger)]/30 rounded-md p-3 text-sm text-[var(--fd-status-danger)] mb-4">
                 <span className="font-semibold block mb-1">Execution Error</span>
                 {run.error}
               </div>
@@ -280,17 +280,17 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
               {run.steps.map((step, idx) => (
                 <li key={idx} className="flex items-start gap-2">
                   <div className="mt-0.5 flex-shrink-0">
-                    {step.status === 'succeeded' ? <CheckCircle2 size={16} className="text-green-500" /> :
-                     step.status === 'failed' ? <XCircle size={16} className="text-red-500" /> :
+                    {step.status === 'succeeded' ? <CheckCircle2 size={16} className="text-[var(--fd-status-done)]" /> :
+                     step.status === 'failed' ? <XCircle size={16} className="text-[var(--fd-status-danger)]" /> :
                      step.status === 'running' || step.status === 'waiting_human' ? <RefreshCw size={14} className="text-[var(--fd-accent)] animate-spin mt-0.5" /> :
-                     <Circle size={16} className="text-slate-200" />}
+                     <Circle size={16} className="text-[var(--fd-text-tertiary)]" />}
                   </div>
                   <div className="min-w-0">
                     <span className={step.status === 'pending' ? 'text-[var(--fd-text-tertiary)]' : 'font-medium'}>
                       {step.label}
                     </span>
                     {step.error && (
-                      <p className="text-xs text-red-600 mt-0.5">{step.error}</p>
+                      <p className="text-xs text-[var(--fd-status-danger)] mt-0.5">{step.error}</p>
                     )}
                   </div>
                 </li>

@@ -45,8 +45,8 @@ export class RootErrorBoundary extends Component<Props, State> {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '2rem',
-          background: 'var(--fd-bg, #0B0F17)',
-          color: 'var(--fd-text-primary, #E8EDF4)',
+          background: 'var(--fd-bg, #0A0A0A)',
+          color: 'var(--fd-text-primary, #F5F2ED)',
           fontFamily: 'InterVariable, ui-sans-serif, system-ui, sans-serif',
         }}
       >
@@ -65,9 +65,9 @@ export class RootErrorBoundary extends Component<Props, State> {
             }}
             style={{
               borderRadius: '6px',
-              border: '1px solid var(--fd-border, #2A3546)',
-              background: 'var(--fd-accent, #818CF8)',
-              color: 'var(--fd-accent-contrast, #0B0F17)',
+              border: '1px solid var(--fd-border, #262626)',
+              background: 'var(--fd-accent, #FF6A00)',
+              color: 'var(--fd-accent-contrast, #0A0A0A)',
               padding: '8px 16px',
               fontSize: '14px',
               fontWeight: 500,

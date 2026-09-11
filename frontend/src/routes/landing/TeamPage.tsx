@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import {
   Award,
   Building2,
@@ -48,7 +48,7 @@ export function TeamPage() {
       qualifications: 'B.Com, FCA, DISA (ICAI)',
       experience: '18+ Years Experience',
       initials: 'JP',
-      accentColor: 'from-indigo-500/25 via-purple-500/20 to-blue-500/25 border-indigo-500/40 text-indigo-300',
+      accentColor: 'from-[var(--fd-accent)]/25 via-[#FF8A1F]/20 to-[#FFB15C]/25 border-[var(--fd-accent)]/40 text-[#FFB15C]',
       focusArea: 'Corporate Tax Jurisprudence & Appellate Advisory',
       specializations: [
         'Direct Tax Litigation & ITAT Appeals',
@@ -61,14 +61,14 @@ export function TeamPage() {
     {
       id: 'priyanshu-sharma',
       name: 'CA Priyanshu Sharma',
-      designation: 'Partner — Direct Tax & Corporate Advisory',
+      designation: 'Partner â€” Direct Tax & Corporate Advisory',
       cadre: 'Senior Partner',
       icaiNumber: 'M.No. 089421',
       membershipType: 'Fellow Member (FCA)',
       qualifications: 'B.Com, FCA, Insolvency Professional',
       experience: '14+ Years Experience',
       initials: 'PS',
-      accentColor: 'from-sky-500/25 via-indigo-500/20 to-blue-500/25 border-sky-500/40 text-sky-300',
+      accentColor: 'from-[var(--fd-status-progress)]/25 via-[var(--fd-accent)]/20 to-[#FF8A1F]/25 border-[var(--fd-status-progress)]/40 text-[#7DD3FC]',
       focusArea: 'Corporate Tax Planning & Financial Controllership',
       specializations: [
         'Corporate Financial Systems & Advisory',
@@ -81,14 +81,14 @@ export function TeamPage() {
     {
       id: 'ananya-desai',
       name: 'CA Ananya Desai',
-      designation: 'Partner — Assurance & Regulatory Audit',
+      designation: 'Partner â€” Assurance & Regulatory Audit',
       cadre: 'Senior Partner',
       icaiNumber: 'M.No. 112845',
       membershipType: 'Fellow Member (FCA)',
       qualifications: 'M.Com, FCA, Certified Forensic Auditor (FAFD)',
       experience: '13+ Years Experience',
       initials: 'AD',
-      accentColor: 'from-purple-500/25 via-pink-500/20 to-indigo-500/25 border-purple-500/40 text-purple-300',
+      accentColor: 'from-[#FFB15C]/25 via-[#FF8A1F]/20 to-[var(--fd-accent)]/25 border-[#FFB15C]/40 text-[#FFB15C]',
       focusArea: 'Statutory Audit u/s 44AB & Internal Financial Controls (IFC)',
       specializations: [
         'Statutory Audit compliant with ICAI SAs',
@@ -96,19 +96,19 @@ export function TeamPage() {
         'Banking Working Capital Audits',
         'Forensic Accounting & Scrutiny Proofing',
       ],
-      bio: 'Heads the firm’s assurance and regulatory compliance desk. She oversees independent statutory audits for manufacturing, pharma, and agro enterprises, ensuring adherence to Standards on Auditing (SAs) issued by the ICAI.',
+      bio: 'Heads the firmâ€™s assurance and regulatory compliance desk. She oversees independent statutory audits for manufacturing, pharma, and agro enterprises, ensuring adherence to Standards on Auditing (SAs) issued by the ICAI.',
     },
     {
       id: 'bhavesh-mehta',
       name: 'CA Bhavesh Mehta',
-      designation: 'Partner — Indirect Tax (GST) & Corporate Advisory',
+      designation: 'Partner â€” Indirect Tax (GST) & Corporate Advisory',
       cadre: 'Partner',
       icaiNumber: 'M.No. 147890',
       membershipType: 'Associate Member (ACA)',
       qualifications: 'B.Com, ACA, Certificate in GST (ICAI)',
       experience: '9+ Years Experience',
       initials: 'BM',
-      accentColor: 'from-emerald-500/25 via-teal-500/20 to-sky-500/25 border-emerald-500/40 text-emerald-300',
+      accentColor: 'from-[var(--fd-status-done)]/25 via-[var(--fd-status-confirmed)]/20 to-[var(--fd-status-progress)]/25 border-[var(--fd-status-done)]/40 text-[#6EE7B7]',
       focusArea: 'GST Litigation, GSTR-9/9C Audit & Virtual CFO Retainers',
       specializations: [
         'GST Audit & Input Tax Credit (ITC) Defense',
@@ -129,7 +129,7 @@ export function TeamPage() {
         {/* Team Hero Header */}
         <section className="relative overflow-hidden pt-12 pb-16 md:pt-20 md:pb-24 border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)]">
           <div
-            className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-[var(--fd-accent)]/15 via-indigo-500/10 to-sky-500/10 blur-3xl"
+            className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-[var(--fd-accent)]/15 via-[#FF8A1F]/10 to-[#FFB15C]/10 blur-3xl"
             aria-hidden="true"
           />
 
@@ -155,7 +155,7 @@ export function TeamPage() {
 
               {/* ICAI Standards Trust Badge */}
               <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-4 rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-2)] px-4 py-2 text-xs font-mono text-[var(--fd-text-secondary)]">
-                <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="flex items-center gap-1.5 text-[var(--fd-status-done)]">
                   <CheckCircle2 className="h-4 w-4" />
                   ICAI Code of Ethics Compliant
                 </span>
@@ -189,7 +189,7 @@ export function TeamPage() {
                           <span className="font-mono text-xl sm:text-2xl font-black tracking-wider">
                             {partner.initials}
                           </span>
-                          <span className="absolute -bottom-1.5 -right-1.5 rounded-full border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1 text-emerald-400 shadow-xs">
+                          <span className="absolute -bottom-1.5 -right-1.5 rounded-full border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1 text-[var(--fd-status-done)] shadow-xs">
                             <ShieldCheck className="h-3.5 w-3.5" />
                           </span>
                         </div>
@@ -225,7 +225,7 @@ export function TeamPage() {
                         <span>{partner.qualifications}</span>
                       </div>
                       <div className="flex items-center gap-2 text-[var(--fd-text-secondary)]">
-                        <Award className="h-4 w-4 text-emerald-400 shrink-0" />
+                        <Award className="h-4 w-4 text-[var(--fd-status-done)] shrink-0" />
                         <span>{partner.experience}</span>
                       </div>
                     </div>
@@ -257,7 +257,7 @@ export function TeamPage() {
                   {/* Consultation Action Foot */}
                   <div className="mt-8 pt-4 border-t border-[var(--fd-border-subtle)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="text-[11px] text-[var(--fd-text-tertiary)] flex items-center gap-1.5 font-mono">
-                      <Building2 className="h-3.5 w-3.5 text-sky-400" />
+                      <Building2 className="h-3.5 w-3.5 text-[var(--fd-status-progress)]" />
                       <span>{partner.focusArea}</span>
                     </div>
 
@@ -277,7 +277,7 @@ export function TeamPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                 <div className="lg:col-span-2 space-y-2">
                   <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--fd-accent)] uppercase tracking-wider">
-                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                    <ShieldCheck className="h-4 w-4 text-[var(--fd-status-done)]" />
                     <span>The ICAI Professional Benchmark</span>
                   </div>
                   <h3 className="text-lg font-bold text-[var(--fd-text-primary)]">
@@ -299,7 +299,7 @@ export function TeamPage() {
                   </Button>
                   <Button asChild variant="secondary" size="md" className="w-full justify-center">
                     <a href="tel:+919737046913" className="flex items-center justify-center gap-2">
-                      <Phone className="h-4 w-4 text-emerald-400" />
+                      <Phone className="h-4 w-4 text-[var(--fd-status-done)]" />
                       <span>Helpline: +91 97370 46913</span>
                     </a>
                   </Button>

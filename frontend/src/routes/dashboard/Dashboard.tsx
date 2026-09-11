@@ -78,7 +78,7 @@ export function Dashboard() {
             {allows('task:create') && (
               <Button asChild variant="secondary" size="sm">
                 <Link to="/tasks" className="flex items-center gap-1.5">
-                  <CheckSquare size={13} className="text-amber-500" />
+                  <CheckSquare size={13} className="text-[var(--fd-accent)]" />
                   <span>New Task</span>
                 </Link>
               </Button>
@@ -86,7 +86,7 @@ export function Dashboard() {
             {allows('compliance:bulk') && (
               <Button asChild variant="secondary" size="sm">
                 <Link to="/compliance/generate" className="flex items-center gap-1.5">
-                  <CalendarClock size={13} className="text-emerald-500" />
+                  <CalendarClock size={13} className="text-[var(--fd-status-done)]" />
                   <span>Generate Filings</span>
                 </Link>
               </Button>
@@ -94,7 +94,7 @@ export function Dashboard() {
             {allows('document:read') && (
               <Button asChild variant="secondary" size="sm">
                 <Link to="/converter" className="flex items-center gap-1.5">
-                  <ArrowRightLeft size={13} className="text-violet-500" />
+                  <ArrowRightLeft size={13} className="text-[var(--fd-status-progress)]" />
                   <span>Convert File</span>
                 </Link>
               </Button>

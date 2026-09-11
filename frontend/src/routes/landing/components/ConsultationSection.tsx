@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   Building2,
   CalendarCheck,
@@ -62,7 +62,7 @@ export function ConsultationSection() {
               </div>
 
               <p className="text-xs sm:text-sm text-[var(--fd-text-secondary)] leading-relaxed">
-                We believe in proactive, year-round client partnerships—not once-a-year transactional tax filings.
+                We believe in proactive, year-round client partnershipsâ€”not once-a-year transactional tax filings.
                 Get in touch to discover how we streamline your compliance and protect your cash flow.
               </p>
 
@@ -75,7 +75,7 @@ export function ConsultationSection() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <Phone className="h-4 w-4 text-[var(--fd-status-done)] shrink-0" />
                   <a
                     href="tel:+919737046913"
                     className="font-semibold hover:text-[var(--fd-text-primary)] transition-colors"
@@ -85,12 +85,12 @@ export function ConsultationSection() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-sky-400 shrink-0" />
-                  <span>Monday – Saturday, 9:30 AM – 6:30 PM IST</span>
+                  <Clock className="h-4 w-4 text-[var(--fd-status-progress)] shrink-0" />
+                  <span>Monday â€“ Saturday, 9:30 AM â€“ 6:30 PM IST</span>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Building2 className="h-4 w-4 text-purple-400 shrink-0 mt-0.5" />
+                  <Building2 className="h-4 w-4 text-[var(--fd-accent)] shrink-0 mt-0.5" />
                   <address className="not-italic leading-relaxed">
                     F-19 Krushnam Plaza opposite the District Court, near Siddharpur Char Rasta, Sardar Ganj, Patan, Gujarat 384265
                   </address>
@@ -100,7 +100,7 @@ export function ConsultationSection() {
               {/* Trust Badges */}
               <div className="rounded-xl bg-[var(--fd-surface-2)] p-4 space-y-2 border border-[var(--fd-border-subtle)]">
                 <div className="flex items-center gap-2 text-xs font-semibold text-[var(--fd-text-primary)]">
-                  <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                  <ShieldCheck className="h-4 w-4 text-[var(--fd-status-done)]" />
                   <span>Professional Confidentiality & NDA</span>
                 </div>
                 <p className="text-[11px] text-[var(--fd-text-secondary)] leading-relaxed">
@@ -115,7 +115,7 @@ export function ConsultationSection() {
             <div className="rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-bg)] p-6 sm:p-8 shadow-sm">
               {submitted ? (
                 <div className="text-center py-10 space-y-4">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--fd-status-done)]/15 text-[var(--fd-status-done)]">
                     <CheckCircle2 className="h-8 w-8" />
                   </div>
                   <h3 className="text-xl font-bold text-[var(--fd-text-primary)]">
@@ -297,9 +297,9 @@ export function ConsultationSection() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--fd-text-primary)]">
-                      JV Tax Consultancy · Registered Practice Premises
+                      JV Tax Consultancy Â· Registered Practice Premises
                     </h4>
-                    <span className="hidden sm:inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-mono font-medium text-emerald-500 dark:text-emerald-400">
+                    <span className="hidden sm:inline-flex rounded-full border border-[var(--fd-status-done)]/30 bg-[var(--fd-status-done)]/10 px-2.5 py-0.5 text-[10px] font-mono font-medium text-[var(--fd-status-done)]">
                       ICAI Reg. Practice
                     </span>
                   </div>
@@ -340,7 +340,7 @@ export function ConsultationSection() {
           {/* Bottom Fast Travel & Connectivity Information Badges */}
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--fd-border-subtle)] border-t border-[var(--fd-border)] bg-[var(--fd-surface-1)] text-xs text-[var(--fd-text-secondary)]">
             <div className="flex items-center gap-2.5 p-3.5 sm:px-5">
-              <Building2 className="h-4 w-4 text-purple-500 dark:text-purple-400 shrink-0" />
+              <Building2 className="h-4 w-4 text-[var(--fd-accent)] shrink-0" />
               <div>
                 <span className="font-semibold text-[var(--fd-text-primary)] block">Prime Civic Landmark</span>
                 <span className="text-[11px] text-[var(--fd-text-tertiary)]">Directly opposite Patan District Court</span>
@@ -348,15 +348,15 @@ export function ConsultationSection() {
             </div>
 
             <div className="flex items-center gap-2.5 p-3.5 sm:px-5">
-              <Clock className="h-4 w-4 text-sky-500 dark:text-sky-400 shrink-0" />
+              <Clock className="h-4 w-4 text-[var(--fd-status-progress)] shrink-0" />
               <div>
                 <span className="font-semibold text-[var(--fd-text-primary)] block">Consultation Hours</span>
-                <span className="text-[11px] text-[var(--fd-text-tertiary)]">Mon – Sat: 9:30 AM to 6:30 PM IST</span>
+                <span className="text-[11px] text-[var(--fd-text-tertiary)]">Mon â€“ Sat: 9:30 AM to 6:30 PM IST</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2.5 p-3.5 sm:px-5">
-              <Phone className="h-4 w-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
+              <Phone className="h-4 w-4 text-[var(--fd-status-done)] shrink-0" />
               <div>
                 <span className="font-semibold text-[var(--fd-text-primary)] block">Direct Chambers Desk</span>
                 <a href="tel:+919737046913" className="text-[11px] text-[var(--fd-accent)] hover:underline font-semibold">

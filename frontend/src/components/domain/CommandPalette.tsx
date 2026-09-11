@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import {
   ArrowRightLeft,
@@ -150,7 +150,7 @@ export function CommandPalette({
           title: 'Analyze Document with FirmDesk AI Copilot',
           subtitle: 'Inspect this image, extract PAN/GSTIN/invoice details & automate actions',
           group: 'Visual Search & AI',
-          icon: <Bot size={14} className="text-indigo-500" />,
+          icon: <Bot size={14} className="text-[var(--fd-accent)]" />,
           onSelect: () => {
             close(false);
             openWithPrompt(
@@ -180,7 +180,7 @@ export function CommandPalette({
         title: 'Feature Guide & Interactive Tour',
         subtitle: 'Learn this screen & view live tutorial',
         group: 'Quick Actions',
-        icon: <Sparkles size={14} className="text-amber-400" />,
+        icon: <Sparkles size={14} className="text-[var(--fd-accent)]" />,
         onSelect: () => {
           close(false);
           openGuide();
@@ -471,7 +471,7 @@ export function CommandPalette({
               onClick={() => fileInputRef.current?.click()}
               title="Attach or paste an image (Ctrl+V)"
               aria-label="Attach image"
-              className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-indigo-500"
+              className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-accent)]"
             >
               <ImageIcon size={15} />
             </button>
@@ -480,17 +480,17 @@ export function CommandPalette({
 
           {/* Attached Image Banner in Command Palette */}
           {attachedImage && (
-            <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] bg-indigo-500/10 px-3.5 py-2 text-xs">
+            <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] bg-[var(--fd-accent)]/10 px-3.5 py-2 text-xs">
               <div className="flex min-w-0 items-center gap-2.5">
                 <img
                   src={attachedImage.dataUrl}
                   alt={attachedImage.name || 'Pasted image'}
-                  className="h-9 w-9 shrink-0 rounded-md border border-indigo-500/30 object-cover"
+                  className="h-9 w-9 shrink-0 rounded-md border border-[var(--fd-accent)]/30 object-cover"
                 />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 truncate font-semibold text-[var(--fd-text-primary)]">
-                    <span>📷 {attachedImage.name || 'Pasted Image'}</span>
-                    <span className="py-0.2 rounded bg-indigo-500/20 px-1.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-400">
+                    <span>ðŸ“· {attachedImage.name || 'Pasted Image'}</span>
+                    <span className="py-0.2 rounded bg-[var(--fd-accent)]/20 px-1.5 text-[9px] font-bold text-[var(--fd-accent)]">
                       Visual Input
                     </span>
                   </div>
@@ -510,7 +510,7 @@ export function CommandPalette({
                       attachedImage,
                     );
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-2xs hover:bg-indigo-700"
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-[var(--fd-accent)] px-2.5 py-1 text-[11px] font-semibold text-[var(--fd-accent-contrast)] shadow-2xs hover:bg-[var(--fd-accent-hover)]"
                 >
                   <Bot size={12} />
                   <span>Analyze with AI</span>
@@ -538,7 +538,7 @@ export function CommandPalette({
               </p>
             ) : flattened.length === 0 && !query.isFetching ? (
               <p className="px-2 py-8 text-center text-xs text-[var(--fd-text-tertiary)]">
-                Nothing matches “{term.trim()}”.
+                Nothing matches â€œ{term.trim()}â€.
               </p>
             ) : (
               // Group items by group name
@@ -628,13 +628,13 @@ export function CommandPalette({
             <div className="flex items-center gap-3">
               <span>
                 <kbd className="rounded border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-1.5 py-0.5 text-[10px] font-medium">
-                  ↑↓
+                  â†‘â†“
                 </kbd>{' '}
                 navigate
               </span>
               <span>
                 <kbd className="rounded border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-1.5 py-0.5 text-[10px] font-medium">
-                  ↵
+                  â†µ
                 </kbd>{' '}
                 select
               </span>

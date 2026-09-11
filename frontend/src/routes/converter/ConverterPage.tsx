@@ -210,7 +210,7 @@ export function ConverterPage() {
       {/* Quick Presets Bar */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-3 shadow-2xs">
         <span className="flex items-center gap-1.5 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--fd-text-tertiary)]">
-          <Sparkles size={13} className="text-amber-500" />
+          <Sparkles size={13} className="text-[var(--fd-accent)]" />
           Popular Presets:
         </span>
 
@@ -221,7 +221,7 @@ export function ConverterPage() {
           }}
           className="flex items-center gap-1.5 rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--fd-text-secondary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
         >
-          <FileText size={12} className="text-rose-500" />
+          <FileText size={12} className="text-[var(--fd-status-danger)]" />
           <span>PDF to Word (DOCX)</span>
         </button>
 
@@ -232,7 +232,7 @@ export function ConverterPage() {
           }}
           className="flex items-center gap-1.5 rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--fd-text-secondary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
         >
-          <ImageIcon size={12} className="text-blue-500" />
+          <ImageIcon size={12} className="text-[var(--fd-status-progress)]" />
           <span>PNG to JPG (White BG)</span>
         </button>
 
@@ -243,7 +243,7 @@ export function ConverterPage() {
           }}
           className="flex items-center gap-1.5 rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--fd-text-secondary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
         >
-          <ArrowRightLeft size={12} className="text-violet-500" />
+          <ArrowRightLeft size={12} className="text-[var(--fd-accent)]" />
           <span>JPG to PNG (Lossless)</span>
         </button>
 
@@ -254,7 +254,7 @@ export function ConverterPage() {
           }}
           className="flex items-center gap-1.5 rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--fd-text-secondary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
         >
-          <FileCheck size={12} className="text-emerald-500" />
+          <FileCheck size={12} className="text-[var(--fd-status-done)]" />
           <span>Image to PDF</span>
         </button>
 
@@ -265,7 +265,7 @@ export function ConverterPage() {
           }}
           className="flex items-center gap-1.5 rounded-lg border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--fd-text-secondary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
         >
-          <FileSpreadsheet size={12} className="text-teal-500" />
+          <FileSpreadsheet size={12} className="text-[var(--fd-status-confirmed)]" />
           <span>CSV to PDF / JSON</span>
         </button>
       </div>
@@ -376,7 +376,7 @@ export function ConverterPage() {
                     <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[var(--fd-border-subtle)] pt-3 text-xs">
                       <div>
                         <span className="text-[var(--fd-text-tertiary)]">Magic Signature:</span>{' '}
-                        <span className={cn('font-medium', scanResult.magicMatch ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
+                        <span className={cn('font-medium', scanResult.magicMatch ? 'text-[var(--fd-status-done)]' : 'text-[var(--fd-status-waiting)]')}>
                           {scanResult.magicMatch ? 'Verified Header' : 'Extension Matched'}
                         </span>
                       </div>
@@ -391,21 +391,21 @@ export function ConverterPage() {
                 </div>
 
                 {/* USER FORMAT CONFIRMATION / OVERRIDE SELECTOR */}
-                <div className="rounded-xl border border-blue-200/70 bg-blue-50/50 p-3.5 dark:border-blue-900/40 dark:bg-blue-950/20">
+                <div className="rounded-xl border border-[var(--fd-status-progress)]/30 bg-[var(--fd-status-progress)]/10 p-3.5">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <label
                       htmlFor="user-override-select"
-                      className="flex items-center gap-1.5 text-xs font-semibold text-blue-900 dark:text-blue-200"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fd-text-primary)]"
                     >
-                      <Sliders size={13} className="text-blue-600 dark:text-blue-400" />
+                      <Sliders size={13} className="text-[var(--fd-status-progress)]" />
                       Imported File Type (User Confirmation & Override):
                     </label>
-                    <span className="text-[10px] text-blue-700 dark:text-blue-300">
+                    <span className="text-[10px] text-[var(--fd-text-secondary)]">
                       Auto-detected: {SUPPORTED_FORMAT_METAS[scanResult?.detectedFormat || 'pdf']?.label}
                     </span>
                   </div>
 
-                  <p className="mb-2.5 text-[11px] text-blue-800/80 dark:text-blue-300/80 leading-relaxed">
+                  <p className="mb-2.5 text-[11px] text-[var(--fd-text-secondary)] leading-relaxed">
                     You have complete control over how FirmDesk interprets this file. If the file has a different format or custom extension, select the exact format below:
                   </p>
 
@@ -421,7 +421,7 @@ export function ConverterPage() {
                         description: `Now treating input file as ${SUPPORTED_FORMAT_METAS[next]?.label}`,
                       });
                     }}
-                    className="flex h-9 w-full rounded-md border border-blue-200 bg-white px-3 text-xs font-medium text-[var(--fd-text-primary)] outline-none focus:border-[var(--fd-accent)] dark:border-blue-800 dark:bg-zinc-900"
+                    className="flex h-9 w-full rounded-md border border-[var(--fd-border)] bg-[var(--fd-surface-2)] px-3 text-xs font-medium text-[var(--fd-text-primary)] outline-none focus:border-[var(--fd-accent)]"
                   >
                     <option value="pdf">PDF Document (.pdf)</option>
                     <option value="png">PNG Image (.png)</option>
@@ -492,7 +492,7 @@ export function ConverterPage() {
                         {target.description}
                       </p>
                       {target.recommendedFor && (
-                        <div className="mt-2 text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
+                        <div className="mt-2 text-[10px] text-[var(--fd-status-done)] font-medium">
                           ✦ {target.recommendedFor}
                         </div>
                       )}
@@ -716,8 +716,8 @@ export function ConverterPage() {
 
             {/* CONVERSION RESULT CARD */}
             {conversionResult && (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20 space-y-4">
-                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+              <div className="rounded-xl border border-[var(--fd-status-done)]/30 bg-[var(--fd-status-done)]/10 p-4 space-y-4">
+                <div className="flex items-center gap-2 text-[var(--fd-status-done)]">
                   <CheckCircle2 size={18} />
                   <span className="text-xs font-bold uppercase tracking-wider">
                     Ready For Download

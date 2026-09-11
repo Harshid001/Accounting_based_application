@@ -12,8 +12,8 @@ export const renderBootError = (container: HTMLElement, error: unknown): void =>
     'align-items:center',
     'justify-content:center',
     'padding:2rem',
-    'background:#0B0F17',
-    'color:#E8EDF4',
+    'background:#0A0A0A',
+    'color:#F5F2ED',
     'font-family:ui-sans-serif,system-ui,-apple-system,sans-serif',
   ].join(';');
 

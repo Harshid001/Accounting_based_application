@@ -264,7 +264,7 @@ export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFi
           </div>
 
           {data.missingInputs.length > 0 ? (
-            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <div className="rounded-md border border-[var(--fd-status-waiting)]/40 bg-[var(--fd-status-waiting)]/10 px-3 py-2 text-sm text-[var(--fd-status-waiting)]">
               <p className="font-medium">Still needed before filing:</p>
               <ul className="mt-1 list-disc pl-5">
                 {data.missingInputs.map((input) => (
@@ -420,7 +420,7 @@ export function GuidedFiling({ filingId, canEdit, acknowledgementRef }: GuidedFi
                   </Badge>
                 </div>
                 {gatewayChallenge.mode === 'sandbox' ? (
-                  <p className="rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                  <p className="rounded border border-[var(--fd-status-waiting)]/40 bg-[var(--fd-status-waiting)]/10 p-2 text-xs text-[var(--fd-status-waiting)]">
                     💡 <strong>Test environment:</strong> Use challenge OTP{' '}
                     <code className="font-mono font-semibold">
                       {gatewayChallenge.challengeOtp || '123456'}

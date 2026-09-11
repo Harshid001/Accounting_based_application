@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { Lock, ShieldCheck, UserCheck } from 'lucide-react';
 import { JVLogo } from '@/components/brand/JVLogo';
 
@@ -28,11 +28,11 @@ export function LandingFooter() {
 
             <div className="flex items-center gap-4 text-xs text-[var(--fd-text-tertiary)] pt-2">
               <span className="flex items-center gap-1.5">
-                <Lock className="h-3.5 w-3.5 text-emerald-400" />
+                <Lock className="h-3.5 w-3.5 text-[var(--fd-status-done)]" />
                 <span>AES-256 Encrypted Portals</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-sky-400" />
+                <ShieldCheck className="h-3.5 w-3.5 text-[var(--fd-status-progress)]" />
                 <span>ICAI Standards on Auditing</span>
               </span>
             </div>
@@ -91,7 +91,7 @@ export function LandingFooter() {
               </li>
               <li>
                 <Link to="/team" className="hover:text-[var(--fd-text-primary)] transition-colors font-medium text-[var(--fd-accent)]">
-                  Leadership & CA Partners →
+                  Leadership & CA Partners â†’
                 </Link>
               </li>
               <li>
@@ -172,7 +172,7 @@ export function LandingFooter() {
             in accordance with the Code of Ethics and guidelines prescribed by the Institute of Chartered Accountants of India (ICAI).
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 text-[10px]">
-            <div>© {new Date().getFullYear()} JV Tax Consultancy. All rights reserved.</div>
+            <div>Â© {new Date().getFullYear()} JV Tax Consultancy. All rights reserved.</div>
             <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
               <span>Non-Disclosure Protected</span>
               <span>AES-256 Vault Architecture</span>

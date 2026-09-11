@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bot, CheckCircle2, KeyRound, Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -406,19 +406,19 @@ export function AiSettings() {
             <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
               <span
                 className={`inline-flex h-2.5 w-2.5 items-center justify-center rounded-full ${
-                  config?.enabled && config.hasKey ? 'bg-emerald-500' : 'bg-slate-400'
+                  config?.enabled && config.hasKey ? 'bg-[var(--fd-status-done)]' : 'bg-[var(--fd-text-tertiary)]'
                 }`}
               />
               <span className="text-sm text-[var(--fd-text-secondary)]">
                 {config?.enabled && config.hasKey
-                  ? `Active — ${
+                  ? `Active â€” ${
                       config.provider === 'gemini'
                         ? 'Gemini'
                         : config.provider === 'openai'
                           ? 'OpenAI'
                           : 'Custom / Xkiro'
                     } (${config.activeModel ?? 'default model'})`
-                  : 'Inactive — reference mode only'}
+                  : 'Inactive â€” reference mode only'}
               </span>
               <Badge tone={config?.source === 'db' ? 'accent' : 'neutral'}>
                 {config?.source === 'db'
@@ -484,7 +484,7 @@ export function AiSettings() {
                         <Input
                           id={inputId}
                           type="password"
-                          placeholder="AIza…"
+                          placeholder="AIzaâ€¦"
                           value={geminiKey}
                           invalid={invalid}
                           aria-describedby={describedBy}
@@ -539,7 +539,7 @@ export function AiSettings() {
                               title="Auto-detect accessible models using the API key"
                             >
                               <Sparkles
-                                className="h-3.5 w-3.5 text-indigo-500"
+                                className="h-3.5 w-3.5 text-[var(--fd-accent)]"
                                 aria-hidden="true"
                               />
                               Auto-detect
@@ -597,7 +597,7 @@ export function AiSettings() {
                         <Input
                           id={inputId}
                           type="password"
-                          placeholder="sk-…"
+                          placeholder="sk-â€¦"
                           value={openaiKey}
                           invalid={invalid}
                           aria-describedby={describedBy}
@@ -652,7 +652,7 @@ export function AiSettings() {
                               title="Auto-detect accessible models using the API key"
                             >
                               <Sparkles
-                                className="h-3.5 w-3.5 text-indigo-500"
+                                className="h-3.5 w-3.5 text-[var(--fd-accent)]"
                                 aria-hidden="true"
                               />
                               Auto-detect
@@ -727,7 +727,7 @@ export function AiSettings() {
                         <Input
                           id={inputId}
                           type="password"
-                          placeholder="Enter API key…"
+                          placeholder="Enter API keyâ€¦"
                           value={customKey}
                           invalid={invalid}
                           aria-describedby={describedBy}
@@ -785,7 +785,7 @@ export function AiSettings() {
                               title="Auto-detect accessible models using the API key and Base URL"
                             >
                               <Sparkles
-                                className="h-3.5 w-3.5 text-indigo-500"
+                                className="h-3.5 w-3.5 text-[var(--fd-accent)]"
                                 aria-hidden="true"
                               />
                               Auto-detect
@@ -858,15 +858,15 @@ export function AiSettings() {
             />
             <ul className="space-y-1.5 px-4 pb-4 text-sm text-[var(--fd-text-secondary)]">
               <li className="flex items-start gap-2">
-                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" aria-hidden="true" />
+                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fd-accent)]" aria-hidden="true" />
                 Reads live client, filing, deadline and task data scoped to each user's access.
               </li>
               <li className="flex items-start gap-2">
-                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" aria-hidden="true" />
+                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fd-accent)]" aria-hidden="true" />
                 Creates tasks and raises document requests for admin and staff users.
               </li>
               <li className="flex items-start gap-2">
-                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" aria-hidden="true" />
+                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fd-accent)]" aria-hidden="true" />
                 Falls back to built-in reference answers whenever the provider is unavailable.
               </li>
             </ul>

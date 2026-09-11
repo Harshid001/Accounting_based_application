@@ -134,10 +134,10 @@ export function DesktopShellGate() {
             </div>
             <ArrowRight size={16} className="text-[var(--fd-text-tertiary)]" />
             <div className="space-y-0.5 text-right">
-              <span className="text-2xs uppercase tracking-wider text-emerald-400 font-semibold">
+              <span className="text-2xs uppercase tracking-wider text-[var(--fd-accent)] font-semibold">
                 Required Minimum
               </span>
-              <div className="font-mono font-bold text-emerald-400">v{minVersion}</div>
+              <div className="font-mono font-bold text-[var(--fd-accent)]">v{minVersion}</div>
             </div>
           </div>
 
@@ -171,7 +171,7 @@ export function DesktopShellGate() {
         <button
           type="button"
           onClick={() => setDismissed(false)}
-          className="fixed bottom-5 right-5 z-[65] flex items-center gap-2 rounded-full border border-[var(--fd-accent)]/40 bg-[var(--fd-surface-1)]/95 px-3.5 py-2 text-xs font-semibold text-[var(--fd-text-primary)] shadow-lg backdrop-blur-md transition-all hover:scale-105 hover:border-[var(--fd-accent)] hover:shadow-[0_0_20px_rgba(20,184,166,0.3)] cursor-pointer"
+          className="fixed bottom-5 right-5 z-[65] flex items-center gap-2 rounded-full border border-[var(--fd-accent)]/40 bg-[var(--fd-surface-1)]/95 px-3.5 py-2 text-xs font-semibold text-[var(--fd-text-primary)] shadow-lg backdrop-blur-md transition-all hover:scale-105 hover:border-[var(--fd-accent)] hover:shadow-[0_0_20px_rgba(255,106,0,0.3)] cursor-pointer"
         >
           <Sparkles size={14} className="text-[var(--fd-accent)] animate-pulse" />
           <span>Update v{latestVersion} Available</span>
@@ -230,7 +230,7 @@ export function DesktopShellGate() {
               </span>
               <div className="font-mono font-bold text-[var(--fd-accent)]">v{latestVersion}</div>
             </div>
-            <span className="text-2xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+            <span className="text-2xs font-bold uppercase tracking-wider text-[var(--fd-accent)] bg-[var(--fd-accent)]/10 border border-[var(--fd-accent)]/20 px-2 py-0.5 rounded-full">
               Recommended
             </span>
           </div>

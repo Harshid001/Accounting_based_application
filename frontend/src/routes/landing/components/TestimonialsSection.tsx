@@ -1,4 +1,4 @@
-import { Building2, CheckCircle2, Quote, Sparkles, Star } from 'lucide-react';
+﻿import { Building2, CheckCircle2, Quote, Sparkles, Star } from 'lucide-react';
 
 interface Testimonial {
   id: string;
@@ -18,7 +18,7 @@ export function TestimonialsSection() {
     {
       id: 'apex-infra',
       initials: 'MS',
-      initialsGradient: 'from-emerald-500/20 to-indigo-500/20 text-emerald-400 border-emerald-500/30',
+      initialsGradient: 'from-[var(--fd-status-done)]/20 to-[var(--fd-accent)]/20 text-[var(--fd-status-done)] border-[var(--fd-status-done)]/30',
       name: 'Manish Shah',
       designation: 'Managing Director',
       company: 'Apex Infra Projects JV',
@@ -26,12 +26,12 @@ export function TestimonialsSection() {
       entityType: 'Joint Venture Consortium',
       quote:
         'Before partnering with JV Tax Consultancy, our consortium had recurring GST reconciliation mismatches and partner profit distribution disputes. Their team established rigorous sub-contractor TDS controls and the Client Portal gives both venture partners 24/7 visibility into filed challans and ARN receipts. Truly institutional discipline.',
-      metricsBadge: 'Joint Venture Audit · 100% Reconciliation',
+      metricsBadge: 'Joint Venture Audit Â· 100% Reconciliation',
     },
     {
       id: 'mehsana-agro',
       initials: 'AP',
-      initialsGradient: 'from-sky-500/20 to-indigo-500/20 text-sky-400 border-sky-500/30',
+      initialsGradient: 'from-[var(--fd-status-progress)]/20 to-[var(--fd-accent)]/20 text-[var(--fd-status-progress)] border-[var(--fd-status-progress)]/30',
       name: 'Aarav Patel',
       designation: 'Chief Financial Officer',
       company: 'Mehsana Agro Processing Ltd',
@@ -44,7 +44,7 @@ export function TestimonialsSection() {
     {
       id: 'kutch-logistics',
       initials: 'DM',
-      initialsGradient: 'from-purple-500/20 to-indigo-500/20 text-purple-400 border-purple-500/30',
+      initialsGradient: 'from-[var(--fd-accent)]/20 to-[#FFB15C]/20 text-[var(--fd-accent)] border-[var(--fd-accent)]/30',
       name: 'Deepa Mehta',
       designation: 'Founder & Designated Partner',
       company: 'Kutch Logistics & Warehousing LLP',
@@ -93,10 +93,10 @@ export function TestimonialsSection() {
                     <div>
                       <h3 className="text-sm font-bold text-[var(--fd-text-primary)] flex items-center gap-1.5">
                         <span>{t.name}</span>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" aria-label="Verified Client" />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-[var(--fd-status-done)]" aria-label="Verified Client" />
                       </h3>
                       <p className="text-xs text-[var(--fd-text-secondary)]">
-                        {t.designation} · <strong className="font-semibold text-[var(--fd-text-primary)]">{t.company}</strong>
+                        {t.designation} Â· <strong className="font-semibold text-[var(--fd-text-primary)]">{t.company}</strong>
                       </p>
                       <p className="text-[11px] text-[var(--fd-text-tertiary)] flex items-center gap-1 mt-0.5">
                         <Building2 className="h-3 w-3" />
@@ -109,7 +109,7 @@ export function TestimonialsSection() {
                 {/* 5-Star Rating */}
                 <div className="mt-4 flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="h-3.5 w-3.5 fill-[var(--fd-accent)] text-[var(--fd-accent)]" />
                   ))}
                   <span className="ml-2 font-mono text-[10px] text-[var(--fd-text-tertiary)] uppercase tracking-wider">
                     {t.entityType}
@@ -128,7 +128,7 @@ export function TestimonialsSection() {
               {/* Bottom Result Pill */}
               <div className="mt-6 pt-4 border-t border-[var(--fd-border-subtle)] flex items-center justify-between">
                 <span className="text-[11px] font-mono text-[var(--fd-accent)] font-semibold flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--fd-status-done)]" />
                   {t.metricsBadge}
                 </span>
                 <span className="text-[10px] text-[var(--fd-text-tertiary)] font-mono">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   ArrowRight,
   Calculator,
@@ -203,7 +203,7 @@ export function ServicesSection() {
                     <ul className="space-y-2 text-xs text-[var(--fd-text-secondary)]">
                       {service.deliverables.map((item, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
+                          <CheckCircle2 className="h-3.5 w-3.5 text-[var(--fd-status-done)] shrink-0 mt-0.5" aria-hidden="true" />
                           <span>{item}</span>
                         </li>
                       ))}

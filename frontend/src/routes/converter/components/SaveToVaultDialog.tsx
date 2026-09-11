@@ -123,7 +123,7 @@ export function SaveToVaultDialog({
     >
       {isSuccess ? (
         <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--fd-status-done)]/15 text-[var(--fd-status-done)]">
             <Check size={24} />
           </div>
           <h4 className="text-base font-semibold text-[var(--fd-text-primary)]">

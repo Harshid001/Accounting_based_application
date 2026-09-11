@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   Calendar,
   CheckCircle2,
@@ -27,7 +27,7 @@ const STATUTORY_CATALOGUE: ComplianceItem[] = [
     frequency: 'Monthly (or QRMP)',
     rule: '11th of succeeding month',
     checklist: ['B2B outward tax invoices', 'Credit & debit notes register', 'Export invoices with shipping bills', 'HSN code summary reconciliation'],
-    penaltyRisk: 'Late fee ₹50/day (₹20 for nil) + blocked e-way bill generation for buyers.',
+    penaltyRisk: 'Late fee â‚¹50/day (â‚¹20 for nil) + blocked e-way bill generation for buyers.',
   },
   {
     id: 'gstr3b',
@@ -47,7 +47,7 @@ const STATUTORY_CATALOGUE: ComplianceItem[] = [
     frequency: 'Annual',
     rule: '30th September of Assessment Year',
     checklist: ['Trial balance & general ledger', 'Depreciation schedules (Companies vs IT Act)', 'Related party disclosures (Sec 40A(2)(b))', 'GST vs Income Tax turnover reconciliation'],
-    penaltyRisk: '0.5% of total business turnover up to ₹1,50,000 penalty u/s 271B.',
+    penaltyRisk: '0.5% of total business turnover up to â‚¹1,50,000 penalty u/s 271B.',
   },
   {
     id: 'advancetax',
@@ -67,7 +67,7 @@ const STATUTORY_CATALOGUE: ComplianceItem[] = [
     frequency: 'Quarterly',
     rule: '31st of month following quarter end (31 May for Q4)',
     checklist: ['Vendor invoice register with TDS deducted', 'BSR code challans (ITNS 281)', 'PAN verification sheet', '194C / 194J / 194Q classification'],
-    penaltyRisk: 'Late fee ₹200/day u/s 234E + discretionary penalty up to ₹1,00,000 u/s 271H.',
+    penaltyRisk: 'Late fee â‚¹200/day u/s 234E + discretionary penalty up to â‚¹1,00,000 u/s 271H.',
   },
   {
     id: 'aoc4',
@@ -77,7 +77,7 @@ const STATUTORY_CATALOGUE: ComplianceItem[] = [
     frequency: 'Annual',
     rule: 'Within 30 days of Annual General Meeting (AGM)',
     checklist: ['Audited balance sheet & P&L', 'Directors report & MGT-9 extract', 'Auditors report with CARO notes', 'Notice of AGM'],
-    penaltyRisk: '₹100/day continuing penalty on company and directors until rectified.',
+    penaltyRisk: 'â‚¹100/day continuing penalty on company and directors until rectified.',
   },
 ];
 
@@ -93,7 +93,7 @@ export function ComplianceRadarSection() {
     <section id="compliance-radar" className="scroll-mt-20 py-16 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-[var(--fd-status-done)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--fd-status-done)] uppercase tracking-wider">
             Proactive Statutory Radar
           </div>
           <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--fd-text-primary)] sm:text-4xl">
@@ -162,10 +162,10 @@ export function ComplianceRadarSection() {
                   </div>
 
                   {/* Penalty Avoided Note */}
-                  <div className="mt-3 flex items-start gap-2 text-xs text-rose-300/90 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-lg">
-                    <ShieldAlert className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
+                  <div className="mt-3 flex items-start gap-2 text-xs text-[var(--fd-status-danger)]/90 bg-[var(--fd-status-danger)]/10 border border-[var(--fd-status-danger)]/20 p-2.5 rounded-lg">
+                    <ShieldAlert className="h-4 w-4 shrink-0 text-[var(--fd-status-danger)] mt-0.5" />
                     <div>
-                      <span className="font-semibold text-rose-300">Penalty Saved: </span>
+                      <span className="font-semibold text-[var(--fd-status-danger)]">Penalty Saved: </span>
                       <span>{item.penaltyRisk}</span>
                     </div>
                   </div>
@@ -179,7 +179,7 @@ export function ComplianceRadarSection() {
                       <ul className="space-y-1.5 text-xs text-[var(--fd-text-secondary)]">
                         {item.checklist.map((point, idx) => (
                           <li key={idx} className="flex items-start gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-[var(--fd-status-done)] shrink-0 mt-0.5" />
                             <span>{point}</span>
                           </li>
                         ))}
@@ -202,7 +202,7 @@ export function ComplianceRadarSection() {
                     href="#consultation"
                     className="text-[11px] font-semibold text-[var(--fd-text-tertiary)] hover:text-[var(--fd-text-primary)] transition-colors"
                   >
-                    Consult on this →
+                    Consult on this â†’
                   </a>
                 </div>
               </div>

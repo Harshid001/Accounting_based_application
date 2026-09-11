@@ -119,7 +119,7 @@ export function LanguagePreferencePanel() {
             {currentMeta.sampleGreeting}, {user?.name ?? 'Client'}
           </span>
           <span className="text-[var(--fd-text-tertiary)]">•</span>
-          <span className="inline-flex items-center gap-1 text-emerald-400 font-medium text-xs">
+          <span className="inline-flex items-center gap-1 text-[var(--fd-status-done)] font-medium text-xs">
             <CheckCircle2 className="h-3 w-3 shrink-0" />
             <span>{currentMeta.sampleNotice}</span>
           </span>

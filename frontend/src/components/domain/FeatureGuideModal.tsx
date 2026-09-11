@@ -1,4 +1,4 @@
-import * as RadixDialog from '@radix-ui/react-dialog';
+﻿import * as RadixDialog from '@radix-ui/react-dialog';
 import {
   ArrowRight,
   BarChart,
@@ -61,49 +61,49 @@ const UI_TEXT = {
     allLanguages: 'Language',
   },
   hi: {
-    guideTitle: 'सुविधा गाइड व विवरण',
-    inSimpleTerms: 'सरल शब्दों में समझें',
-    whyItMatters: 'यह क्यों महत्वपूर्ण है',
-    howItWorks: 'कार्यप्रणाली (Workflow)',
-    buttonsExplained: 'इस स्क्रीन के मुख्य बटन्स और उनके कार्य',
-    proTipsTitle: 'सीए फर्म उपयोगी सुझाव',
+    guideTitle: 'à¤¸à¥à¤µà¤¿à¤§à¤¾ à¤—à¤¾à¤‡à¤¡ à¤µ à¤µà¤¿à¤µà¤°à¤£',
+    inSimpleTerms: 'à¤¸à¤°à¤² à¤¶à¤¬à¥à¤¦à¥‹à¤‚ à¤®à¥‡à¤‚ à¤¸à¤®à¤à¥‡à¤‚',
+    whyItMatters: 'à¤¯à¤¹ à¤•à¥à¤¯à¥‹à¤‚ à¤®à¤¹à¤¤à¥à¤µà¤ªà¥‚à¤°à¥à¤£ à¤¹à¥ˆ',
+    howItWorks: 'à¤•à¤¾à¤°à¥à¤¯à¤ªà¥à¤°à¤£à¤¾à¤²à¥€ (Workflow)',
+    buttonsExplained: 'à¤‡à¤¸ à¤¸à¥à¤•à¥à¤°à¥€à¤¨ à¤•à¥‡ à¤®à¥à¤–à¥à¤¯ à¤¬à¤Ÿà¤¨à¥à¤¸ à¤”à¤° à¤‰à¤¨à¤•à¥‡ à¤•à¤¾à¤°à¥à¤¯',
+    proTipsTitle: 'à¤¸à¥€à¤ à¤«à¤°à¥à¤® à¤‰à¤ªà¤¯à¥‹à¤—à¥€ à¤¸à¥à¤à¤¾à¤µ',
     startTourBtn: 'Interactive Tutorial',
-    takeTourBadge: 'इंटरैक्टिव टूर',
-    bannerTitle: 'क्या आप हर बटन का लाइव ट्यूटोरियल देखना चाहते हैं?',
-    bannerDesc: 'यह इंटरैक्टिव टूर स्क्रीन के हर बटन को हाइलाइट करके उसके काम को विस्तार से समझाएगा।',
-    close: 'बंद करें',
-    clickToSpotlight: 'इस बटन को हाइलाइट करें',
-    allLanguages: 'भाषा बदलें',
+    takeTourBadge: 'à¤‡à¤‚à¤Ÿà¤°à¥ˆà¤•à¥à¤Ÿà¤¿à¤µ à¤Ÿà¥‚à¤°',
+    bannerTitle: 'à¤•à¥à¤¯à¤¾ à¤†à¤ª à¤¹à¤° à¤¬à¤Ÿà¤¨ à¤•à¤¾ à¤²à¤¾à¤‡à¤µ à¤Ÿà¥à¤¯à¥‚à¤Ÿà¥‹à¤°à¤¿à¤¯à¤² à¤¦à¥‡à¤–à¤¨à¤¾ à¤šà¤¾à¤¹à¤¤à¥‡ à¤¹à¥ˆà¤‚?',
+    bannerDesc: 'à¤¯à¤¹ à¤‡à¤‚à¤Ÿà¤°à¥ˆà¤•à¥à¤Ÿà¤¿à¤µ à¤Ÿà¥‚à¤° à¤¸à¥à¤•à¥à¤°à¥€à¤¨ à¤•à¥‡ à¤¹à¤° à¤¬à¤Ÿà¤¨ à¤•à¥‹ à¤¹à¤¾à¤‡à¤²à¤¾à¤‡à¤Ÿ à¤•à¤°à¤•à¥‡ à¤‰à¤¸à¤•à¥‡ à¤•à¤¾à¤® à¤•à¥‹ à¤µà¤¿à¤¸à¥à¤¤à¤¾à¤° à¤¸à¥‡ à¤¸à¤®à¤à¤¾à¤à¤—à¤¾à¥¤',
+    close: 'à¤¬à¤‚à¤¦ à¤•à¤°à¥‡à¤‚',
+    clickToSpotlight: 'à¤‡à¤¸ à¤¬à¤Ÿà¤¨ à¤•à¥‹ à¤¹à¤¾à¤‡à¤²à¤¾à¤‡à¤Ÿ à¤•à¤°à¥‡à¤‚',
+    allLanguages: 'à¤­à¤¾à¤·à¤¾ à¤¬à¤¦à¤²à¥‡à¤‚',
   },
   gu: {
-    guideTitle: 'ફીચર માર્ગદર્શિકા',
-    inSimpleTerms: 'સરળ શબ્દોમાં સમજો',
-    whyItMatters: 'આ કેમ મહત્વપૂર્ણ છે',
-    howItWorks: 'કામ કરવાની પદ્ધતિ (Workflow)',
-    buttonsExplained: 'આ સ્ક્રીન પરના તમામ બટનો અને તેમની કામગીરી',
-    proTipsTitle: 'સીએ પ્રેક્ટિસ ઉપયોગી ટિપ્સ',
+    guideTitle: 'àª«à«€àªšàª° àª®àª¾àª°à«àª—àª¦àª°à«àª¶àª¿àª•àª¾',
+    inSimpleTerms: 'àª¸àª°àª³ àª¶àª¬à«àª¦à«‹àª®àª¾àª‚ àª¸àª®àªœà«‹',
+    whyItMatters: 'àª† àª•à«‡àª® àª®àª¹àª¤à«àªµàªªà«‚àª°à«àª£ àª›à«‡',
+    howItWorks: 'àª•àª¾àª® àª•àª°àªµàª¾àª¨à«€ àªªàª¦à«àª§àª¤àª¿ (Workflow)',
+    buttonsExplained: 'àª† àª¸à«àª•à«àª°à«€àª¨ àªªàª°àª¨àª¾ àª¤àª®àª¾àª® àª¬àªŸàª¨à«‹ àª…àª¨à«‡ àª¤à«‡àª®àª¨à«€ àª•àª¾àª®àª—à«€àª°à«€',
+    proTipsTitle: 'àª¸à«€àª àªªà«àª°à«‡àª•à«àªŸàª¿àª¸ àª‰àªªàª¯à«‹àª—à«€ àªŸàª¿àªªà«àª¸',
     startTourBtn: 'Interactive Tutorial',
-    takeTourBadge: 'ઇન્ટરેક્ટિવ ટૂર',
-    bannerTitle: 'શું તમે દરેક બટનનું લાઈવ ટ્યુટોરિયલ જોવા માંગો છો?',
-    bannerDesc: 'આ ટૂર સ્ક્રીન પરના દરેક બટનને હાઇલાઇટ કરીને તેનું કાર્ય સરળ રીતે સમજાવશે.',
-    close: 'બંધ કરો',
-    clickToSpotlight: 'આ બટન હાઇલાઇટ કરો',
-    allLanguages: 'ભાષા બદલો',
+    takeTourBadge: 'àª‡àª¨à«àªŸàª°à«‡àª•à«àªŸàª¿àªµ àªŸà«‚àª°',
+    bannerTitle: 'àª¶à«àª‚ àª¤àª®à«‡ àª¦àª°à«‡àª• àª¬àªŸàª¨àª¨à«àª‚ àª²àª¾àªˆàªµ àªŸà«àª¯à«àªŸà«‹àª°àª¿àª¯àª² àªœà«‹àªµàª¾ àª®àª¾àª‚àª—à«‹ àª›à«‹?',
+    bannerDesc: 'àª† àªŸà«‚àª° àª¸à«àª•à«àª°à«€àª¨ àªªàª°àª¨àª¾ àª¦àª°à«‡àª• àª¬àªŸàª¨àª¨à«‡ àª¹àª¾àª‡àª²àª¾àª‡àªŸ àª•àª°à«€àª¨à«‡ àª¤à«‡àª¨à«àª‚ àª•àª¾àª°à«àª¯ àª¸àª°àª³ àª°à«€àª¤à«‡ àª¸àª®àªœàª¾àªµàª¶à«‡.',
+    close: 'àª¬àª‚àª§ àª•àª°à«‹',
+    clickToSpotlight: 'àª† àª¬àªŸàª¨ àª¹àª¾àª‡àª²àª¾àª‡àªŸ àª•àª°à«‹',
+    allLanguages: 'àª­àª¾àª·àª¾ àª¬àª¦àª²à«‹',
   },
   mr: {
-    guideTitle: 'वैशिष्ट्ये व मार्गदर्शक',
-    inSimpleTerms: 'सोप्या भाषेत समजून घ्या',
-    whyItMatters: 'हे का महत्त्वाचे आहे',
-    howItWorks: 'कार्यपद्धती (Workflow)',
-    buttonsExplained: 'या स्क्रीनवरील सर्व बटने आणि त्यांची कार्ये',
-    proTipsTitle: 'सीए फर्म उपयुक्त टिप्स',
+    guideTitle: 'à¤µà¥ˆà¤¶à¤¿à¤·à¥à¤Ÿà¥à¤¯à¥‡ à¤µ à¤®à¤¾à¤°à¥à¤—à¤¦à¤°à¥à¤¶à¤•',
+    inSimpleTerms: 'à¤¸à¥‹à¤ªà¥à¤¯à¤¾ à¤­à¤¾à¤·à¥‡à¤¤ à¤¸à¤®à¤œà¥‚à¤¨ à¤˜à¥à¤¯à¤¾',
+    whyItMatters: 'à¤¹à¥‡ à¤•à¤¾ à¤®à¤¹à¤¤à¥à¤¤à¥à¤µà¤¾à¤šà¥‡ à¤†à¤¹à¥‡',
+    howItWorks: 'à¤•à¤¾à¤°à¥à¤¯à¤ªà¤¦à¥à¤§à¤¤à¥€ (Workflow)',
+    buttonsExplained: 'à¤¯à¤¾ à¤¸à¥à¤•à¥à¤°à¥€à¤¨à¤µà¤°à¥€à¤² à¤¸à¤°à¥à¤µ à¤¬à¤Ÿà¤¨à¥‡ à¤†à¤£à¤¿ à¤¤à¥à¤¯à¤¾à¤‚à¤šà¥€ à¤•à¤¾à¤°à¥à¤¯à¥‡',
+    proTipsTitle: 'à¤¸à¥€à¤ à¤«à¤°à¥à¤® à¤‰à¤ªà¤¯à¥à¤•à¥à¤¤ à¤Ÿà¤¿à¤ªà¥à¤¸',
     startTourBtn: 'Interactive Tutorial',
-    takeTourBadge: 'इंटरॅक्टिव्ह टूर',
-    bannerTitle: 'आपल्याला प्रत्येक बटणाचे थेट ट्युटोरियल पहायचे आहे का?',
-    bannerDesc: 'हा परस्परसंवादी टूर स्क्रीनवरील प्रत्येक बटणावर प्रकाश टाकून त्याचे काम समजावून सांगेल.',
-    close: 'बंद करा',
-    clickToSpotlight: 'हे बटण दाखवा',
-    allLanguages: 'भाषा बदला',
+    takeTourBadge: 'à¤‡à¤‚à¤Ÿà¤°à¥…à¤•à¥à¤Ÿà¤¿à¤µà¥à¤¹ à¤Ÿà¥‚à¤°',
+    bannerTitle: 'à¤†à¤ªà¤²à¥à¤¯à¤¾à¤²à¤¾ à¤ªà¥à¤°à¤¤à¥à¤¯à¥‡à¤• à¤¬à¤Ÿà¤£à¤¾à¤šà¥‡ à¤¥à¥‡à¤Ÿ à¤Ÿà¥à¤¯à¥à¤Ÿà¥‹à¤°à¤¿à¤¯à¤² à¤ªà¤¹à¤¾à¤¯à¤šà¥‡ à¤†à¤¹à¥‡ à¤•à¤¾?',
+    bannerDesc: 'à¤¹à¤¾ à¤ªà¤°à¤¸à¥à¤ªà¤°à¤¸à¤‚à¤µà¤¾à¤¦à¥€ à¤Ÿà¥‚à¤° à¤¸à¥à¤•à¥à¤°à¥€à¤¨à¤µà¤°à¥€à¤² à¤ªà¥à¤°à¤¤à¥à¤¯à¥‡à¤• à¤¬à¤Ÿà¤£à¤¾à¤µà¤° à¤ªà¥à¤°à¤•à¤¾à¤¶ à¤Ÿà¤¾à¤•à¥‚à¤¨ à¤¤à¥à¤¯à¤¾à¤šà¥‡ à¤•à¤¾à¤® à¤¸à¤®à¤œà¤¾à¤µà¥‚à¤¨ à¤¸à¤¾à¤‚à¤—à¥‡à¤².',
+    close: 'à¤¬à¤‚à¤¦ à¤•à¤°à¤¾',
+    clickToSpotlight: 'à¤¹à¥‡ à¤¬à¤Ÿà¤£ à¤¦à¤¾à¤–à¤µà¤¾',
+    allLanguages: 'à¤­à¤¾à¤·à¤¾ à¤¬à¤¦à¤²à¤¾',
   },
 };
 
@@ -148,7 +148,7 @@ export function FeatureGuideModal() {
           <div className="flex items-center justify-between gap-3 sm:gap-4 border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 px-4 sm:px-6 py-3.5 sm:py-4">
             {/* Feature Icon, Title, Badge & Subtitle */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white shadow-md">
+              <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--fd-accent)] to-[#B84E00] text-[var(--fd-accent-contrast)] shadow-md">
                 {ICON_MAP[currentGuide.iconName] ?? <BookOpen className="h-5 w-5" />}
               </div>
               <div className="min-w-0 flex-1">
@@ -192,7 +192,7 @@ export function FeatureGuideModal() {
                 aria-label="Interactive Tutorial"
                 className={cn(
                   'relative group inline-flex h-9 items-center gap-2 rounded-lg px-3 sm:px-3.5 text-xs font-bold text-white shadow-sm transition-all shrink-0 cursor-pointer',
-                  'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500',
+                  'bg-gradient-to-r from-[var(--fd-accent)] via-[#FF8A1F] to-[#B84E00] hover:from-[var(--fd-accent-hover)] hover:to-[#C24F00]',
                   'focus-visible:outline-2 focus-visible:outline-[var(--fd-focus-ring)] focus-visible:outline-offset-2',
                 )}
               >
@@ -374,7 +374,7 @@ export function FeatureGuideModal() {
             )}
 
             {/* Bottom Call to Action Banner to Launch Tour */}
-            <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="rounded-xl border border-[var(--fd-accent)]/30 bg-gradient-to-r from-[var(--fd-accent)]/10 via-[#FF8A1F]/10 to-[var(--fd-accent)]/10 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="space-y-1 text-center sm:text-left">
                 <h4 className="text-sm font-bold text-[var(--fd-text-primary)]">
                   {ui.bannerTitle}
@@ -386,7 +386,7 @@ export function FeatureGuideModal() {
               <button
                 type="button"
                 onClick={() => startTour(activeGuideFeature)}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-indigo-500 transition-all shrink-0"
+                className="inline-flex items-center gap-2 rounded-lg bg-[var(--fd-accent)] px-4 py-2 text-xs font-bold text-[var(--fd-accent-contrast)] shadow-md hover:bg-[var(--fd-accent-hover)] transition-all shrink-0"
               >
                 <Play className="h-3.5 w-3.5 fill-current" />
                 <span>{ui.startTourBtn}</span>

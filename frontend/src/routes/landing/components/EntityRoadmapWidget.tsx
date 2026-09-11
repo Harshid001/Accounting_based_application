@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   Calendar,
   CheckCircle2,
@@ -91,7 +91,7 @@ const ENTITY_ROADMAPS: Record<EntityKey, EntityRoadmap> = {
       'Streamlined compliance focused on GST monthly/QRMP returns, presumptive taxation (Sec 44AD/44ADA), and personal ITR filings.',
     monthly: ['GSTR-1 / IFF Invoice Upload', 'GSTR-3B Tax Payment & ITC Claim'],
     quarterly: ['TDS on high-value payments (Sec 194-IB/194M)', 'Advance Tax (Single instalment on 15 Mar if 44AD)'],
-    annual: ['ITR-3 / ITR-4 Presumptive Return (31 Jul or 31 Oct)', 'GSTR-9 Annual Return (if turnover > ₹2 Cr)'],
+    annual: ['ITR-3 / ITR-4 Presumptive Return (31 Jul or 31 Oct)', 'GSTR-9 Annual Return (if turnover > â‚¹2 Cr)'],
     entitySpecific: [
       'Bank statement reconciliation separating business from personal transactions',
       'Presumptive 6%/8%/50% profit computation under Sec 44AD/44ADA',
@@ -109,7 +109,7 @@ export function EntityRoadmapWidget() {
     <section id="entity-roadmap" className="scroll-mt-20 py-16 lg:py-24 border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/15 px-2.5 py-1 text-xs font-semibold text-sky-400 uppercase tracking-wider">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-[var(--fd-status-progress)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--fd-status-progress)] uppercase tracking-wider">
             Tailored Statutory Coverage
           </div>
           <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--fd-text-primary)] sm:text-4xl">
@@ -160,7 +160,7 @@ export function EntityRoadmapWidget() {
               </div>
               <p className="mt-1 text-xs sm:text-sm text-[var(--fd-text-secondary)]">{data.description}</p>
             </div>
-            <div className="shrink-0 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-xs text-emerald-400 font-semibold">
+            <div className="shrink-0 rounded-lg bg-[var(--fd-status-done)]/10 border border-[var(--fd-status-done)]/20 px-3 py-1.5 text-xs text-[var(--fd-status-done)] font-semibold">
               Full Financial Year Coverage
             </div>
           </div>
@@ -176,7 +176,7 @@ export function EntityRoadmapWidget() {
               <ul className="mt-3 space-y-2 text-xs text-[var(--fd-text-secondary)]">
                 {data.monthly.map((m, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-[var(--fd-accent)] font-bold">·</span>
+                    <span className="text-[var(--fd-accent)] font-bold">Â·</span>
                     <span>{m}</span>
                   </li>
                 ))}
@@ -186,13 +186,13 @@ export function EntityRoadmapWidget() {
             {/* Quarterly */}
             <div className="rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-4">
               <div className="flex items-center gap-2 text-xs font-bold text-[var(--fd-text-primary)]">
-                <Calendar className="h-4 w-4 text-sky-400" />
+                <Calendar className="h-4 w-4 text-[var(--fd-status-progress)]" />
                 <span>Quarterly Cycles</span>
               </div>
               <ul className="mt-3 space-y-2 text-xs text-[var(--fd-text-secondary)]">
                 {data.quarterly.map((q, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-sky-400 font-bold">·</span>
+                    <span className="text-[var(--fd-status-progress)] font-bold">Â·</span>
                     <span>{q}</span>
                   </li>
                 ))}
@@ -202,13 +202,13 @@ export function EntityRoadmapWidget() {
             {/* Annual */}
             <div className="rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-4">
               <div className="flex items-center gap-2 text-xs font-bold text-[var(--fd-text-primary)]">
-                <FileCheck className="h-4 w-4 text-amber-400" />
+                <FileCheck className="h-4 w-4 text-[var(--fd-accent)]" />
                 <span>Annual Audits & ITR</span>
               </div>
               <ul className="mt-3 space-y-2 text-xs text-[var(--fd-text-secondary)]">
                 {data.annual.map((a, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-amber-400 font-bold">·</span>
+                    <span className="text-[var(--fd-accent)] font-bold">Â·</span>
                     <span>{a}</span>
                   </li>
                 ))}
@@ -218,13 +218,13 @@ export function EntityRoadmapWidget() {
             {/* Entity Specific */}
             <div className="rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-4">
               <div className="flex items-center gap-2 text-xs font-bold text-[var(--fd-text-primary)]">
-                <Scale className="h-4 w-4 text-purple-400" />
+                <Scale className="h-4 w-4 text-[#FFB15C]" />
                 <span>Statutory Governance</span>
               </div>
               <ul className="mt-3 space-y-2 text-xs text-[var(--fd-text-secondary)]">
                 {data.entitySpecific.map((e, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-purple-400 font-bold">·</span>
+                    <span className="text-[#FFB15C] font-bold">Â·</span>
                     <span>{e}</span>
                   </li>
                 ))}
@@ -233,7 +233,7 @@ export function EntityRoadmapWidget() {
           </div>
 
           {/* Risk Saved Banner */}
-          <div className="mt-6 flex items-center justify-between flex-wrap gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs text-emerald-400">
+          <div className="mt-6 flex items-center justify-between flex-wrap gap-3 rounded-xl border border-[var(--fd-status-done)]/20 bg-[var(--fd-status-done)]/10 p-4 text-xs text-[var(--fd-status-done)]">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               <span>
@@ -243,9 +243,9 @@ export function EntityRoadmapWidget() {
             </div>
             <a
               href="#consultation"
-              className="inline-flex items-center font-bold underline underline-offset-2 hover:text-emerald-300"
+              className="inline-flex items-center font-bold underline underline-offset-2 hover:text-[#6EE7B7]"
             >
-              Get compliant roadmap for your entity →
+              Get compliant roadmap for your entity â†’
             </a>
           </div>
         </div>

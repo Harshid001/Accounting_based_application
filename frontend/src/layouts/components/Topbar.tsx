@@ -64,7 +64,7 @@ export function Topbar({ onOpenDrawer, onOpenPalette }: TopbarProps) {
           <span className="ml-auto hidden items-center gap-1.5 sm:flex">
             <span
               title="You can paste images (Ctrl+V) or screenshots directly into search"
-              className="inline-flex items-center text-[11px] text-[var(--fd-text-tertiary)] group-hover:text-indigo-500 transition-colors"
+              className="inline-flex items-center text-[11px] text-[var(--fd-text-tertiary)] group-hover:text-[var(--fd-accent-hover)] transition-colors"
             >
               <Camera size={13} aria-hidden="true" />
             </span>

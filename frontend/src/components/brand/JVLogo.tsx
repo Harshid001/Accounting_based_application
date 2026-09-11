@@ -40,39 +40,39 @@ export function JVLogoMark({
       role="img"
     >
       <defs>
-        {/* Imperial Gold Metallic Gradient for Letter V & Accents */}
+        {/* Burnt Orange Metallic Gradient for Letter V & Accents */}
         <linearGradient id={`${id}-gold`} x1="15%" y1="10%" x2="85%" y2="90%">
-          <stop offset="0%" stopColor="#fef08a" />
-          <stop offset="25%" stopColor="#fbbf24" />
-          <stop offset="65%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#d97706" />
+          <stop offset="0%" stopColor="#ffb15c" />
+          <stop offset="30%" stopColor="#ff8a1f" />
+          <stop offset="70%" stopColor="#ff6a00" />
+          <stop offset="100%" stopColor="#c24f00" />
         </linearGradient>
 
-        {/* Secondary Warm Bronze/Gold Shimmer */}
+        {/* Secondary Warm Tangerine Shimmer */}
         <linearGradient id={`${id}-gold-light`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fef3c7" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#d97706" stopOpacity="0.75" />
+          <stop offset="0%" stopColor="#ffd9ae" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#ff6a00" stopOpacity="0.75" />
         </linearGradient>
 
-        {/* Deep Royal Navy Gradient for Light Mode */}
+        {/* Deep Obsidian Gradient for Light Mode */}
         <linearGradient id={`${id}-navy`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#1e3a8a" />
-          <stop offset="50%" stopColor="#0f172a" />
-          <stop offset="100%" stopColor="#090d16" />
+          <stop offset="0%" stopColor="#262626" />
+          <stop offset="50%" stopColor="#171717" />
+          <stop offset="100%" stopColor="#0a0a0a" />
         </linearGradient>
 
-        {/* Crisp Platinum Silver Gradient for Dark Mode */}
+        {/* Crisp Warm White Gradient for Dark Mode */}
         <linearGradient id={`${id}-platinum`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="60%" stopColor="#f1f5f9" />
-          <stop offset="100%" stopColor="#cbd5e1" />
+          <stop offset="60%" stopColor="#f5f2ed" />
+          <stop offset="100%" stopColor="#d4cfc7" />
         </linearGradient>
 
         {/* Optional Executive Medallion Radial Fill */}
         <radialGradient id={`${id}-medallion`} cx="50%" cy="40%" r="60%">
-          <stop offset="0%" stopColor="#172554" />
-          <stop offset="70%" stopColor="#091124" />
-          <stop offset="100%" stopColor="#030712" />
+          <stop offset="0%" stopColor="#2b1600" />
+          <stop offset="70%" stopColor="#150b00" />
+          <stop offset="100%" stopColor="#0a0500" />
         </radialGradient>
       </defs>
 
@@ -132,10 +132,10 @@ export function JVLogoMark({
         fill="none"
       />
 
-      {/* Letter J: Pillar of Governance & Statutory Trust (Theme-adaptive Navy in Light / Platinum in Dark) */}
+      {/* Letter J: Pillar of Governance & Statutory Trust (Theme-adaptive Obsidian in Light / Warm White in Dark) */}
       <path
         d="M 14 13 H 32 V 18 H 30.5 V 40 C 30.5 48.5 22.5 53 14 53 C 7.5 53 6.5 46.5 6.5 39 H 13 C 13 43.5 15.5 47 19.5 47 C 23.5 47 24 43.5 24 40 V 18 H 14 Z"
-        className="fill-[#0f172a] dark:fill-[#f8fafc]"
+        className="fill-[#171717] dark:fill-[#f5f2ed]"
       />
 
       {/* Architectural Bevel Highlight on J Top Pediment */}

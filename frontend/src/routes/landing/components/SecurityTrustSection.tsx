@@ -4,17 +4,17 @@ import { ShieldCheck } from 'lucide-react';
 function Aes256Badge() {
   return (
     <svg className="h-12 w-12 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AES-256-GCM Military Grade Encryption Badge">
-      <rect width="48" height="48" rx="10" fill="#19212D" stroke="#2A3546" strokeWidth="1.5" />
+      <rect width="48" height="48" rx="10" fill="#171717" stroke="#262626" strokeWidth="1.5" />
       <path d="M24 8L36 13.5V23C36 30.5 30.9 37.4 24 39.5C17.1 37.4 12 30.5 12 23V13.5L24 8Z" fill="url(#aes-grad)" fillOpacity="0.15" stroke="url(#aes-grad)" strokeWidth="1.75" strokeLinejoin="round" />
-      <path d="M24 16C21.8 16 20 17.8 20 20V23H28V20C28 17.8 26.2 16 24 16Z" stroke="#818CF8" strokeWidth="1.5" />
-      <rect x="18" y="22" width="12" height="9" rx="2" fill="#1E1B4B" stroke="#A5B4FC" strokeWidth="1.5" />
-      <circle cx="24" cy="26" r="1.5" fill="#818CF8" />
-      <path d="M24 27.5V29" stroke="#818CF8" strokeWidth="1.5" strokeLinecap="round" />
-      <text x="24" y="36.5" textAnchor="middle" fill="#A5B4FC" fontSize="5.5" fontWeight="800" fontFamily="monospace" letterSpacing="0.5">AES-256</text>
+      <path d="M24 16C21.8 16 20 17.8 20 20V23H28V20C28 17.8 26.2 16 24 16Z" stroke="#FF8A1F" strokeWidth="1.5" />
+      <rect x="18" y="22" width="12" height="9" rx="2" fill="#331700" stroke="#FFB15C" strokeWidth="1.5" />
+      <circle cx="24" cy="26" r="1.5" fill="#FF8A1F" />
+      <path d="M24 27.5V29" stroke="#FF8A1F" strokeWidth="1.5" strokeLinecap="round" />
+      <text x="24" y="36.5" textAnchor="middle" fill="#FFB15C" fontSize="5.5" fontWeight="800" fontFamily="monospace" letterSpacing="0.5">AES-256</text>
       <defs>
         <linearGradient id="aes-grad" x1="12" y1="8" x2="36" y2="39.5" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#818CF8" />
-          <stop offset="1" stopColor="#6366F1" />
+          <stop stopColor="#FF8A1F" />
+          <stop offset="1" stopColor="#FF6A00" />
         </linearGradient>
       </defs>
     </svg>
@@ -24,7 +24,7 @@ function Aes256Badge() {
 function EphemeralTokenBadge() {
   return (
     <svg className="h-12 w-12 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Cryptographically Signed Ephemeral Token Badge">
-      <rect width="48" height="48" rx="10" fill="#19212D" stroke="#2A3546" strokeWidth="1.5" />
+      <rect width="48" height="48" rx="10" fill="#171717" stroke="#262626" strokeWidth="1.5" />
       <circle cx="24" cy="24" r="14" stroke="#10B981" strokeWidth="1.5" strokeDasharray="3 2" />
       <path d="M24 14V24L30 27" stroke="#34D399" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="24" cy="24" r="3" fill="#10B981" fillOpacity="0.25" stroke="#34D399" strokeWidth="1.5" />
@@ -37,14 +37,14 @@ function EphemeralTokenBadge() {
 function IcaiEthicsBadge() {
   return (
     <svg className="h-12 w-12 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Official ICAI Professional Ethics & Standards Mark">
-      <rect width="48" height="48" rx="10" fill="#19212D" stroke="#2A3546" strokeWidth="1.5" />
+      <rect width="48" height="48" rx="10" fill="#171717" stroke="#262626" strokeWidth="1.5" />
       {/* ICAI CA Emblem Circle */}
-      <circle cx="24" cy="22" r="13" fill="#312E81" fillOpacity="0.4" stroke="#6366F1" strokeWidth="1.5" />
-      <circle cx="24" cy="22" r="10.5" stroke="#F59E0B" strokeWidth="0.75" strokeDasharray="1.5 1.5" />
+      <circle cx="24" cy="22" r="13" fill="#331700" fillOpacity="0.4" stroke="#FF6A00" strokeWidth="1.5" />
+      <circle cx="24" cy="22" r="10.5" stroke="#FFB15C" strokeWidth="0.75" strokeDasharray="1.5 1.5" />
       {/* Distinctive stylized CA letters */}
-      <path d="M21 17C18.8 17 17.5 19 17.5 22C17.5 25 18.8 27 21 27C22.2 27 23.2 26.3 23.8 25.2" stroke="#FBBF24" strokeWidth="1.75" strokeLinecap="round" />
-      <path d="M25 27L28 17L31 27M26 24.5H30" stroke="#FBBF24" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="24" y="41.5" textAnchor="middle" fill="#FBBF24" fontSize="5.5" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.8">ICAI · CA</text>
+      <path d="M21 17C18.8 17 17.5 19 17.5 22C17.5 25 18.8 27 21 27C22.2 27 23.2 26.3 23.8 25.2" stroke="#FFB15C" strokeWidth="1.75" strokeLinecap="round" />
+      <path d="M25 27L28 17L31 27M26 24.5H30" stroke="#FFB15C" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="24" y="41.5" textAnchor="middle" fill="#FFB15C" fontSize="5.5" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.8">ICAI · CA</text>
     </svg>
   );
 }
@@ -52,13 +52,13 @@ function IcaiEthicsBadge() {
 function AuditTrailBadge() {
   return (
     <svg className="h-12 w-12 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Tamper-Evident Access Audit Trail Compliance Mark">
-      <rect width="48" height="48" rx="10" fill="#19212D" stroke="#2A3546" strokeWidth="1.5" />
-      <path d="M14 12H34V36H14V12Z" rx="2" stroke="#38BDF8" strokeWidth="1.5" />
-      <path d="M18 18H30M18 23H27M18 28H24" stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round" />
+      <rect width="48" height="48" rx="10" fill="#171717" stroke="#262626" strokeWidth="1.5" />
+      <path d="M14 12H34V36H14V12Z" rx="2" stroke="#FF8A1F" strokeWidth="1.5" />
+      <path d="M18 18H30M18 23H27M18 28H24" stroke="#FF8A1F" strokeWidth="1.5" strokeLinecap="round" />
       {/* Verification Stamp Check */}
-      <circle cx="31" cy="30" r="6" fill="#0369A1" stroke="#38BDF8" strokeWidth="1.5" />
-      <path d="M28.5 30L30.5 32L34 28" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="24" y="42" textAnchor="middle" fill="#38BDF8" fontSize="5" fontWeight="700" fontFamily="monospace" letterSpacing="0.5">DPDP · ISO</text>
+      <circle cx="31" cy="30" r="6" fill="#8C3D00" stroke="#FF8A1F" strokeWidth="1.5" />
+      <path d="M28.5 30L30.5 32L34 28" stroke="#F5F2ED" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="24" y="42" textAnchor="middle" fill="#FF8A1F" fontSize="5" fontWeight="700" fontFamily="monospace" letterSpacing="0.5">DPDP · ISO</text>
     </svg>
   );
 }
@@ -99,7 +99,7 @@ export function SecurityTrustSection() {
     <section id="security" className="scroll-mt-20 py-16 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-md bg-purple-500/15 px-3 py-1 text-xs font-semibold text-purple-400 uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 rounded-md bg-[var(--fd-accent)]/12 px-3 py-1 text-xs font-semibold text-[var(--fd-accent)] uppercase tracking-wider">
             <ShieldCheck className="h-3.5 w-3.5" />
             <span>JV Tax Consultancy Vault Architecture</span>
           </div>
@@ -117,7 +117,7 @@ export function SecurityTrustSection() {
           {securityFeatures.map((feat, idx) => (
             <div
               key={idx}
-              className="group rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] p-6 shadow-xs transition-all hover:border-[var(--fd-accent)] flex flex-col justify-between"
+              className="group rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] p-6 shadow-xs transition-all duration-300 hover:border-[var(--fd-accent)] hover:-translate-y-1 hover:shadow-[0_16px_40px_-16px_rgba(255,106,0,0.18)] flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-4 mb-4">

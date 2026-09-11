@@ -1,4 +1,4 @@
-import {
+﻿import {
   Calendar,
   CheckCircle2,
   FolderLock,
@@ -28,11 +28,11 @@ export function BentoFeaturesSection() {
               Senior Partner Supervision
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--fd-surface-2)] px-2.5 py-1 font-mono text-[11px] text-[var(--fd-text-secondary)] border border-[var(--fd-border-subtle)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--fd-status-done)]" />
               Zero Filing Penalties
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--fd-surface-2)] px-2.5 py-1 font-mono text-[11px] text-[var(--fd-text-secondary)] border border-[var(--fd-border-subtle)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--fd-status-progress)]" />
               Direct Portal Visibility
             </span>
           </div>
@@ -65,7 +65,7 @@ export function BentoFeaturesSection() {
               </div>
 
             <h3 className="mt-5 text-xl font-bold text-[var(--fd-text-primary)] sm:text-2xl">
-              Proactive Statutory Planning — Advanced Milestone Tracking
+              Proactive Statutory Planning â€” Advanced Milestone Tracking
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--fd-text-secondary)] max-w-full lg:max-w-xl">
               Our practice forecasts statutory milestones across the 120-day horizon. We notify your finance team
@@ -77,21 +77,21 @@ export function BentoFeaturesSection() {
             <div className="mt-6 rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] p-4">
               <div className="flex items-center justify-between text-xs font-semibold text-[var(--fd-text-secondary)]">
                 <span>Statutory Horizon Tracking for Your Entity:</span>
-                <span className="text-emerald-400 font-mono flex items-center gap-1">
+                <span className="text-[var(--fd-status-done)] font-mono flex items-center gap-1">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Monitored & On Track
                 </span>
               </div>
               <div className="mt-3 grid grid-cols-1 xs:grid-cols-3 gap-2 text-center text-xs">
                 <div className="rounded-lg bg-[var(--fd-surface-2)] p-2.5">
-                  <div className="font-mono text-xs text-[var(--fd-accent)] font-bold">11th · GSTR-1</div>
+                  <div className="font-mono text-xs text-[var(--fd-accent)] font-bold">11th Â· GSTR-1</div>
                   <div className="text-[11px] text-[var(--fd-text-secondary)]">Prepared & Filed Early</div>
                 </div>
                 <div className="rounded-lg bg-[var(--fd-surface-2)] p-2.5">
-                  <div className="font-mono text-xs text-sky-400 font-bold">20th · GSTR-3B</div>
+                  <div className="font-mono text-xs text-[var(--fd-status-progress)] font-bold">20th Â· GSTR-3B</div>
                   <div className="text-[11px] text-[var(--fd-text-secondary)]">ITC 2B Reconciled</div>
                 </div>
                 <div className="rounded-lg bg-[var(--fd-surface-2)] p-2.5">
-                  <div className="font-mono text-xs text-amber-400 font-bold">30th · Tax Audit</div>
+                  <div className="font-mono text-xs text-[var(--fd-accent)] font-bold">30th Â· Tax Audit</div>
                   <div className="text-[11px] text-[var(--fd-text-secondary)]">Partner Reviewed</div>
                 </div>
               </div>
@@ -102,7 +102,7 @@ export function BentoFeaturesSection() {
           {/* Card 2: 24/7 Digital Client Portal */}
           <div className="rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-bg)] p-6 sm:p-8 flex flex-col justify-between group hover:border-[var(--fd-accent)] transition-all">
             <div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--fd-status-done)]/15 text-[var(--fd-status-done)]">
                 <Sparkles className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="mt-5 text-lg font-bold text-[var(--fd-text-primary)]">
@@ -113,7 +113,7 @@ export function BentoFeaturesSection() {
                 download official government acknowledgements, and review tax challans anytime.
               </p>
             </div>
-            <div className="mt-6 rounded-lg bg-[var(--fd-surface-2)] p-3 text-[11px] font-mono text-emerald-400 flex items-center justify-between">
+            <div className="mt-6 rounded-lg bg-[var(--fd-surface-2)] p-3 text-[11px] font-mono text-[var(--fd-status-done)] flex items-center justify-between">
               <span>Client Dashboard Access</span>
               <span className="font-bold">Included</span>
             </div>
@@ -122,7 +122,7 @@ export function BentoFeaturesSection() {
           {/* Card 3: Encrypted Confidentiality */}
           <div className="rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-bg)] p-6 sm:p-8 flex flex-col justify-between group hover:border-[var(--fd-accent)] transition-all">
             <div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--fd-accent)]/15 text-[var(--fd-accent)]">
                 <FolderLock className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="mt-5 text-lg font-bold text-[var(--fd-text-primary)]">
@@ -133,7 +133,7 @@ export function BentoFeaturesSection() {
                 We operate under strict Non-Disclosure Agreements with tamper-evident audit logs.
               </p>
             </div>
-            <div className="mt-6 rounded-lg bg-[var(--fd-surface-2)] p-3 text-[11px] font-mono text-purple-400 flex items-center justify-between">
+            <div className="mt-6 rounded-lg bg-[var(--fd-surface-2)] p-3 text-[11px] font-mono text-[var(--fd-accent)] flex items-center justify-between">
               <span>AES-256-GCM</span>
               <span className="text-[10px] font-semibold">ENCRYPTED AT REST</span>
             </div>
@@ -142,7 +142,7 @@ export function BentoFeaturesSection() {
           {/* Card 4: Multi-Entity & Corporate Group Management */}
           <div className="rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-bg)] p-6 sm:p-8 flex flex-col justify-between group hover:border-[var(--fd-accent)] transition-all">
             <div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--fd-status-progress)]/15 text-[var(--fd-status-progress)]">
                 <Layers className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="mt-5 text-lg font-bold text-[var(--fd-text-primary)]">
@@ -155,14 +155,14 @@ export function BentoFeaturesSection() {
             </div>
             <div className="mt-6 rounded-lg bg-[var(--fd-surface-2)] p-3 text-[11px] text-[var(--fd-text-secondary)] flex items-center justify-between">
               <span>Entity Switching:</span>
-              <span className="text-sky-400 font-semibold font-mono">1-Click Fast Switch</span>
+              <span className="text-[var(--fd-status-progress)] font-semibold font-mono">1-Click Fast Switch</span>
             </div>
           </div>
 
           {/* Card 5: Senior CA Partner Attention */}
           <div className="rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-bg)] p-6 sm:p-8 flex flex-col justify-between group hover:border-[var(--fd-accent)] transition-all">
             <div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--fd-accent)]/15 text-[var(--fd-accent)]">
                 <Users2 className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="mt-5 text-lg font-bold text-[var(--fd-text-primary)]">
@@ -175,7 +175,7 @@ export function BentoFeaturesSection() {
             </div>
             <div className="mt-6 rounded-lg bg-[var(--fd-surface-2)] p-3 text-[11px] text-[var(--fd-text-secondary)] flex items-center justify-between">
               <span>Review Standard:</span>
-              <span className="text-emerald-400 font-semibold font-mono">Dual-Tier Verification</span>
+              <span className="text-[var(--fd-status-done)] font-semibold font-mono">Dual-Tier Verification</span>
             </div>
           </div>
         </div>

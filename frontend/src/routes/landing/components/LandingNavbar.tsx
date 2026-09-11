@@ -77,7 +77,7 @@ export function LandingNavbar() {
         <div className="flex items-center justify-start">
           <Link
             to="/"
-            className="group relative flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--fd-focus-ring)] rounded-full transition-all duration-200 hover:scale-105 active:scale-95 hover:drop-shadow-[0_0_12px_rgba(245,158,11,0.4)]"
+            className="group relative flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--fd-focus-ring)] rounded-full transition-all duration-200 hover:scale-105 active:scale-95 hover:drop-shadow-[0_0_12px_rgba(255,106,0,0.35)]"
             aria-label="JV Tax Consultancy Home"
             title="JV Tax Consultancy - Chartered Accountants"
           >
@@ -134,7 +134,7 @@ export function LandingNavbar() {
                 asChild
                 variant="primary"
                 size="sm"
-                className="rounded-full shadow-sm hover:shadow-indigo-500/30 transition-all font-semibold px-5 h-8 whitespace-nowrap"
+                className="rounded-full shadow-sm hover:shadow-[0_8px_24px_-8px_rgba(255,106,0,0.4)] transition-all font-semibold px-5 h-8 whitespace-nowrap"
               >
                 <a href="#consultation" className="flex items-center gap-2">
                   <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
