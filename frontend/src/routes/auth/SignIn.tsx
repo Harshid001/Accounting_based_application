@@ -33,12 +33,18 @@ export function SignIn() {
   const { status, user, refresh } = useSession();
 
   const requestedPortal = searchParams.get('portal')?.toLowerCase();
-  const shellDefaultPortal = isDesktop || webStaffAccess() ? 'admin' : 'client';
-  const initialPortal: 'admin' | 'client' =
+  const shellDefaultPortal = isDesktop ? 'admin' : 'client';
+  const [selectedPortal, setSelectedPortal] = useState<'admin' | 'client'>(shellDefaultPortal);
+  const activePortal =
     requestedPortal === 'admin' || requestedPortal === 'client'
       ? requestedPortal
-      : shellDefaultPortal;
-  const [activePortal, setActivePortal] = useState<'admin' | 'client'>(initialPortal);
+      : selectedPortal;
+
+  const switchPortal = (portal: 'admin' | 'client'): void => {
+    setSelectedPortal(portal);
+    setFormError(null);
+    void navigate(`?portal=${portal}`, { replace: true });
+  };
 
   usePageTitle(activePortal === 'admin' ? 'Staff & Admin Sign In' : 'Client Portal Sign In');
 
@@ -89,12 +95,12 @@ export function SignIn() {
 
   const google = (): void => {
     setFormError(null);
-    if (isDesktop) return;
+    if (isDesktop || activePortal !== 'client') return;
 
-    // Web shell (client portal + staff tab): the standard better-auth
+    // Web shell (client portal only): standard better-auth
     // redirect flow in this browser.
     setGoogleBusy(true);
-    void signInWithGoogle(activePortal === 'admin' ? '/dashboard' : '/portal')
+    void signInWithGoogle('/portal')
       .catch((error: unknown) => {
         setFormError(normaliseError(error).message);
       })
@@ -108,11 +114,7 @@ export function SignIn() {
       <button
         type="button"
         id="portal-tab-admin"
-        onClick={() => {
-          setActivePortal('admin');
-          setFormError(null);
-          void navigate('?portal=admin', { replace: true });
-        }}
+        onClick={() => switchPortal('admin')}
         className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
           activePortal === 'admin'
             ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
@@ -133,11 +135,7 @@ export function SignIn() {
       <button
         type="button"
         id="portal-tab-client"
-        onClick={() => {
-          setActivePortal('client');
-          setFormError(null);
-          void navigate('?portal=client', { replace: true });
-        }}
+        onClick={() => switchPortal('client')}
         className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
           activePortal === 'client'
             ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
@@ -158,11 +156,7 @@ export function SignIn() {
       <button
         type="button"
         id="portal-tab-client"
-        onClick={() => {
-          setActivePortal('client');
-          setFormError(null);
-          void navigate('?portal=client', { replace: true });
-        }}
+        onClick={() => switchPortal('client')}
         className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
           activePortal === 'client'
             ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
@@ -178,11 +172,7 @@ export function SignIn() {
       <button
         type="button"
         id="portal-tab-admin"
-        onClick={() => {
-          setActivePortal('admin');
-          setFormError(null);
-          void navigate('?portal=admin', { replace: true });
-        }}
+        onClick={() => switchPortal('admin')}
         className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
           activePortal === 'admin'
             ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
@@ -229,10 +219,7 @@ export function SignIn() {
 
   const submitLabel =
     activePortal === 'admin' ? 'Sign In to Admin Console' : 'Sign In to Client Portal';
-  const googleLabel =
-    activePortal === 'admin'
-      ? 'Continue with Google as Admin / Staff'
-      : 'Continue with Google as Client';
+  const googleLabel = 'Continue with Google as Client';
 
   const adminFooter = (
     <div className="space-y-2 text-xs text-[var(--fd-text-secondary)]">
@@ -338,7 +325,7 @@ export function SignIn() {
         </Button>
       </form>
 
-      {!isDesktop && (
+      {!isDesktop && activePortal === 'client' && (
         <>
           <div className="my-4 flex items-center gap-3">
             <span className="h-px flex-1 bg-[var(--fd-border-subtle)]" aria-hidden="true" />

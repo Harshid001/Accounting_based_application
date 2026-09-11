@@ -123,11 +123,16 @@ describe(`shell isolation (${SHELL} build)`, () => {
       ).toBeTruthy();
     });
 
-    it('displays Google sign-in button in web shell', async () => {
-      await renderAppAt('/sign-in', null);
+    it('displays Google sign-in button in web shell for client portal', async () => {
+      await renderAppAt('/sign-in?portal=client', null);
       expect(
         await screen.findByRole('button', { name: /continue with google/i }, { timeout: 10000 }),
       ).toBeTruthy();
+    });
+
+    it('does not display Google sign-in button in web shell for staff & admin', async () => {
+      await renderAppAt('/sign-in?portal=admin', null);
+      expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
     });
   }
 
