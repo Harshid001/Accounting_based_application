@@ -108,6 +108,15 @@ const buildAuth = () =>
     secret: env.BETTER_AUTH_SECRET,
     database: mongodbAdapter(getDb(), { transaction: false }),
     account: {
+      // The desktop Google handoff (betterAuth.routes.ts) completes the OAuth
+      // callback in the SYSTEM browser while the flow was started from the
+      // desktop webview — two different cookie jars. The state cookie check
+      // would reject that hop. It stays safe because the state itself is
+      // still fully validated server-side: the MongoDB adapter makes the
+      // state store stateful (verification collection), so parseState()
+      // enforces the random oauthState nonce + 10-minute expiry + one-time
+      // consumption even without the browser cookie. Do not remove without
+      // also removing the desktop handoff routes.
       skipStateCookieCheck: true,
       accountLinking: {
         enabled: true,

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { MessagesSquare, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -77,7 +77,7 @@ export function MessagesIndex() {
           className={cn(
             'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium border transition-all cursor-pointer',
             unreadOnly
-              ? 'bg-[var(--fd-accent)] text-white border-[var(--fd-accent)] shadow-xs'
+              ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] border-[var(--fd-accent)] shadow-xs'
               : 'bg-[var(--fd-surface-2)] text-[var(--fd-text-secondary)] border-[var(--fd-border)] hover:bg-[var(--fd-surface-3)]',
           )}
         >
@@ -86,7 +86,7 @@ export function MessagesIndex() {
             <span
               className={cn(
                 'rounded-full px-1.5 py-0.2 text-[10px] font-bold',
-                unreadOnly ? 'bg-white/25 text-white' : 'bg-[var(--fd-accent)] text-white',
+                unreadOnly ? 'bg-[var(--fd-accent)]/25 text-[var(--fd-accent-contrast)]' : 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)]',
               )}
             >
               {unread}

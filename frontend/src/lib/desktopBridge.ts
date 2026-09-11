@@ -60,6 +60,53 @@ export const keychainDelete = (key: string): Promise<void> =>
 /** Lock the workstation now: clears in-memory session state immediately. */
 export const lockNow = (): Promise<void> => call<void>('lock_now');
 
+// --- External browser (Google sign-in consent pages only) --------------------
+
+/**
+ * Open a URL in the user's system browser. The capability scope restricts
+ * this to Google's OAuth pages; anything else is rejected by the OS layer
+ * and surfaces here as an error.
+ */
+export const openExternalUrl = async (url: string): Promise<void> => {
+  if (!isDesktop || !isTauri()) throw new DesktopBridgeUnavailable();
+  const { openUrl } = await import('@tauri-apps/plugin-opener');
+  await openUrl(url);
+};
+
+// --- Deep links (Google sign-in handoff) -------------------------------------
+
+/**
+ * Subscribe to firmdesk:// deep links arriving from the OS (system browser →
+ * app). The URL is forwarded verbatim by the Rust shell; validate it with
+ * parseAuthDeepLink before use.
+ */
+export const onDeepLink = (handler: (url: string) => void): (() => void) => {
+  if (!isDesktop || !isTauri()) return () => undefined;
+  let unlisten: (() => void) | null = null;
+  void import('@tauri-apps/api/event')
+    .then(({ listen }) => listen<string>('firmdesk://deep-link', (event) => handler(event.payload)))
+    .then((stop) => {
+      unlisten = stop;
+    })
+    .catch(() => undefined);
+  return () => {
+    unlisten?.();
+  };
+};
+
+/**
+ * Deep links that started the app cold (delivered before the webview was
+ * listening) are available once via the plugin's current state. Returns the
+ * most recent URL or null.
+ */
+export const currentDeepLink = async (): Promise<string | null> => {
+  if (!isDesktop || !isTauri()) return null;
+  const { getCurrent } = await import('@tauri-apps/plugin-deep-link');
+  const urls = await getCurrent().catch(() => null);
+  if (urls === null || urls.length === 0) return null;
+  return urls[urls.length - 1] ?? null;
+};
+
 // --- App info (workstation registration payload) ----------------------------
 
 export interface DesktopAppInfo {

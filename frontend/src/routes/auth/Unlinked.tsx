@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod';
+﻿import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ArrowLeft,
   ArrowRight,
@@ -60,7 +60,7 @@ const STEPS = [
 ];
 
 export function Unlinked() {
-  usePageTitle('Client Onboarding — FirmDesk');
+  usePageTitle('Client Onboarding â€” FirmDesk');
   const { status, user, refresh, clear } = useSession();
   const { success, errorToast } = useToast();
   const navigate = useNavigate();
@@ -275,7 +275,7 @@ export function Unlinked() {
                       isDone
                         ? 'bg-[var(--fd-status-done-bg)] text-[var(--fd-status-done)]'
                         : isCurrent
-                        ? 'bg-[var(--fd-accent)] text-white'
+                        ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)]'
                         : 'bg-[var(--fd-surface-3)] text-[var(--fd-text-tertiary)]'
                     }`}
                   >
@@ -740,7 +740,7 @@ export function Unlinked() {
                         <div
                           className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
                             isChecked
-                              ? 'border-[var(--fd-accent)] bg-[var(--fd-accent)] text-white'
+                              ? 'border-[var(--fd-accent)] bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)]'
                               : 'border-[var(--fd-border-strong)] bg-transparent'
                           }`}
                         >
@@ -778,9 +778,9 @@ export function Unlinked() {
                   <span>Onboarding Summary</span>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-[var(--fd-text-secondary)]">
-                  <div><strong>Entity:</strong> {form.watch('displayName') || '—'} ({CLIENT_TYPE_LABELS[clientType]})</div>
+                  <div><strong>Entity:</strong> {form.watch('displayName') || 'â€”'} ({CLIENT_TYPE_LABELS[clientType]})</div>
                   <div><strong>PAN:</strong> {form.watch('pan') || 'Pending'}</div>
-                  <div><strong>City/State:</strong> {form.watch('address.city') || '—'}, {form.watch('address.state')}</div>
+                  <div><strong>City/State:</strong> {form.watch('address.city') || 'â€”'}, {form.watch('address.state')}</div>
                   <div><strong>Primary Contact:</strong> {form.watch('primaryContact.name')}</div>
                 </div>
               </div>

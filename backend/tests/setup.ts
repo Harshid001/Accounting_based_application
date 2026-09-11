@@ -26,8 +26,13 @@ process.env.R2_ACCOUNT_ID = 'test-r2-account-id';
 process.env.R2_ACCESS_KEY_ID = 'test-r2-access-key-id';
 process.env.R2_SECRET_ACCESS_KEY = 'test-r2-secret-access-key';
 process.env.R2_BUCKET_NAME = 'test-r2-bucket';
-delete process.env.GOOGLE_CLIENT_ID;
-delete process.env.GOOGLE_CLIENT_SECRET;
+// Deterministic Google provider for every test run: the raw delete below is
+// undone by dotenv re-reading .env at import time on developer machines,
+// which made google-configured behavior depend on whether .env exists. The
+// dummy pair keeps the provider registered (URL building is offline) so the
+// desktop handoff tests assert one stable contract.
+process.env.GOOGLE_CLIENT_ID = 'test-google-client-id.apps.googleusercontent.com';
+process.env.GOOGLE_CLIENT_SECRET = 'test-google-client-secret';
 delete process.env.BOOTSTRAP_ADMIN_EMAIL;
 delete process.env.GEMINI_API_KEY;
 delete process.env.OPENAI_API_KEY;

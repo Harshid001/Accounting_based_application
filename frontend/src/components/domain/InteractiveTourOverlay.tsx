@@ -344,7 +344,7 @@ export function InteractiveTourOverlay() {
                 setIsCompleted(false);
                 stopTour();
               }}
-              className="rounded-lg bg-[var(--fd-accent)] px-5 py-2 text-xs font-bold text-white hover:bg-[var(--fd-accent-hover)] transition-colors shadow-sm"
+              className="rounded-lg bg-[var(--fd-accent)] px-5 py-2 text-xs font-bold text-[var(--fd-accent-contrast)] hover:bg-[var(--fd-accent-hover)] transition-colors shadow-sm"
             >
               Done
             </button>

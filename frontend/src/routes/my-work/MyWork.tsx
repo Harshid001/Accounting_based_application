@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { PartyPopper } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -48,7 +48,7 @@ export function MyWork() {
           query.data === undefined ? null : (
             <p className="numeric mt-2 text-xs text-[var(--fd-text-tertiary)]">
               {pluralise(query.data.total, 'open item')}
-              {overdue > 0 ? ` · ${overdue} overdue on this page` : ''}
+              {overdue > 0 ? ` Â· ${overdue} overdue on this page` : ''}
             </p>
           )
         }
@@ -86,7 +86,7 @@ export function MyWork() {
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer',
                   tab === 'all'
-                    ? 'bg-[var(--fd-accent)] text-white font-semibold shadow-xs'
+                    ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] font-semibold shadow-xs'
                     : 'bg-[var(--fd-surface-2)] text-[var(--fd-text-secondary)] hover:bg-[var(--fd-surface-3)]',
                 )}
               >
@@ -98,7 +98,7 @@ export function MyWork() {
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer',
                   tab === 'task'
-                    ? 'bg-[var(--fd-accent)] text-white font-semibold shadow-xs'
+                    ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] font-semibold shadow-xs'
                     : 'bg-[var(--fd-surface-2)] text-[var(--fd-text-secondary)] hover:bg-[var(--fd-surface-3)]',
                 )}
               >
@@ -110,7 +110,7 @@ export function MyWork() {
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer',
                   tab === 'compliance'
-                    ? 'bg-[var(--fd-accent)] text-white font-semibold shadow-xs'
+                    ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] font-semibold shadow-xs'
                     : 'bg-[var(--fd-surface-2)] text-[var(--fd-text-secondary)] hover:bg-[var(--fd-surface-3)]',
                 )}
               >
@@ -123,11 +123,11 @@ export function MyWork() {
                   className={cn(
                     'rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer',
                     tab === 'overdue'
-                      ? 'bg-[var(--fd-status-danger)] text-white font-semibold shadow-xs'
+                      ? 'bg-[var(--fd-status-danger)] text-[var(--fd-accent-contrast)] font-semibold shadow-xs'
                       : 'bg-[var(--fd-surface-2)] text-[var(--fd-status-danger)] hover:bg-[var(--fd-surface-3)]',
                   )}
                 >
-                  ⚡ Overdue ({overdue})
+                  âš¡ Overdue ({overdue})
                 </button>
               )}
             </div>

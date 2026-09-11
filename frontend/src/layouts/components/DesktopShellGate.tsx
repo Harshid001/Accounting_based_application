@@ -110,7 +110,7 @@ export function DesktopShellGate() {
       >
         <div className="w-full max-w-lg rounded-2xl border border-[var(--fd-status-danger)]/50 bg-[var(--fd-surface-1)] p-7 text-left shadow-2xl space-y-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-400 ring-1 ring-red-500/20">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--fd-status-danger)]/10 text-[var(--fd-status-danger)] ring-1 ring-[var(--fd-status-danger)]/20">
               <Download size={22} />
             </div>
             <div>
@@ -243,7 +243,7 @@ export function DesktopShellGate() {
             <ul className="space-y-1.5 text-2xs text-[var(--fd-text-secondary)]">
               <li className="flex items-center gap-2">
                 <CheckCircle2 size={13} className="text-[var(--fd-accent)] shrink-0" />
-                <span>Single-click Google & Staff sign-in for FirmDesk desktop</span>
+                <span>Secure Google sign-in handoff for FirmDesk desktop</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 size={13} className="text-[var(--fd-accent)] shrink-0" />

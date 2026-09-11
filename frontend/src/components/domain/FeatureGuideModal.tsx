@@ -191,7 +191,7 @@ export function FeatureGuideModal() {
                 onClick={() => startTour(activeGuideFeature)}
                 aria-label="Interactive Tutorial"
                 className={cn(
-                  'relative group inline-flex h-9 items-center gap-2 rounded-lg px-3 sm:px-3.5 text-xs font-bold text-white shadow-sm transition-all shrink-0 cursor-pointer',
+                  'relative group inline-flex h-9 items-center gap-2 rounded-lg px-3 sm:px-3.5 text-xs font-bold text-[var(--fd-accent-contrast)] shadow-sm transition-all shrink-0 cursor-pointer',
                   'bg-gradient-to-r from-[var(--fd-accent)] via-[#FF8A1F] to-[#B84E00] hover:from-[var(--fd-accent-hover)] hover:to-[#C24F00]',
                   'focus-visible:outline-2 focus-visible:outline-[var(--fd-focus-ring)] focus-visible:outline-offset-2',
                 )}
@@ -233,7 +233,7 @@ export function FeatureGuideModal() {
                     closeGuide();
                     void navigate(currentGuide.defaultRoute);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fd-accent)] px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:opacity-90 transition-all shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fd-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--fd-accent-contrast)] shadow-xs hover:opacity-90 transition-all shrink-0 cursor-pointer"
                 >
                   <span>Go to {content.title.split(' ')[0]}</span>
                   <ArrowRight className="h-3 w-3" />

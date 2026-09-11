@@ -19,7 +19,9 @@
         "minWidth": 1024,
         "minHeight": 700,
         "resizable": true,
-        "center": true
+        "center": true,
+        "theme": "Dark",
+        "backgroundColor": "#0A0A0A"
       }
     ],
     "security": {
@@ -46,6 +48,11 @@
     "publisher": "JV Accounting"
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["firmdesk"]
+      }
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU1RTE4QTE3NTE0RUM5RTIKUldUaXlVNVJGNHJoNVhEc2lHdmZINzJIYWhGS1ZycmFjbnJCSllaMWJCaTJTOEZubWp4NUpFbisK",
       "endpoints": [

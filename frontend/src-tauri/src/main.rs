@@ -400,18 +400,27 @@ fn set_tray_status(app: AppHandle, online: bool, tally: bool, company: String) -
 }
 
 fn main() {
-    let single_instance = tauri_plugin_single_instance::init(|app, _args, _cwd| {
-        // Second launch: focus the already-running window.
+    let single_instance = tauri_plugin_single_instance::init(|app, argv, _cwd| {
+        // Second launch: focus the already-running window. When the second
+        // launch came from a firmdesk:// deep link, the deep-link plugin has
+        // already emitted its event to the running instance before this
+        // callback fires (single-instance is registered first).
         if let Some(window) = app.get_webview_window("main") {
             let _ = window.unminimize();
             let _ = window.show();
             let _ = window.set_focus();
         }
+        // Runtime-registered schemes (dev mode on Windows/Linux) arrive as raw
+        // argv here too; the deep-link plugin filters to configured schemes,
+        // so nothing further is needed.
+        let _ = argv;
     });
 
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(single_instance)
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             tally_post,
             tally_probe,
@@ -423,7 +432,36 @@ fn main() {
             set_tray_status
         ])
         .setup(|app| {
+            use tauri_plugin_deep_link::DeepLinkExt;
+
             let handle = app.handle().clone();
+
+            // Dev builds (and portable installs) never went through the
+            // NSIS registration, so force-register the firmdesk:// scheme
+            // for the current executable. No-op when already registered.
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                let _ = handle.deep_link().register_all();
+            }
+
+            // Deliver deep links to the webview: the front end completes the
+            // Google sign-in handoff from the URL (firmdesk://auth-complete).
+            // The URL itself is forwarded verbatim; the front end validates
+            // the shape and the key before using it.
+            handle.deep_link().on_open_url(|event| {
+                for url in event.urls() {
+                    let _ = handle.emit("firmdesk://deep-link", url.to_string());
+                }
+            });
+
+            // Cold start via deep link (app was not running): hand the URL to
+            // the webview through the same channel; the front end reads it
+            // on boot when its listener attaches.
+            if let Some(urls) = handle.deep_link().get_current().ok().flatten() {
+                for url in urls {
+                    let _ = handle.emit("firmdesk://deep-link", url.to_string());
+                }
+            }
 
             // OS-lock listener: emits firmdesk://os-lock on session
             // lock/unlock so the front end can kill the session (rule:

@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+﻿import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -121,7 +121,7 @@ export function FilterBar({
                 'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all shadow-2xs cursor-pointer',
                 'focus-visible:outline-2 focus-visible:outline-[var(--fd-focus-ring)] focus-visible:outline-offset-1',
                 preset.active
-                  ? 'bg-[var(--fd-accent)] text-white border border-[var(--fd-accent)] shadow-xs font-semibold'
+                  ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] border border-[var(--fd-accent)] shadow-xs font-semibold'
                   : 'bg-[var(--fd-surface-2)] text-[var(--fd-text-secondary)] border border-[var(--fd-border)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]',
               )}
             >
@@ -131,7 +131,7 @@ export function FilterBar({
                 <span
                   className={cn(
                     'ml-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-semibold',
-                    preset.active ? 'bg-white/25 text-white' : 'bg-[var(--fd-surface-3)] text-[var(--fd-text-tertiary)]',
+                    preset.active ? 'bg-[var(--fd-accent)]/25 text-[var(--fd-accent-contrast)]' : 'bg-[var(--fd-surface-3)] text-[var(--fd-text-tertiary)]',
                   )}
                 >
                   {preset.count}

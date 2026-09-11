@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bot, CheckCircle2, Circle, RefreshCw, XCircle, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -142,7 +142,7 @@ export function AutomationRunner({ runId, onDone }: AutomationRunnerProps) {
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-full ${isActive ? 'bg-[var(--fd-accent)] text-white shadow-sm shadow-[var(--fd-accent)]/30 animate-pulse' : 'bg-[var(--fd-surface-2)] text-[var(--fd-text-secondary)]'}`}>
+          <div className={`flex h-8 w-8 items-center justify-center rounded-full ${isActive ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] shadow-sm shadow-[var(--fd-accent)]/30 animate-pulse' : 'bg-[var(--fd-surface-2)] text-[var(--fd-text-secondary)]'}`}>
             <Bot size={16} />
           </div>
           <div>

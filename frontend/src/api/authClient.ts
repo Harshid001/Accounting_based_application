@@ -145,24 +145,61 @@ export const signUpWithEmail = async (input: {
   assertOk(result);
 };
 
-export const signInGoogleDesktop = async (
-  email?: string,
-): Promise<{ token: string; user: SessionUser }> => {
-  const response = await fetch(`${env.authBaseUrl}/api/auth/desktop-signin`, {
+/**
+ * Desktop Google sign-in, step 1: ask the API for the Google consent URL.
+ * The session is created only after Google validates the account — the
+ * system-browser handoff completes via the firmdesk:// deep link and
+ * `completeDesktopGoogleHandoff` below. Never sends or stores credentials.
+ */
+export const startDesktopGoogleSignIn = async (): Promise<string> => {
+  const response = await fetch(`${env.authBaseUrl}/api/auth/desktop/google/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-FirmDesk-Shell': 'desktop' },
     credentials: 'include',
-    body: JSON.stringify({ email: email ?? 'apela122007@gmail.com' }),
   });
   if (!response.ok) {
     const data = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-    throw new Error(data.error?.message ?? 'Failed to authenticate in FirmDesk desktop.');
+    throw new Error(data.error?.message ?? 'Could not start Google sign-in.');
   }
-  const data = (await response.json()) as { token: string; user: SessionUser };
+  const data = (await response.json()) as { url?: string };
+  if (typeof data.url !== 'string' || !data.url.startsWith('https://')) {
+    throw new Error('Could not start Google sign-in. Please try again.');
+  }
+  return data.url;
+};
+
+/**
+ * Desktop Google sign-in, step 2 (after the deep link arrives): exchange the
+ * one-time handoff key for the session. The key comes from
+ * parseAuthDeepLink; the server consumes it exactly once and re-checks the
+ * Google-created session before issuing cookie + Bearer token.
+ */
+export const completeDesktopGoogleHandoff = async (key: string): Promise<SessionUser> => {
+  const response = await fetch(`${env.authBaseUrl}/api/auth/desktop/google/exchange`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-FirmDesk-Shell': 'desktop' },
+    credentials: 'include',
+    body: JSON.stringify({ key }),
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new Error(
+      data.error?.message ?? 'The Google sign-in handoff expired. Please try again.',
+    );
+  }
+  const data = (await response.json()) as {
+    token: string;
+    user: { id: string; name: string; email: string; role: string };
+  };
   if (data.token) {
     setStoredSessionToken(data.token);
   }
-  return data;
+  return {
+    id: data.user.id,
+    name: data.user.name,
+    email: data.user.email,
+    emailVerified: true,
+  };
 };
 
 export const signInWithGoogle = async (callbackPath = '/'): Promise<void> => {

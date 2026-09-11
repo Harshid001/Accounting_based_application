@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowRightLeft,
   Check,
   CheckCircle2,
@@ -293,7 +293,7 @@ export function ConverterPage() {
           <Card className="overflow-hidden border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--fd-accent)] text-xs font-bold text-white">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--fd-accent)] text-xs font-bold text-[var(--fd-accent-contrast)]">
                   1
                 </span>
                 <h3 className="text-base font-semibold text-[var(--fd-text-primary)]">
@@ -360,7 +360,7 @@ export function ConverterPage() {
                         </h4>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--fd-text-secondary)]">
                           <span>{scanResult?.fileSizeFormatted || 'Calculating...'}</span>
-                          <span>•</span>
+                          <span>â€¢</span>
                           <span>{selectedFile.type || 'Raw binary'}</span>
                         </div>
                       </div>
@@ -442,7 +442,7 @@ export function ConverterPage() {
           {selectedFile && (
             <Card className="overflow-hidden border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-5 shadow-sm space-y-5">
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--fd-accent)] text-xs font-bold text-white">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--fd-accent)] text-xs font-bold text-[var(--fd-accent-contrast)]">
                   2
                 </span>
                 <div>
@@ -479,7 +479,7 @@ export function ConverterPage() {
                           {target.label}
                         </span>
                         {isSelected ? (
-                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--fd-accent)] text-white">
+                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)]">
                             <Check size={10} />
                           </div>
                         ) : (
@@ -493,7 +493,7 @@ export function ConverterPage() {
                       </p>
                       {target.recommendedFor && (
                         <div className="mt-2 text-[10px] text-[var(--fd-status-done)] font-medium">
-                          ✦ {target.recommendedFor}
+                          âœ¦ {target.recommendedFor}
                         </div>
                       )}
                     </div>
@@ -587,7 +587,7 @@ export function ConverterPage() {
                             'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
                             (imageOptions.resizeMode === 'percent' && imageOptions.resizePercent === pct) ||
                               (imageOptions.resizeMode === 'none' && pct === 100)
-                              ? 'bg-[var(--fd-accent)] text-white'
+                              ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)]'
                               : 'border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] text-[var(--fd-text-secondary)] hover:bg-[var(--fd-surface-3)]',
                           )}
                         >
@@ -612,7 +612,7 @@ export function ConverterPage() {
                       className="h-8 gap-1.5"
                     >
                       <RotateCw size={13} />
-                      <span>Rotate 90° ({imageOptions.rotate}°)</span>
+                      <span>Rotate 90Â° ({imageOptions.rotate}Â°)</span>
                     </Button>
 
                     <Button
@@ -670,7 +670,7 @@ export function ConverterPage() {
         <div className="space-y-6 lg:col-span-5">
           <Card className="border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-5 shadow-sm space-y-5 sticky top-4">
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--fd-accent)] text-xs font-bold text-white">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--fd-accent)] text-xs font-bold text-[var(--fd-accent-contrast)]">
                 3
               </span>
               <h3 className="text-base font-semibold text-[var(--fd-text-primary)]">
