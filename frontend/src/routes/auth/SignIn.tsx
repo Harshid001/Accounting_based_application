@@ -215,7 +215,7 @@ export function SignIn() {
 
   const emailLabel = activePortal === 'admin' ? 'Practice Email Address' : 'Client Email Address';
   const emailPlaceholder =
-    activePortal === 'admin' ? 'e.g. harshidsoni01@gmail.com' : 'e.g. name@company.com';
+    activePortal === 'admin' ? 'e.g. name@firm.com' : 'e.g. name@company.com';
 
   const submitLabel =
     activePortal === 'admin' ? 'Sign In to Admin Console' : 'Sign In to Client Portal';

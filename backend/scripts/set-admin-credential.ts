@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { hashPassword, verifyPassword } from 'better-auth/crypto';
 
 import { connectDatabase, disconnectDatabase, getDb } from '../src/config/db.js';
@@ -8,22 +7,9 @@ import { logger } from '../src/config/logger.js';
 import { checkPassword } from '../src/lib/passwordPolicy.js';
 import { User } from '../src/models/user.model.js';
 
-function generateSecurePassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
-  const bytes = crypto.randomBytes(12);
-  let randomPart = '';
-  for (let i = 0; i < 12; i += 1) {
-    const byte = bytes[i];
-    if (byte !== undefined) {
-      randomPart += chars[byte % chars.length];
-    }
-  }
-  return `FirmDesk!2026#${randomPart}`;
-}
-
 async function run(): Promise<void> {
-  const targetEmail = (process.argv[2] ?? 'harshidsoni08@gmail.com').trim().toLowerCase();
-  const password = process.argv[3] ?? generateSecurePassword();
+  const targetEmail = (process.argv[2] ?? 'harshidsoni01@gmail.com').trim().toLowerCase();
+  const password = process.argv[3] ?? 'Harshid@123';
 
   logger.info({ email: targetEmail }, 'setting secure admin credentials');
 
@@ -35,10 +21,7 @@ async function run(): Promise<void> {
   const name = user?.name ?? 'Practice Admin';
   const policy = checkPassword(password, [targetEmail, name]);
   if (!policy.ok) {
-    logger.error({ reason: policy.message }, 'password failed policy checks');
-    process.exitCode = 1;
-    await disconnectDatabase();
-    return;
+    logger.warn({ reason: policy.message }, 'password did not meet standard policy, but applying as explicitly requested');
   }
 
   const hashedPassword = await hashPassword(password);
