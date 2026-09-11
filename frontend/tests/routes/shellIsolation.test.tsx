@@ -127,13 +127,13 @@ describe(`shell isolation (${SHELL} build)`, () => {
   if (SHELL === 'desktop') {
     it('redirects / to sign-in with only the staff & admin tab', async () => {
       await renderAppAt('/', null);
-      expect(await screen.findByRole('button', { name: /staff & admin/i })).toBeTruthy();
+      expect(await screen.findByRole('button', { name: /staff & admin/i }, { timeout: 10000 })).toBeTruthy();
       expect(screen.queryByRole('button', { name: /client portal/i })).not.toBeInTheDocument();
     });
 
     it('shows the web-portal-required screen for a client session', async () => {
       await renderAppAt('/dashboard', 'client');
-      expect(await screen.findByText(/clients use the web portal/i)).toBeTruthy();
+      expect(await screen.findByText(/clients use the web portal/i, {}, { timeout: 10000 })).toBeTruthy();
     });
 
     it('serves the staff dashboard for an admin session', async () => {

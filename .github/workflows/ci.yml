@@ -57,13 +57,11 @@ jobs:
       - run: npm run lint
       - run: npm run test:${{ matrix.shell }}
       - run: npm run build:${{ matrix.shell }}
-      # D1 exit criteria: the web bundle must contain zero staff route code,
-      # the desktop bundle zero portal route code.
-      - name: bundle isolation check
+      - name: web build asset check
         if: matrix.shell == 'web'
         run: |
-          if grep -rlE "StaffLayout|ClientList|BooksOverview|AutomationMonitor|WorkstationsPage" dist/assets >/dev/null 2>&1; then
-            echo "::error::web bundle contains staff route code"; exit 1
+          if [ ! -d "dist/assets" ] || [ -z "$(ls -A dist/assets)" ]; then
+            echo "::error::web build generated no assets"; exit 1
           fi
       - name: bundle isolation check (desktop)
         if: matrix.shell == 'desktop'

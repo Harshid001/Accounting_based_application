@@ -239,7 +239,8 @@ const buildAuth = () =>
               }
             }
             const isBootstrapAdmin =
-              Boolean(env.BOOTSTRAP_ADMIN_EMAIL) &&
+              typeof env.BOOTSTRAP_ADMIN_EMAIL === 'string' &&
+              env.BOOTSTRAP_ADMIN_EMAIL.length > 0 &&
               normalizedEmail === env.BOOTSTRAP_ADMIN_EMAIL.toLowerCase().trim();
             const role = isBootstrapAdmin ? 'admin' : 'client';
             return {
