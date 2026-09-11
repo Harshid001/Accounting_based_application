@@ -1,6 +1,5 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Types } from 'mongoose';
 
 import { getDb } from '../../src/config/db.js';
 import { Session } from '../../src/models/session.model.js';
@@ -102,7 +101,7 @@ describe('desktop google handoff', () => {
       const key = randomBytes(32).toString('base64url');
       await getDb().collection('desktop_auth_handoff').insertOne({
         keyHash: createHash('sha256').update(key).digest('hex'),
-        sessionId: sessionDoc._id as Types.ObjectId,
+        sessionId: sessionDoc._id,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       });
@@ -119,8 +118,9 @@ describe('desktop google handoff', () => {
       });
       expect(typeof response.body.token).toBe('string');
 
-      const setCookie = response.headers['set-cookie'] as unknown;
-      const cookieText = Array.isArray(setCookie) ? setCookie.join('\n') : String(setCookie ?? '');
+      const setCookie: unknown = response.headers['set-cookie'];
+      const cookieParts = Array.isArray(setCookie) ? setCookie.map(String) : [];
+      const cookieText = cookieParts.join('\n');
       expect(cookieText).toContain('better-auth.session_token=');
       expect(cookieText).toContain('HttpOnly');
 
@@ -152,7 +152,7 @@ describe('desktop google handoff', () => {
       const key = randomBytes(32).toString('base64url');
       await getDb().collection('desktop_auth_handoff').insertOne({
         keyHash: createHash('sha256').update(key).digest('hex'),
-        sessionId: sessionDoc._id as Types.ObjectId,
+        sessionId: sessionDoc._id,
         createdAt: new Date(Date.now() - 10 * 60 * 1000),
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       });
@@ -180,7 +180,7 @@ describe('desktop google handoff', () => {
       const key = randomBytes(32).toString('base64url');
       await getDb().collection('desktop_auth_handoff').insertOne({
         keyHash: createHash('sha256').update(key).digest('hex'),
-        sessionId: sessionDoc._id as Types.ObjectId,
+        sessionId: sessionDoc._id,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       });
