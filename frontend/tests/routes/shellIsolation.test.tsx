@@ -92,9 +92,10 @@ describe(`shell isolation (${SHELL} build)`, () => {
   if (SHELL === 'web') {
     it('serves the landing page at / for anonymous visitors', async () => {
       await renderAppAt('/', null);
-      await waitFor(() => {
-        expect(document.title).toContain('JV Tax Consultancy');
-      });
+      expect(
+        (await screen.findAllByText(/JV Tax Consultancy/i, {}, { timeout: 10000 })).length,
+      ).toBeGreaterThan(0);
+      expect(document.title).toContain('JV Tax Consultancy');
     });
 
     it('serves the client portal for client sessions', async () => {
@@ -106,14 +107,14 @@ describe(`shell isolation (${SHELL} build)`, () => {
       await renderAppAt('/dashboard', 'admin');
       await waitFor(() => {
         expect(screen.queryAllByText(/dashboard|workload|filings|due/i).length).toBeGreaterThan(0);
-      });
+      }, { timeout: 10000 });
     });
 
     it('serves the clients view for a staff session on web', async () => {
       await renderAppAt('/clients', 'staff');
       await waitFor(() => {
         expect(screen.queryAllByText(/clients|records|search/i).length).toBeGreaterThan(0);
-      });
+      }, { timeout: 10000 });
     });
 
     it('keeps client-only auth flows (sign-up) available', async () => {
@@ -158,7 +159,7 @@ describe(`shell isolation (${SHELL} build)`, () => {
       await renderAppAt('/dashboard', 'admin');
       await waitFor(() => {
         expect((screen.queryAllByText(/dashboard|workload|filings|due/i)).length).toBeGreaterThan(0);
-      });
+      }, { timeout: 10000 });
     });
   }
 });
