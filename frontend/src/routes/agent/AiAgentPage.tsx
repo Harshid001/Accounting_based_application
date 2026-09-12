@@ -1,8 +1,6 @@
 import {
   ArrowRight,
   ArrowUp,
-  Check,
-  Code,
   Copy,
   Download,
   File,
@@ -10,8 +8,6 @@ import {
   FileText,
   Image as ImageIcon,
   Mic,
-  Music,
-  Paperclip,
   Plus,
   RotateCcw,
   Square,
@@ -23,8 +19,8 @@ import type { KeyboardEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { fetchAiConfig, sendAiChat } from '@/api/ai.api';
-import type { AiAction, AiConfig, AiToolBadge } from '@/api/ai.api';
+import { sendAiChat } from '@/api/ai.api';
+import type { AiAction, AiToolBadge } from '@/api/ai.api';
 import { useAiChat } from '@/context/AiChatContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { cn } from '@/lib/cn';
@@ -521,7 +517,6 @@ export function AiAgentPage() {
   const [input, setInput] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedItem[]>([]);
-  const attachedFile = attachedFiles[0] || null; // Single attachment helper for backwards compatibility
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashFilter, setSlashFilter] = useState('');
   const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
@@ -670,7 +665,7 @@ export function AiAgentPage() {
 
     if (!SpeechRecognition) {
       // Gracefully fallback to recording an audio note using microphone!
-      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      if (typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function') {
         startVoiceRecording();
         return;
       }
@@ -700,7 +695,7 @@ export function AiAgentPage() {
       recognitionRef.current = recognition;
       setIsListening(true);
     } catch {
-      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      if (typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function') {
         startVoiceRecording();
       } else {
         setIsListening(false);
@@ -751,13 +746,6 @@ export function AiAgentPage() {
       reader.readAsDataURL(file);
     });
   }, []);
-
-  const handleAnyFile = useCallback(
-    (file: File) => {
-      handleAnyFiles([file]);
-    },
-    [handleAnyFiles],
-  );
 
   const handleClear = useCallback(() => {
     setMessages([]);
@@ -852,11 +840,12 @@ export function AiAgentPage() {
               ? 'Audit and analyze this spreadsheet data for compliance and book balance.'
               : `Audit and analyze these ${currentFiles.length} spreadsheets for compliance and book balance.`;
         } else {
+          const firstCurrentFile = currentFiles[0];
           textToSend =
-            currentFiles.length === 1
-              ? currentFiles[0].category === 'audio'
+            currentFiles.length === 1 && firstCurrentFile
+              ? firstCurrentFile.category === 'audio'
                 ? 'Listen to and analyze this audio recording for accounting instructions.'
-                : currentFiles[0].category === 'document'
+                : firstCurrentFile.category === 'document'
                 ? 'Review attached document for accounting records and notes.'
                 : 'Analyze attached file for accounting workflow.'
               : `Inspect attached ${currentFiles.length} files (${currentFiles.map((f) => f.name).join(', ')}) for accounting records, invoices, and statutory compliance.`;
@@ -893,7 +882,7 @@ export function AiAgentPage() {
           message: textToSend,
           history,
           currentRoute: window.location.pathname,
-          image: firstImage ? { dataUrl: firstImage.dataUrl, name: firstImage.name } : null,
+          image: firstImage ? { dataUrl: firstImage.dataUrl, mimeType: firstImage.type } : null,
           file: currentFiles[0]
             ? {
                 dataUrl: currentFiles[0].dataUrl,
@@ -1066,9 +1055,11 @@ export function AiAgentPage() {
                               ? [msg.file]
                               : [];
 
+                          const singleFile = filesToRender.length === 1 ? filesToRender[0] : null;
+
                           // Single image attachment view
-                          if (filesToRender.length === 1 && filesToRender[0].category === 'image') {
-                            const imgFile = filesToRender[0];
+                          if (singleFile && singleFile.category === 'image') {
+                            const imgFile = singleFile;
                             return (
                               <div className="space-y-1">
                                 <img
@@ -1087,8 +1078,8 @@ export function AiAgentPage() {
                           }
 
                           // Single audio attachment view
-                          if (filesToRender.length === 1 && filesToRender[0].category === 'audio') {
-                            const audFile = filesToRender[0];
+                          if (singleFile && singleFile.category === 'audio') {
+                            const audFile = singleFile;
                             return (
                               <div className="rounded-xl bg-[var(--fd-surface-1)] dark:bg-[#181818] border border-[var(--fd-border-subtle)] dark:border-[#2f2f2f] p-3 w-full min-w-[260px] max-w-sm shadow-md">
                                 <div className="flex items-center gap-2 mb-2">
@@ -1415,7 +1406,9 @@ export function AiAgentPage() {
                     }}
                     rows={1}
                     placeholder={
-                      isListening || isRecordingVoice
+                      isRecordingVoice
+                        ? `Recording audio note (${Math.floor(voiceDuration / 60)}:${(voiceDuration % 60).toString().padStart(2, '0')})... Click mic to finish`
+                        : isListening
                         ? 'Listening...'
                         : 'Ask Copilot anything, or type / for commands...'
                     }
