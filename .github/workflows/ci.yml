@@ -57,16 +57,16 @@ jobs:
       - run: npm run lint
       - run: npm run test:${{ matrix.shell }}
       - run: npm run build:${{ matrix.shell }}
-      - name: web build asset check
+      - name: website build asset check
         if: matrix.shell == 'web'
         run: |
-          if [ ! -d "dist/assets" ] || [ -z "$(ls -A dist/assets)" ]; then
-            echo "::error::web build generated no assets"; exit 1
+          if [ ! -d "dist-website/assets" ] || [ -z "$(ls -A dist-website/assets)" ]; then
+            echo "::error::website build generated no assets"; exit 1
           fi
       - name: bundle isolation check (desktop)
         if: matrix.shell == 'desktop'
         run: |
-          if grep -rlE "PortalLayout|PortalOverview|Landing|TeamPage" dist/assets >/dev/null 2>&1; then
+          if grep -rlE "PortalLayout|PortalOverview|LandingFooter|TeamPage" dist-desktop/assets >/dev/null 2>&1; then
             echo "::error::desktop bundle contains portal route code"; exit 1
           fi
 
