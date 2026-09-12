@@ -19,7 +19,8 @@ vi.mock('@/context/SessionContext', () => ({
 }));
 
 const mockReply = {
-  content: '### Plan Generated Successfully\n\nI scanned 42 client entities and identified **3 upcoming GSTR-3B filings** needing immediate batch drafting.',
+  content:
+    '### Plan Generated Successfully\n\nI scanned 42 client entities and identified **3 upcoming GSTR-3B filings** needing immediate batch drafting.',
   toolCalls: [
     { tool: 'plan_bulk_filings', label: 'Drafted 3 GSTR-3B batches' },
     { tool: 'schedule_audit_tasks', label: 'Assigned review to staff' },
@@ -150,7 +151,7 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
     });
   });
 
-  it('renders clean ChatGPT-style bar with attach button, mic, placeholder, and without search books / deep audit pills', async () => {
+  it('renders clean ChatGPT-style bar with attach button, mic, placeholder, and without search books / deep audit pills', () => {
     renderPage();
 
     // Circular attach (+) button
@@ -173,7 +174,9 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
 
     // ChatGPT disclaimer text
     expect(
-      screen.getByText(/FirmDesk Copilot can make mistakes. Verify statutory filings and book entries/i),
+      screen.getByText(
+        /FirmDesk Copilot can make mistakes. Verify statutory filings and book entries/i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -188,7 +191,9 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
     expect(await screen.findByText('Initial message')).toBeInTheDocument();
 
     // The bottom bar wrapper is absolutely positioned at the bottom so typing multiline text does not push/shrink body
-    const bottomBarWrapper = screen.getByPlaceholderText(/Ask Copilot anything/i).closest('.absolute.bottom-0');
+    const bottomBarWrapper = screen
+      .getByPlaceholderText(/Ask Copilot anything/i)
+      .closest('.absolute.bottom-0');
     expect(bottomBarWrapper).not.toBeNull();
     expect(bottomBarWrapper).toHaveClass('pointer-events-none');
   });
@@ -205,9 +210,12 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
 
-    const readSpy = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) {
+    const readSpy = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (
+      this: FileReader,
+    ) {
       Object.defineProperty(this, 'result', {
-        value: 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,ZmFrZQ==',
+        value:
+          'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,ZmFrZQ==',
         writable: true,
       });
       this.onload?.({} as ProgressEvent<FileReader>);
@@ -255,7 +263,9 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
       type: 'audio/mp3',
     });
 
-    const readSpy = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) {
+    const readSpy = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (
+      this: FileReader,
+    ) {
       Object.defineProperty(this, 'result', {
         value: 'data:audio/mp3;base64,AAAA',
         writable: true,
@@ -302,13 +312,14 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
       continuous = true;
       interimResults = true;
       lang = 'en-IN';
-      onresult: any = null;
-      onerror: any = null;
-      onend: any = null;
+      onresult: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      onend: (() => void) | null = null;
       start = vi.fn();
       stop = vi.fn();
     }
-    (window as any).webkitSpeechRecognition = MockSpeechRecognition;
+    const speechWindow = window as unknown as Record<string, unknown>;
+    speechWindow.webkitSpeechRecognition = MockSpeechRecognition;
 
     renderPage();
 
@@ -332,7 +343,7 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
       expect(screen.getByTitle(/Dictate with voice or record audio/i)).toBeInTheDocument();
     });
 
-    delete (window as any).webkitSpeechRecognition;
+    delete speechWindow.webkitSpeechRecognition;
   });
 
   it('navigates when clicking AI Copilot trigger in the topbar without opening a sidebar', async () => {
@@ -392,7 +403,9 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
       type: 'application/pdf',
     });
 
-    const readSpy = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) {
+    const readSpy = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (
+      this: FileReader,
+    ) {
       Object.defineProperty(this, 'result', {
         value: 'data:application/pdf;base64,JVBERi0xLjQK',
         writable: true,
@@ -440,4 +453,3 @@ describe('Claude Code Autonomous AI Agent Simple Bar (/agent)', () => {
     readSpy.mockRestore();
   });
 });
-

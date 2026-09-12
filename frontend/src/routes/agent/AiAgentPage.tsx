@@ -35,6 +35,40 @@ export interface AttachedItem {
   category: FileCategory;
 }
 
+type SpeechRecognitionResultLike = {
+  isFinal: boolean;
+  0: { transcript: string };
+};
+
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: Array<SpeechRecognitionResultLike>;
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+interface SpeechRecognitionWindow extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+}
+
+const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null => {
+  if (typeof window === 'undefined') return null;
+  const speechWindow = window as SpeechRecognitionWindow;
+  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null;
+};
+
 export function getFileCategory(name: string, mimeType = ''): FileCategory {
   const type = mimeType.toLowerCase();
   const lowerName = name.toLowerCase();
@@ -78,17 +112,19 @@ export function formatFileSize(bytes?: number): string {
 export function renderFileIcon(category: FileCategory, size = 16) {
   switch (category) {
     case 'image':
-      return <ImageIcon size={size} className="text-purple-400 shrink-0" />;
+      return <ImageIcon size={size} className="shrink-0 text-purple-400" />;
     case 'audio':
-      return <Volume2 size={size} className="text-amber-500 dark:text-amber-400 shrink-0" />;
+      return <Volume2 size={size} className="shrink-0 text-amber-500 dark:text-amber-400" />;
     case 'pdf':
-      return <FileText size={size} className="text-rose-600 dark:text-rose-400 shrink-0" />;
+      return <FileText size={size} className="shrink-0 text-rose-600 dark:text-rose-400" />;
     case 'spreadsheet':
-      return <FileSpreadsheet size={size} className="text-emerald-600 dark:text-emerald-400 shrink-0" />;
+      return (
+        <FileSpreadsheet size={size} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+      );
     case 'document':
-      return <FileText size={size} className="text-blue-600 dark:text-blue-400 shrink-0" />;
+      return <FileText size={size} className="shrink-0 text-blue-600 dark:text-blue-400" />;
     default:
-      return <File size={size} className="text-[var(--fd-text-secondary)] shrink-0" />;
+      return <File size={size} className="shrink-0 text-[var(--fd-text-secondary)]" />;
   }
 }
 
@@ -105,45 +141,45 @@ export function FileAttachmentCard({
   return (
     <div
       className={cn(
-        'group flex items-center gap-3 rounded-xl transition-all duration-200 shadow-sm hover:shadow',
-        'bg-[var(--fd-surface-1)] border border-[var(--fd-border-subtle)] hover:border-[var(--fd-border)]',
+        'group flex items-center gap-3 rounded-xl shadow-sm transition-all duration-200 hover:shadow',
+        'border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] hover:border-[var(--fd-border)]',
         isPdf && 'hover:border-rose-400/50 dark:hover:border-rose-500/40',
-        compact ? 'p-2 w-full' : 'p-2.5 w-full min-w-[240px] max-w-sm',
+        compact ? 'w-full p-2' : 'w-full max-w-sm min-w-[240px] p-2.5',
       )}
     >
       {/* Icon with theme-aware container */}
       <div
         className={cn(
-          'rounded-lg flex items-center justify-center shrink-0 transition-colors',
+          'flex shrink-0 items-center justify-center rounded-lg transition-colors',
           compact ? 'h-8 w-8' : 'h-9 w-9',
           isPdf
-            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+            ? 'border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
             : file.category === 'spreadsheet'
-            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-            : file.category === 'document'
-            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-            : file.category === 'audio'
-            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-            : 'bg-[var(--fd-surface-3)] text-[var(--fd-text-secondary)] border border-[var(--fd-border-subtle)]',
+              ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              : file.category === 'document'
+                ? 'border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                : file.category === 'audio'
+                  ? 'border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                  : 'border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-3)] text-[var(--fd-text-secondary)]',
         )}
       >
         {renderFileIcon(file.category, compact ? 16 : 18)}
       </div>
 
       {/* File Info */}
-      <div className="flex-1 min-w-0 pr-1">
+      <div className="min-w-0 flex-1 pr-1">
         <div
-          className="text-xs font-medium text-[var(--fd-text-primary)] truncate"
+          className="truncate text-xs font-medium text-[var(--fd-text-primary)]"
           title={file.name}
         >
           {file.name}
         </div>
-        <div className="text-[10px] text-[var(--fd-text-tertiary)] flex items-center gap-1.5 pt-0.5">
+        <div className="flex items-center gap-1.5 pt-0.5 text-[10px] text-[var(--fd-text-tertiary)]">
           <span
             className={cn(
-              'uppercase font-semibold tracking-wider text-[10px]',
+              'text-[10px] font-semibold tracking-wider uppercase',
               isPdf
-                ? 'text-rose-600 dark:text-rose-400 font-bold'
+                ? 'font-bold text-rose-600 dark:text-rose-400'
                 : 'text-[var(--fd-text-secondary)]',
             )}
           >
@@ -160,7 +196,7 @@ export function FileAttachmentCard({
           type="button"
           onClick={onRemove}
           title={`Remove ${file.name}`}
-          className="h-8 w-8 rounded-lg flex items-center justify-center text-[var(--fd-text-tertiary)] hover:text-rose-500 hover:bg-[var(--fd-surface-3)] transition-colors shrink-0 cursor-pointer"
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-rose-500"
         >
           <X size={15} />
         </button>
@@ -169,7 +205,7 @@ export function FileAttachmentCard({
           href={file.dataUrl}
           download={file.name}
           title={`Download ${file.name}`}
-          className="h-8 w-8 rounded-lg flex items-center justify-center text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)] hover:bg-[var(--fd-surface-3)] transition-colors shrink-0 cursor-pointer"
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-[var(--fd-text-secondary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
         >
           <Download size={15} />
         </a>
@@ -207,6 +243,12 @@ interface SlashCommand {
   description: string;
   prompt: string;
 }
+
+const AudioAttachmentPlayer = ({ src, name, className }: { src: string; name: string; className: string }) => (
+  <audio controls src={src} className={className} aria-label={`Play ${name}`}>
+    <track default kind="captions" src="" srcLang="en" label="Captions unavailable" />
+  </audio>
+);
 
 const SLASH_COMMANDS: SlashCommand[] = [
   {
@@ -433,7 +475,7 @@ const renderInlineNodes = (nodes: InlineNode[]): React.ReactNode =>
         );
       case 'italic':
         return (
-          <em key={idx} className="italic text-[var(--fd-text-secondary)]">
+          <em key={idx} className="text-[var(--fd-text-secondary)] italic">
             {renderInlineNodes(node.children)}
           </em>
         );
@@ -441,7 +483,7 @@ const renderInlineNodes = (nodes: InlineNode[]): React.ReactNode =>
         return (
           <code
             key={idx}
-            className="rounded bg-[var(--fd-surface-2)] dark:bg-[#212121] px-1.5 py-0.5 text-[12px] font-mono text-[var(--fd-text-primary)] dark:text-[#ececec] border border-[var(--fd-border-subtle)] dark:border-[#303030]"
+            className="rounded border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-1.5 py-0.5 font-mono text-[12px] text-[var(--fd-text-primary)] dark:border-[#303030] dark:bg-[#212121] dark:text-[#ececec]"
           >
             {node.value}
           </code>
@@ -459,7 +501,7 @@ const renderMarkdown = (nodes: BlockNode[]): React.ReactNode => (
           return (
             <div
               key={idx}
-              className="pt-2 pb-1 font-semibold text-[var(--fd-text-primary)] text-base flex items-center gap-2 border-b border-[var(--fd-border-subtle)]"
+              className="flex items-center gap-2 border-b border-[var(--fd-border-subtle)] pt-2 pb-1 text-base font-semibold text-[var(--fd-text-primary)]"
             >
               <span>{renderInlineNodes(node.children)}</span>
             </div>
@@ -481,26 +523,26 @@ const renderMarkdown = (nodes: BlockNode[]): React.ReactNode => (
           return (
             <div
               key={idx}
-              className="my-3 rounded-xl bg-black border border-[var(--fd-border-subtle)] dark:border-[#303030] overflow-hidden shadow-md"
+              className="my-3 overflow-hidden rounded-xl border border-[var(--fd-border-subtle)] bg-black shadow-md dark:border-[#303030]"
             >
-              <div className="flex items-center justify-between px-3.5 py-1.5 bg-[var(--fd-surface-2)] dark:bg-[#212121] border-b border-[var(--fd-border-subtle)] dark:border-[#303030] text-[11px] text-[var(--fd-text-secondary)] select-none">
-                <span className="font-mono uppercase tracking-wider text-[10px] text-[var(--fd-text-tertiary)]">
+              <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-3.5 py-1.5 text-[11px] text-[var(--fd-text-secondary)] select-none dark:border-[#303030] dark:bg-[#212121]">
+                <span className="font-mono text-[10px] tracking-wider text-[var(--fd-text-tertiary)] uppercase">
                   {node.lang || 'code'}
                 </span>
                 <button
                   type="button"
                   onClick={() => {
                     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                      navigator.clipboard.writeText(node.code);
+                      void navigator.clipboard.writeText(node.code);
                     }
                   }}
-                  className="hover:text-[var(--fd-text-primary)] dark:hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer text-[11px]"
+                  className="flex cursor-pointer items-center gap-1.5 text-[11px] transition-colors hover:text-[var(--fd-text-primary)] dark:hover:text-white"
                 >
                   <Copy size={12} />
                   <span>Copy code</span>
                 </button>
               </div>
-              <pre className="p-3.5 font-mono text-[12px] leading-relaxed overflow-x-auto text-[#ececec] bg-[#000000]">
+              <pre className="overflow-x-auto bg-[#000000] p-3.5 font-mono text-[12px] leading-relaxed text-[#ececec]">
                 <code>{node.code}</code>
               </pre>
             </div>
@@ -526,10 +568,10 @@ export function AiAgentPage() {
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceDuration, setVoiceDuration] = useState(0);
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const voiceTimerRef = useRef<any>(null);
+  const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isCancelledRef = useRef(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -559,12 +601,16 @@ export function AiAgentPage() {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch {}
+        } catch {
+          recognitionRef.current = null;
+        }
       }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         try {
           mediaRecorderRef.current.stop();
-        } catch {}
+        } catch {
+          mediaRecorderRef.current = null;
+        }
       }
       if (voiceTimerRef.current) {
         clearInterval(voiceTimerRef.current);
@@ -573,71 +619,74 @@ export function AiAgentPage() {
   }, []);
 
   // Voice Note Recording fallback/option via MediaRecorder
-  const startVoiceRecording = useCallback(async () => {
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        alert('Audio recording is not supported in this browser environment.');
-        return;
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-      setVoiceDuration(0);
+  const startVoiceRecording = useCallback(() => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert('Audio recording is not supported in this browser environment.');
+      return;
+    }
+    void navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        const recorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+        audioChunksRef.current = [];
+        setVoiceDuration(0);
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
-      };
-
-      recorder.onstop = () => {
-        const mime = recorder.mimeType || 'audio/webm';
-        const blob = new Blob(audioChunksRef.current, { type: mime });
-        stream.getTracks().forEach((track) => track.stop());
-
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            const now = new Date();
-            const pad = (n: number) => n.toString().padStart(2, '0');
-            const timeStr = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-            setAttachedFiles((prev) => [
-              ...prev,
-              {
-                dataUrl: reader.result as string,
-                name: `voice_note_${timeStr}.webm`,
-                size: blob.size,
-                type: mime,
-                category: 'audio',
-              },
-            ]);
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
           }
         };
-        reader.readAsDataURL(blob);
-        setIsRecordingVoice(false);
-        if (voiceTimerRef.current) {
-          clearInterval(voiceTimerRef.current);
-        }
-      };
 
-      recorder.start();
-      setIsRecordingVoice(true);
-      voiceTimerRef.current = setInterval(() => {
-        setVoiceDuration((prev) => prev + 1);
-      }, 1000);
-    } catch (err) {
-      console.warn('Microphone access denied or error:', err);
-      alert('Microphone permission was denied or is not accessible.');
-      setIsRecordingVoice(false);
-    }
+        recorder.onstop = () => {
+          const mime = recorder.mimeType || 'audio/webm';
+          const blob = new Blob(audioChunksRef.current, { type: mime });
+          stream.getTracks().forEach((track) => track.stop());
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              const now = new Date();
+              const pad = (n: number) => n.toString().padStart(2, '0');
+              const timeStr = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+              setAttachedFiles((prev) => [
+                ...prev,
+                {
+                  dataUrl: reader.result as string,
+                  name: `voice_note_${timeStr}.webm`,
+                  size: blob.size,
+                  type: mime,
+                  category: 'audio',
+                },
+              ]);
+            }
+          };
+          reader.readAsDataURL(blob);
+          setIsRecordingVoice(false);
+          if (voiceTimerRef.current) {
+            clearInterval(voiceTimerRef.current);
+          }
+        };
+
+        recorder.start();
+        setIsRecordingVoice(true);
+        voiceTimerRef.current = setInterval(() => {
+          setVoiceDuration((prev) => prev + 1);
+        }, 1000);
+      })
+      .catch(() => {
+        alert('Microphone permission was denied or is not accessible.');
+        setIsRecordingVoice(false);
+      });
   }, []);
 
   const stopVoiceRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
         mediaRecorderRef.current.stop();
-      } catch {}
+      } catch {
+        mediaRecorderRef.current = null;
+      }
     }
     setIsRecordingVoice(false);
     if (voiceTimerRef.current) {
@@ -658,18 +707,20 @@ export function AiAgentPage() {
       return;
     }
 
-    const SpeechRecognition =
-      typeof window !== 'undefined'
-        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-        : null;
+    const SpeechRecognition = getSpeechRecognitionConstructor();
 
     if (!SpeechRecognition) {
       // Gracefully fallback to recording an audio note using microphone!
-      if (typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function') {
+      if (
+        typeof navigator !== 'undefined' &&
+        typeof navigator.mediaDevices?.getUserMedia === 'function'
+      ) {
         startVoiceRecording();
         return;
       }
-      alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Brave.');
+      alert(
+        'Speech recognition is not supported in this browser. Please use Chrome, Edge, or Brave.',
+      );
       return;
     }
 
@@ -679,10 +730,11 @@ export function AiAgentPage() {
       recognition.interimResults = true;
       recognition.lang = 'en-IN';
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event) => {
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
+          const result = event.results[i]?.[0];
+          if (result !== undefined) transcript += result.transcript;
         }
         if (transcript) {
           setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
@@ -695,7 +747,10 @@ export function AiAgentPage() {
       recognitionRef.current = recognition;
       setIsListening(true);
     } catch {
-      if (typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function') {
+      if (
+        typeof navigator !== 'undefined' &&
+        typeof navigator.mediaDevices?.getUserMedia === 'function'
+      ) {
         startVoiceRecording();
       } else {
         setIsListening(false);
@@ -789,7 +844,7 @@ export function AiAgentPage() {
       imgToSend?: { dataUrl: string; name?: string } | null,
     ) => {
       const text = textToRun.trim();
-      let currentFiles: AttachedItem[] = [];
+      let currentFiles: AttachedItem[];
       if (filesToSend !== undefined && filesToSend !== null) {
         currentFiles = Array.isArray(filesToSend) ? filesToSend : [filesToSend];
       } else if (imgToSend) {
@@ -846,8 +901,8 @@ export function AiAgentPage() {
               ? firstCurrentFile.category === 'audio'
                 ? 'Listen to and analyze this audio recording for accounting instructions.'
                 : firstCurrentFile.category === 'document'
-                ? 'Review attached document for accounting records and notes.'
-                : 'Analyze attached file for accounting workflow.'
+                  ? 'Review attached document for accounting records and notes.'
+                  : 'Analyze attached file for accounting workflow.'
               : `Inspect attached ${currentFiles.length} files (${currentFiles.map((f) => f.name).join(', ')}) for accounting records, invoices, and statutory compliance.`;
         }
       }
@@ -938,7 +993,7 @@ export function AiAgentPage() {
       clearPendingPrompt();
       clearPendingImage();
       if (promptToRun || img) {
-        executeCommand(promptToRun, null, img);
+        queueMicrotask(() => void executeCommand(promptToRun, null, img));
       }
     }
   }, [pendingPrompt, pendingImage, clearPendingPrompt, clearPendingImage, executeCommand]);
@@ -962,9 +1017,9 @@ export function AiAgentPage() {
         const selected = filteredSlashCommands[slashSelectedIndex];
         if (selected) {
           if (selected.prompt) {
-            executeCommand(selected.prompt);
+            void executeCommand(selected.prompt);
           } else {
-            executeCommand(selected.command);
+            void executeCommand(selected.command);
           }
         }
         setShowSlashMenu(false);
@@ -979,7 +1034,7 @@ export function AiAgentPage() {
 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      executeCommand(input);
+      void executeCommand(input);
     }
   };
 
@@ -996,9 +1051,9 @@ export function AiAgentPage() {
 
   const handleSelectSlashCommand = (cmd: SlashCommand) => {
     if (cmd.prompt) {
-      executeCommand(cmd.prompt);
+      void executeCommand(cmd.prompt);
     } else {
-      executeCommand(cmd.command);
+      void executeCommand(cmd.command);
     }
     setShowSlashMenu(false);
   };
@@ -1006,10 +1061,10 @@ export function AiAgentPage() {
   const isBlank = messages.length === 0;
 
   return (
-    <div className="relative flex flex-col h-full w-full bg-[var(--fd-bg)] dark:bg-[#000000] text-[var(--fd-text-primary)] select-text min-h-0 overflow-hidden">
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--fd-bg)] text-[var(--fd-text-primary)] select-text dark:bg-[#000000]">
       {/* Messages Stream / Agent Body (Directly on page, covers the whole page) */}
       {!isBlank && (
-        <div className="flex items-center justify-between px-6 py-2.5 border-b border-[var(--fd-border-subtle)] dark:border-[#212121] text-xs text-[var(--fd-text-tertiary)] flex-shrink-0 z-10 bg-[var(--fd-bg)] dark:bg-[#000000]">
+        <div className="z-10 flex flex-shrink-0 items-center justify-between border-b border-[var(--fd-border-subtle)] bg-[var(--fd-bg)] px-6 py-2.5 text-xs text-[var(--fd-text-tertiary)] dark:border-[#212121] dark:bg-[#000000]">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-[var(--fd-text-primary)]">AI Copilot</span>
             <span className="text-[var(--fd-text-tertiary)]">~/firmdesk/practice</span>
@@ -1018,7 +1073,7 @@ export function AiAgentPage() {
             type="button"
             onClick={handleClear}
             title="Reset session"
-            className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-[var(--fd-surface-3)] dark:hover:bg-[#262626] text-[11px] text-[var(--fd-text-secondary)] hover:text-[#fb7185] transition-colors cursor-pointer"
+            className="flex cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-[11px] text-[var(--fd-text-secondary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[#fb7185] dark:hover:bg-[#262626]"
           >
             <RotateCcw size={12} />
             <span>Clear</span>
@@ -1028,19 +1083,19 @@ export function AiAgentPage() {
 
       {/* Scrollable Conversation Stream - Constant Full Height */}
       {!isBlank && (
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 pt-4 space-y-5 scroll-smooth w-full">
+        <div className="min-h-0 w-full flex-1 space-y-5 overflow-x-hidden overflow-y-auto scroll-smooth px-6 pt-4">
           {messages.map((msg) => (
-            <div key={msg.id} className="space-y-2 message-enter">
+            <div key={msg.id} className="message-enter space-y-2">
               {/* User Message (Right Side of Page with Auto-Adjusting Size) */}
               {msg.sender === 'user' && (
-                <div className="flex flex-col items-end ml-auto w-fit max-w-[85%] sm:max-w-[70%] md:max-w-lg lg:max-w-xl py-1 pr-5">
+                <div className="ml-auto flex w-fit max-w-[85%] flex-col items-end py-1 pr-5 sm:max-w-[70%] md:max-w-lg lg:max-w-xl">
                   <div
                     className={cn(
-                      'w-fit max-w-full rounded-2xl rounded-br-sm bg-[var(--fd-surface-2)] dark:bg-[#212121] border border-[var(--fd-border-subtle)] dark:border-[#303030] px-4 py-2.5 text-[var(--fd-text-primary)] dark:text-[#ececec] shadow-sm break-words [overflow-wrap:anywhere] [word-break:break-word] transition-all duration-200 hover:shadow-md hover:border-[var(--fd-border)] dark:hover:border-[#424242]',
+                      'w-fit max-w-full rounded-2xl rounded-br-sm border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-4 py-2.5 [overflow-wrap:anywhere] break-words [word-break:break-word] text-[var(--fd-text-primary)] shadow-sm transition-all duration-200 hover:border-[var(--fd-border)] hover:shadow-md dark:border-[#303030] dark:bg-[#212121] dark:text-[#ececec] dark:hover:border-[#424242]',
                       getUserTextSize(msg.content),
                     )}
                   >
-                    <div className="whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word]">
+                    <div className="leading-relaxed [overflow-wrap:anywhere] break-words [word-break:break-word] whitespace-pre-wrap">
                       {msg.content}
                     </div>
 
@@ -1052,8 +1107,8 @@ export function AiAgentPage() {
                             msg.files && msg.files.length > 0
                               ? msg.files
                               : msg.file
-                              ? [msg.file]
-                              : [];
+                                ? [msg.file]
+                                : [];
 
                           const singleFile = filesToRender.length === 1 ? filesToRender[0] : null;
 
@@ -1065,11 +1120,11 @@ export function AiAgentPage() {
                                 <img
                                   src={imgFile.dataUrl}
                                   alt={imgFile.name}
-                                  className="max-h-56 max-w-xs sm:max-w-sm rounded-xl object-cover border border-[var(--fd-border-subtle)] dark:border-[#303030] shadow-md"
+                                  className="max-h-56 max-w-xs rounded-xl border border-[var(--fd-border-subtle)] object-cover shadow-md sm:max-w-sm dark:border-[#303030]"
                                 />
-                                <div className="text-[11px] text-[var(--fd-text-tertiary)] flex items-center gap-1.5 pt-0.5">
+                                <div className="flex items-center gap-1.5 pt-0.5 text-[11px] text-[var(--fd-text-tertiary)]">
                                   <ImageIcon size={12} className="text-purple-400" />
-                                  <span className="truncate max-w-[200px]">{imgFile.name}</span>
+                                  <span className="max-w-[200px] truncate">{imgFile.name}</span>
                                   <span>•</span>
                                   <span>{formatFileSize(imgFile.size)}</span>
                                 </div>
@@ -1081,17 +1136,20 @@ export function AiAgentPage() {
                           if (singleFile && singleFile.category === 'audio') {
                             const audFile = singleFile;
                             return (
-                              <div className="rounded-xl bg-[var(--fd-surface-1)] dark:bg-[#181818] border border-[var(--fd-border-subtle)] dark:border-[#2f2f2f] p-3 w-full min-w-[260px] max-w-sm shadow-md">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Volume2 size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
-                                  <span className="text-xs font-medium text-[var(--fd-text-primary)] dark:text-[#ececec] truncate max-w-[180px]">
+                              <div className="w-full max-w-sm min-w-[260px] rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-3 shadow-md dark:border-[#2f2f2f] dark:bg-[#181818]">
+                                <div className="mb-2 flex items-center gap-2">
+                                  <Volume2
+                                    size={16}
+                                    className="shrink-0 text-amber-500 dark:text-amber-400"
+                                  />
+                                  <span className="max-w-[180px] truncate text-xs font-medium text-[var(--fd-text-primary)] dark:text-[#ececec]">
                                     {audFile.name}
                                   </span>
-                                  <span className="text-[10px] text-[var(--fd-text-tertiary)] ml-auto">
+                                  <span className="ml-auto text-[10px] text-[var(--fd-text-tertiary)]">
                                     {formatFileSize(audFile.size)}
                                   </span>
                                 </div>
-                                <audio controls src={audFile.dataUrl} className="w-full h-8 rounded" />
+                                <AudioAttachmentPlayer src={audFile.dataUrl} name={audFile.name} className="h-8 w-full rounded" />
                               </div>
                             );
                           }
@@ -1125,12 +1183,12 @@ export function AiAgentPage() {
                         <img
                           src={msg.image.dataUrl}
                           alt="Document"
-                          className="max-h-48 max-w-xs rounded-lg object-cover border border-[var(--fd-border-subtle)] dark:border-[#303030] shadow-sm"
+                          className="max-h-48 max-w-xs rounded-lg border border-[var(--fd-border-subtle)] object-cover shadow-sm dark:border-[#303030]"
                         />
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] text-[var(--fd-text-tertiary)] pt-1 pr-1.5 select-none">
+                  <span className="pt-1 pr-1.5 text-[10px] text-[var(--fd-text-tertiary)] select-none">
                     {msg.timestamp}
                   </span>
                 </div>
@@ -1138,14 +1196,14 @@ export function AiAgentPage() {
 
               {/* Assistant Message */}
               {msg.sender === 'assistant' && (
-                <div className="pl-5 pr-5 space-y-3 pt-1 text-[13px] max-w-full overflow-hidden break-words [overflow-wrap:anywhere]">
+                <div className="max-w-full space-y-3 overflow-hidden pt-1 pr-5 pl-5 text-[13px] [overflow-wrap:anywhere] break-words">
                   {/* Tool Execution Badges */}
                   {msg.toolCalls && msg.toolCalls.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-0.5">
                       {msg.toolCalls.map((tool, idx) => (
                         <div
                           key={idx}
-                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--fd-surface-1)] dark:bg-[#181818] border border-[var(--fd-border-subtle)] dark:border-[#2e2e2e] text-[11px] text-[#38bdf8]"
+                          className="inline-flex items-center gap-1.5 rounded border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] px-2 py-0.5 text-[11px] text-[#38bdf8] dark:border-[#2e2e2e] dark:bg-[#181818]"
                         >
                           <span className="h-1.5 w-1.5 rounded-full bg-[#34d399]" />
                           <span>{tool.label || tool.tool}</span>
@@ -1155,7 +1213,9 @@ export function AiAgentPage() {
                   )}
 
                   {/* Markdown Content */}
-                  <div className="leading-relaxed">{renderMarkdown(parseMarkdown(msg.content))}</div>
+                  <div className="leading-relaxed">
+                    {renderMarkdown(parseMarkdown(msg.content))}
+                  </div>
 
                   {/* Action Chips */}
                   {msg.actions && msg.actions.length > 0 && (
@@ -1164,10 +1224,13 @@ export function AiAgentPage() {
                         <Link
                           key={aIdx}
                           to={act.route}
-                          className="group inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#da7756]/15 hover:bg-[#da7756]/25 text-[#da7756] hover:text-[#ff8a1f] border border-[#da7756]/30 text-xs font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs active:translate-y-0 cursor-pointer"
+                          className="group inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#da7756]/30 bg-[#da7756]/15 px-3 py-1 text-xs font-medium text-[#da7756] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#da7756]/25 hover:text-[#ff8a1f] hover:shadow-xs active:translate-y-0"
                         >
                           <span>{act.label}</span>
-                          <ArrowRight size={12} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+                          <ArrowRight
+                            size={12}
+                            className="transition-transform duration-200 group-hover:translate-x-0.5"
+                          />
                         </Link>
                       ))}
                     </div>
@@ -1179,57 +1242,79 @@ export function AiAgentPage() {
 
           {/* Live Executing Indicator */}
           {isExecuting && (
-            <div className="pl-5 flex items-center gap-2 text-xs text-[var(--fd-text-secondary)] animate-pulse">
+            <div className="flex animate-pulse items-center gap-2 pl-5 text-xs text-[var(--fd-text-secondary)]">
               <span className="text-base select-none">✻</span>
               <span>Thinking & executing...</span>
             </div>
           )}
 
           {/* Bottom Buffer Spacer so conversation scrolls clear of the bottom floating bar */}
-          <div className="h-60 flex-shrink-0 pointer-events-none" aria-hidden="true" />
+          <div className="pointer-events-none h-60 flex-shrink-0" aria-hidden="true" />
           <div ref={messagesEndRef} />
         </div>
       )}
 
       {/* Centered Welcome Hero when Conversation is Blank */}
       {isBlank && (
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center px-4 pb-32 text-center fade-up">
-          <div className="relative mb-4 group cursor-default">
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-[var(--fd-accent)]/20 via-[var(--fd-surface-2)] to-[var(--fd-surface-3)] border border-[var(--fd-border)] flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:border-[var(--fd-accent)]/50">
-              <Terminal size={26} className="text-[var(--fd-accent)] transition-transform duration-300 group-hover:scale-105" />
+        <div className="flex min-h-0 flex-1 fade-up flex-col items-center justify-center overflow-y-auto px-4 pb-32 text-center">
+          <div className="group relative mb-4 cursor-default">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--fd-border)] bg-gradient-to-tr from-[var(--fd-accent)]/20 via-[var(--fd-surface-2)] to-[var(--fd-surface-3)] shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:border-[var(--fd-accent)]/50">
+              <Terminal
+                size={26}
+                className="text-[var(--fd-accent)] transition-transform duration-300 group-hover:scale-105"
+              />
             </div>
             <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--fd-accent)] opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--fd-accent)]" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--fd-accent)] opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-[var(--fd-accent)]" />
             </span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--fd-text-primary)] mb-2">
+          <h2 className="mb-2 text-xl font-semibold tracking-tight text-[var(--fd-text-primary)] sm:text-2xl">
             What can I help you audit or file today?
           </h2>
-          <p className="text-xs sm:text-sm text-[var(--fd-text-secondary)] max-w-md mb-6 leading-relaxed">
+          <p className="mb-6 max-w-md text-xs leading-relaxed text-[var(--fd-text-secondary)] sm:text-sm">
             Ask questions, attach documents or files, or run practice automations.
           </p>
 
           {/* Quick Starter Chips */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg w-full text-left">
+          <div className="grid w-full max-w-lg grid-cols-1 gap-2.5 text-left sm:grid-cols-2">
             {[
-              { title: 'Reconcile GST 2B', desc: 'Scan recent purchases vs GSTR-2B discrepancy', prompt: '/gst' },
-              { title: 'Balance Day Book', desc: 'Verify ledger debit/credit balances in Tally', prompt: '/books' },
-              { title: 'Audit Missing Docs', desc: 'Find pending vouchers and send client reminders', prompt: '/docs' },
-              { title: 'Plan Workload', desc: 'Distribute upcoming compliance filings to staff', prompt: '/tasks' },
+              {
+                title: 'Reconcile GST 2B',
+                desc: 'Scan recent purchases vs GSTR-2B discrepancy',
+                prompt: '/gst',
+              },
+              {
+                title: 'Balance Day Book',
+                desc: 'Verify ledger debit/credit balances in Tally',
+                prompt: '/books',
+              },
+              {
+                title: 'Audit Missing Docs',
+                desc: 'Find pending vouchers and send client reminders',
+                prompt: '/docs',
+              },
+              {
+                title: 'Plan Workload',
+                desc: 'Distribute upcoming compliance filings to staff',
+                prompt: '/tasks',
+              },
             ].map((card, i) => (
               <button
                 key={i}
                 type="button"
-                onClick={() => executeCommand(card.prompt)}
-                className="group p-3 rounded-2xl bg-[var(--fd-surface-1)] dark:bg-[#181818] border border-[var(--fd-border-subtle)] dark:border-[#262626] hover:border-[var(--fd-border)] dark:hover:border-[#383838] hover:bg-[var(--fd-surface-2)] dark:hover:bg-[#212121] text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 cursor-pointer"
+                onClick={() => void executeCommand(card.prompt)}
+                className="group cursor-pointer rounded-2xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--fd-border)] hover:bg-[var(--fd-surface-2)] hover:shadow-md active:translate-y-0 dark:border-[#262626] dark:bg-[#181818] dark:hover:border-[#383838] dark:hover:bg-[#212121]"
               >
-                <div className="text-xs font-semibold text-[var(--fd-text-primary)] group-hover:text-[var(--fd-accent)] transition-colors flex items-center justify-between">
+                <div className="flex items-center justify-between text-xs font-semibold text-[var(--fd-text-primary)] transition-colors group-hover:text-[var(--fd-accent)]">
                   <span>{card.title}</span>
-                  <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all transform -translate-x-1 group-hover:translate-x-0 text-[var(--fd-accent)]" />
+                  <ArrowRight
+                    size={12}
+                    className="-translate-x-1 transform text-[var(--fd-accent)] opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100"
+                  />
                 </div>
-                <div className="text-[11px] text-[var(--fd-text-tertiary)] pt-1 leading-snug">
+                <div className="pt-1 text-[11px] leading-snug text-[var(--fd-text-tertiary)]">
                   {card.desc}
                 </div>
               </button>
@@ -1239,15 +1324,17 @@ export function AiAgentPage() {
       )}
 
       {/* ── THE SEPARATE FLOATING BAR (LOCKED AT BOTTOM, INDEPENDENT OF CONVERSATION BODY) ── */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none bg-gradient-to-t from-[var(--fd-bg)] dark:from-[#000000] via-[var(--fd-bg)]/85 dark:via-[#000000]/95 to-transparent pt-8 pb-3 px-4">
-        <div className="w-full max-w-xl mx-auto pointer-events-auto">
+      <div className="pointer-events-none absolute right-0 bottom-0 left-0 z-20 bg-gradient-to-t from-[var(--fd-bg)] via-[var(--fd-bg)]/85 to-transparent px-4 pt-8 pb-3 dark:from-[#000000] dark:via-[#000000]/95">
+        <div className="pointer-events-auto mx-auto w-full max-w-xl">
           <div className="relative">
             {/* Slash Command Autocomplete Popover */}
             {showSlashMenu && filteredSlashCommands.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 max-h-56 overflow-y-auto rounded-xl bg-[var(--fd-surface-1)] dark:bg-[#1e1e1e] border border-[var(--fd-border)] dark:border-[#303030] shadow-2xl z-30 p-1.5 space-y-1">
-                <div className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider text-[var(--fd-text-tertiary)] border-b border-[var(--fd-border-subtle)] dark:border-[#262626] flex items-center justify-between">
+              <div className="absolute right-0 bottom-full left-0 z-30 mb-2 max-h-56 space-y-1 overflow-y-auto rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] p-1.5 shadow-2xl dark:border-[#303030] dark:bg-[#1e1e1e]">
+                <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] px-2.5 py-1 text-[10px] font-bold tracking-wider text-[var(--fd-text-tertiary)] uppercase dark:border-[#262626]">
                   <span>{`Commands (${filteredSlashCommands.length})`}</span>
-                  <span className="text-[var(--fd-text-secondary)]">↑↓ Navigate • ⏎ Select • Esc Close</span>
+                  <span className="text-[var(--fd-text-secondary)]">
+                    ↑↓ Navigate • ⏎ Select • Esc Close
+                  </span>
                 </div>
                 {filteredSlashCommands.map((cmd, idx) => (
                   <button
@@ -1255,17 +1342,19 @@ export function AiAgentPage() {
                     type="button"
                     onClick={() => handleSelectSlashCommand(cmd)}
                     className={cn(
-                      'w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-colors cursor-pointer',
+                      'flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors',
                       idx === slashSelectedIndex
-                        ? 'bg-[var(--fd-surface-3)] dark:bg-[#2f2f2f] text-[var(--fd-text-primary)] border border-[var(--fd-border-strong)] dark:border-[#444444]'
-                        : 'hover:bg-[var(--fd-surface-2)] dark:hover:bg-[#262626] text-[var(--fd-text-secondary)] border border-transparent',
+                        ? 'border border-[var(--fd-border-strong)] bg-[var(--fd-surface-3)] text-[var(--fd-text-primary)] dark:border-[#444444] dark:bg-[#2f2f2f]'
+                        : 'border border-transparent text-[var(--fd-text-secondary)] hover:bg-[var(--fd-surface-2)] dark:hover:bg-[#262626]',
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-[var(--fd-text-primary)]">{cmd.command}</span>
+                      <span className="font-semibold text-[var(--fd-text-primary)]">
+                        {cmd.command}
+                      </span>
                       <span className="font-medium text-[var(--fd-text-primary)]">{cmd.label}</span>
                     </div>
-                    <span className="text-[11px] text-[var(--fd-text-tertiary)] hidden sm:inline">
+                    <span className="hidden text-[11px] text-[var(--fd-text-tertiary)] sm:inline">
                       {cmd.description}
                     </span>
                   </button>
@@ -1281,50 +1370,52 @@ export function AiAgentPage() {
                 const droppedFiles = e.dataTransfer?.files;
                 if (droppedFiles && droppedFiles.length > 0) handleAnyFiles(droppedFiles);
               }}
-              className="bg-[var(--fd-surface-1)] dark:bg-[#212121] border border-[var(--fd-border-subtle)] dark:border-[#303030] focus-within:border-[var(--fd-border-strong)] dark:focus-within:border-[#4d4d4d] focus-within:shadow-[0_0_24px_-4px_rgba(255,106,0,0.18)] dark:focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.6)] rounded-[26px] p-2 sm:p-2.5 shadow-2xl transition-all duration-200"
+              className="rounded-[26px] border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] p-2 shadow-2xl transition-all duration-200 focus-within:border-[var(--fd-border-strong)] focus-within:shadow-[0_0_24px_-4px_rgba(255,106,0,0.18)] sm:p-2.5 dark:border-[#303030] dark:bg-[#212121] dark:focus-within:border-[#4d4d4d] dark:focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
             >
               {/* Attached Items Pre-send Preview (Supports multiple files: PDFs, Photos, Audio, Spreadsheets) */}
               {attachedFiles.length > 0 && (
-                <div className="mb-2 flex flex-wrap items-center gap-2 max-h-40 overflow-y-auto px-1 pr-1">
+                <div className="mb-2 flex max-h-40 flex-wrap items-center gap-2 overflow-y-auto px-1 pr-1">
                   {attachedFiles.map((att, idx) => (
                     <div
                       key={`${att.name}-${idx}`}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--fd-surface-2)] dark:bg-[#181818] border border-[var(--fd-border-subtle)] dark:border-[#303030] text-xs text-[var(--fd-text-primary)] dark:text-[#ececec] shadow-sm scale-in"
+                      className="flex scale-in items-center gap-2 rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] px-3 py-1.5 text-xs text-[var(--fd-text-primary)] shadow-sm dark:border-[#303030] dark:bg-[#181818] dark:text-[#ececec]"
                     >
                       {att.category === 'image' ? (
                         <img
                           src={att.dataUrl}
                           alt={att.name}
-                          className="h-8 w-8 rounded-lg object-cover border border-[var(--fd-border-subtle)] dark:border-[#303030] shrink-0"
+                          className="h-8 w-8 shrink-0 rounded-lg border border-[var(--fd-border-subtle)] object-cover dark:border-[#303030]"
                         />
                       ) : (
                         <div
                           className={cn(
-                            'h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
+                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
                             att.category === 'pdf'
-                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                              ? 'border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
                               : att.category === 'spreadsheet'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : att.category === 'document'
-                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                              : att.category === 'audio'
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                              : 'bg-[var(--fd-surface-3)] dark:bg-[#262626]',
+                                ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : att.category === 'document'
+                                  ? 'border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                  : att.category === 'audio'
+                                    ? 'border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                    : 'bg-[var(--fd-surface-3)] dark:bg-[#262626]',
                           )}
                         >
                           {renderFileIcon(att.category, 16)}
                         </div>
                       )}
 
-                      <div className="flex flex-col min-w-0 pr-1">
-                        <span className="max-w-[150px] sm:max-w-[200px] truncate font-medium">
+                      <div className="flex min-w-0 flex-col pr-1">
+                        <span className="max-w-[150px] truncate font-medium sm:max-w-[200px]">
                           {att.name}
                         </span>
-                        <span className="text-[10px] text-[var(--fd-text-tertiary)] flex items-center gap-1">
+                        <span className="flex items-center gap-1 text-[10px] text-[var(--fd-text-tertiary)]">
                           <span
                             className={cn(
-                              'uppercase font-semibold tracking-wider text-[10px]',
-                              att.category === 'pdf' ? 'text-rose-600 dark:text-rose-400 font-bold' : '',
+                              'text-[10px] font-semibold tracking-wider uppercase',
+                              att.category === 'pdf'
+                                ? 'font-bold text-rose-600 dark:text-rose-400'
+                                : '',
                             )}
                           >
                             {att.category}
@@ -1335,14 +1426,14 @@ export function AiAgentPage() {
                       </div>
 
                       {att.category === 'audio' && (
-                        <audio controls src={att.dataUrl} className="h-7 w-32 sm:w-40 shrink-0 rounded" />
+                        <AudioAttachmentPlayer src={att.dataUrl} name={att.name} className="h-7 w-32 shrink-0 rounded sm:w-40" />
                       )}
 
                       <button
                         type="button"
                         onClick={() => setAttachedFiles((prev) => prev.filter((_, i) => i !== idx))}
                         title={`Remove ${att.name}`}
-                        className="p-1 rounded-full hover:bg-[var(--fd-surface-3)] dark:hover:bg-[#262626] text-[var(--fd-text-tertiary)] hover:text-[#fb7185] cursor-pointer transition-colors shrink-0 ml-0.5"
+                        className="ml-0.5 shrink-0 cursor-pointer rounded-full p-1 text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[#fb7185] dark:hover:bg-[#262626]"
                       >
                         <X size={14} />
                       </button>
@@ -1353,7 +1444,7 @@ export function AiAgentPage() {
                     <button
                       type="button"
                       onClick={() => setAttachedFiles([])}
-                      className="text-[11px] font-medium text-[var(--fd-text-tertiary)] dark:text-[#8e8e8e] hover:text-[#fb7185] px-2.5 py-1.5 rounded-lg hover:bg-[var(--fd-surface-3)] dark:hover:bg-[#212121] transition-colors cursor-pointer"
+                      className="cursor-pointer rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[#fb7185] dark:text-[#8e8e8e] dark:hover:bg-[#212121]"
                     >
                       Clear all ({attachedFiles.length})
                     </button>
@@ -1379,19 +1470,19 @@ export function AiAgentPage() {
               {/* Main Input Row: Attach (+) on left, Placeholder / Textarea (Adjusted Downside) in center, Mic & Send on right */}
               <div className="flex items-end gap-2 px-1">
                 {/* Left Group: Attach (+) */}
-                <div className="flex items-center shrink-0 mb-0.5">
+                <div className="mb-0.5 flex shrink-0 items-center">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     title="Attach document or image, photo, audio, file"
-                    className="h-8 w-8 rounded-full flex items-center justify-center text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)] hover:bg-[var(--fd-surface-3)] dark:text-[#b4b4b4] dark:hover:text-white dark:hover:bg-[#2f2f2f] border border-[var(--fd-border-subtle)] dark:border-transparent transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[var(--fd-border-subtle)] text-[var(--fd-text-secondary)] transition-all duration-200 hover:scale-105 hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] active:scale-95 dark:border-transparent dark:text-[#b4b4b4] dark:hover:bg-[#2f2f2f] dark:hover:text-white"
                   >
                     <Plus size={16} className="transition-transform duration-200 hover:rotate-90" />
                   </button>
                 </div>
 
                 {/* Center: Textarea with placeholder sitting downside, aligned with buttons */}
-                <div className="flex-1 min-w-0 flex items-center py-1">
+                <div className="flex min-w-0 flex-1 items-center py-1">
                   <textarea
                     ref={textareaRef}
                     value={input}
@@ -1409,38 +1500,42 @@ export function AiAgentPage() {
                       isRecordingVoice
                         ? `Recording audio note (${Math.floor(voiceDuration / 60)}:${(voiceDuration % 60).toString().padStart(2, '0')})... Click mic to finish`
                         : isListening
-                        ? 'Listening...'
-                        : 'Ask Copilot anything, or type / for commands...'
+                          ? 'Listening...'
+                          : 'Ask Copilot anything, or type / for commands...'
                     }
                     disabled={isExecuting}
                     className={cn(
-                      'w-full bg-transparent border-0 outline-none text-[var(--fd-text-primary)] dark:text-[#ececec] placeholder:text-[var(--fd-text-tertiary)] dark:placeholder:text-[#8e8e8e] resize-none leading-normal px-1 py-0.5 max-h-40 overflow-y-auto break-words [overflow-wrap:anywhere]',
+                      'max-h-40 w-full resize-none overflow-y-auto border-0 bg-transparent px-1 py-0.5 leading-normal [overflow-wrap:anywhere] break-words text-[var(--fd-text-primary)] outline-none placeholder:text-[var(--fd-text-tertiary)] dark:text-[#ececec] dark:placeholder:text-[#8e8e8e]',
                       getUserTextSize(input),
                     )}
                   />
                 </div>
 
                 {/* Right Group: Dictation/Recording (Mic) and Circular Send / Stop */}
-                <div className="flex items-center gap-1.5 shrink-0 mb-0.5">
+                <div className="mb-0.5 flex shrink-0 items-center gap-1.5">
                   {/* Voice Dictation (Mic) Button — ChatGPT minimal style */}
                   <button
                     type="button"
                     onClick={toggleSpeechRecognition}
-                    title={isListening || isRecordingVoice ? 'Stop listening' : 'Dictate with voice or record audio (Mic)'}
-                    className={cn(
-                      'h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer',
+                    title={
                       isListening || isRecordingVoice
-                        ? 'bg-black text-white dark:bg-white dark:text-black hover:scale-105 active:scale-95 shadow'
-                        : 'text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)] hover:bg-[var(--fd-surface-3)] dark:text-[#b4b4b4] dark:hover:text-white dark:hover:bg-[#2f2f2f] hover:scale-105 active:scale-95',
+                        ? 'Stop listening'
+                        : 'Dictate with voice or record audio (Mic)'
+                    }
+                    className={cn(
+                      'flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-all duration-200',
+                      isListening || isRecordingVoice
+                        ? 'bg-black text-white shadow hover:scale-105 active:scale-95 dark:bg-white dark:text-black'
+                        : 'text-[var(--fd-text-secondary)] hover:scale-105 hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] active:scale-95 dark:text-[#b4b4b4] dark:hover:bg-[#2f2f2f] dark:hover:text-white',
                     )}
                   >
                     {isListening || isRecordingVoice ? (
                       /* Sleek ChatGPT-style live wave bars inside the mic button */
-                      <div className="flex items-center gap-0.5 h-3">
-                        <span className="w-0.5 h-2 bg-current rounded-full animate-pulse" />
-                        <span className="w-0.5 h-3.5 bg-current rounded-full animate-pulse delay-75" />
-                        <span className="w-0.5 h-1.5 bg-current rounded-full animate-pulse delay-150" />
-                        <span className="w-0.5 h-2.5 bg-current rounded-full animate-pulse delay-100" />
+                      <div className="flex h-3 items-center gap-0.5">
+                        <span className="h-2 w-0.5 animate-pulse rounded-full bg-current" />
+                        <span className="h-3.5 w-0.5 animate-pulse rounded-full bg-current delay-75" />
+                        <span className="h-1.5 w-0.5 animate-pulse rounded-full bg-current delay-150" />
+                        <span className="h-2.5 w-0.5 animate-pulse rounded-full bg-current delay-100" />
                       </div>
                     ) : (
                       <Mic size={16} />
@@ -1453,21 +1548,21 @@ export function AiAgentPage() {
                       type="button"
                       onClick={handleStopExecution}
                       title="Stop generating"
-                      className="h-8 w-8 rounded-full bg-black text-white dark:bg-white dark:text-black hover:opacity-90 flex items-center justify-center shadow transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black text-white shadow transition-all duration-200 hover:scale-105 hover:opacity-90 active:scale-95 dark:bg-white dark:text-black"
                     >
                       <Square size={13} fill="currentColor" />
                     </button>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => executeCommand(input)}
+                      onClick={() => void executeCommand(input)}
                       disabled={!input.trim() && attachedFiles.length === 0}
                       title="Send message"
                       className={cn(
-                        'h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200',
+                        'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200',
                         !input.trim() && attachedFiles.length === 0
-                          ? 'bg-neutral-200 text-neutral-400 dark:bg-[#303030] dark:text-[#676767] cursor-not-allowed'
-                          : 'bg-black text-white dark:bg-white dark:text-black hover:opacity-90 hover:scale-105 active:scale-95 shadow cursor-pointer',
+                          ? 'cursor-not-allowed bg-neutral-200 text-neutral-400 dark:bg-[#303030] dark:text-[#676767]'
+                          : 'cursor-pointer bg-black text-white shadow hover:scale-105 hover:opacity-90 active:scale-95 dark:bg-white dark:text-black',
                       )}
                     >
                       <ArrowUp size={16} strokeWidth={2.4} />
@@ -1478,7 +1573,7 @@ export function AiAgentPage() {
             </div>
 
             {/* ChatGPT-style Subtext Disclaimer */}
-            <p className="text-center text-[11px] text-[var(--fd-text-tertiary)] dark:text-[#737373] pt-2 select-none">
+            <p className="pt-2 text-center text-[11px] text-[var(--fd-text-tertiary)] select-none dark:text-[#737373]">
               FirmDesk Copilot can make mistakes. Verify statutory filings and book entries.
             </p>
           </div>

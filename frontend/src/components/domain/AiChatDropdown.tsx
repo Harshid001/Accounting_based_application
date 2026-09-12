@@ -196,7 +196,7 @@ const renderInlineNodes = (nodes: InlineNode[]): React.ReactNode =>
         return (
           <code
             key={idx}
-            className="rounded bg-[var(--fd-surface-3)] px-1 py-0.5 text-[11px] font-mono text-[var(--fd-accent)]"
+            className="rounded bg-[var(--fd-surface-3)] px-1 py-0.5 font-mono text-[11px] text-[var(--fd-accent)]"
           >
             {node.value}
           </code>
@@ -212,7 +212,7 @@ const renderMarkdown = (nodes: BlockNode[]): React.ReactNode => (
       switch (node.type) {
         case 'header':
           return (
-            <h4 key={idx} className="font-semibold text-sm text-[var(--fd-accent)] pt-1 pb-0.5">
+            <h4 key={idx} className="pt-1 pb-0.5 text-sm font-semibold text-[var(--fd-accent)]">
               {renderInlineNodes(node.children)}
             </h4>
           );
@@ -225,7 +225,7 @@ const renderMarkdown = (nodes: BlockNode[]): React.ReactNode => (
         case 'bullet':
           return (
             <div key={idx} className="ml-3 flex items-start gap-2 leading-relaxed">
-              <span className="text-[var(--fd-accent)] shrink-0 select-none">•</span>
+              <span className="shrink-0 text-[var(--fd-accent)] select-none">•</span>
               <span>{renderInlineNodes(node.children)}</span>
             </div>
           );
@@ -259,7 +259,7 @@ export function AiChatTrigger({ className, to = '/agent', onClick }: AiChatTrigg
       return;
     }
     if (to) {
-      navigate(to);
+      void navigate(to);
       return;
     }
     toggleAiChat();
@@ -274,7 +274,7 @@ export function AiChatTrigger({ className, to = '/agent', onClick }: AiChatTrigg
       aria-label="FirmDesk AI Assistant Chat"
       title="AI Copilot • Open Agent"
       className={cn(
-        'group relative inline-flex h-9 items-center gap-2 rounded-lg px-2.5 sm:px-3 text-xs font-semibold shadow-2xs transition-all cursor-pointer',
+        'group relative inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-xs font-semibold shadow-2xs transition-all sm:px-3',
         'border border-[var(--fd-accent)]/30 bg-gradient-to-r from-[var(--fd-accent)]/10 via-[#FF8A1F]/10 to-[#FFB15C]/10 hover:from-[var(--fd-accent)]/20 hover:via-[#FF8A1F]/20 hover:to-[#FFB15C]/20',
         'text-[var(--fd-text-primary)] hover:border-[var(--fd-accent)]/50 hover:shadow-xs',
         'focus-visible:outline-2 focus-visible:outline-[var(--fd-focus-ring)]',
@@ -284,14 +284,14 @@ export function AiChatTrigger({ className, to = '/agent', onClick }: AiChatTrigg
       )}
     >
       <div className="relative flex items-center justify-center">
-        <Sparkles className="h-4 w-4 text-[var(--fd-accent)] transition-transform group-hover:scale-110 group-hover:rotate-12 duration-300" />
+        <Sparkles className="h-4 w-4 text-[var(--fd-accent)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
         <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF8A1F] opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--fd-accent)]" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FF8A1F] opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--fd-accent)]" />
         </span>
       </div>
-      <span className="font-medium hidden sm:inline">Ask AI</span>
-      <span className="hidden md:inline-flex items-center rounded-full bg-[var(--fd-accent)]/15 px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider text-[var(--fd-accent)] border border-[var(--fd-accent)]/20">
+      <span className="hidden font-medium sm:inline">Ask AI</span>
+      <span className="py-0.2 hidden items-center rounded-full border border-[var(--fd-accent)]/20 bg-[var(--fd-accent)]/15 px-1.5 text-[9px] font-bold tracking-wider text-[var(--fd-accent)] uppercase md:inline-flex">
         Copilot
       </span>
     </button>
@@ -346,7 +346,8 @@ function persistSession(sessionId: string, msgs: ChatMessage[]) {
 
   const firstUserMsg = msgs.find((m) => m.sender === 'user');
   const title = firstUserMsg
-    ? firstUserMsg.content.trim().slice(0, 42) + (firstUserMsg.content.trim().length > 42 ? '...' : '')
+    ? firstUserMsg.content.trim().slice(0, 42) +
+      (firstUserMsg.content.trim().length > 42 ? '...' : '')
     : 'New Chat';
 
   const now = new Date();
@@ -428,10 +429,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => crypto.randomUUID());
   const [showHistory, setShowHistory] = useState(false);
   const [sessions, setSessions] = useState<StoredSession[]>(() => loadStoredSessions());
-  const hasUserInteracted = useMemo(
-    () => messages.some((m) => m.sender === 'user'),
-    [messages],
-  );
+  const hasUserInteracted = useMemo(() => messages.some((m) => m.sender === 'user'), [messages]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -480,7 +478,8 @@ export function AiChatSidebar({ className }: { className?: string }) {
       const userMsg: ChatMessage = {
         id: `user-${currentId}`,
         sender: 'user',
-        content: text || 'Please analyze this attached document or image and identify relevant details.',
+        content:
+          text || 'Please analyze this attached document or image and identify relevant details.',
         timestamp: formatCurrentTime(),
         image: currentImage,
       };
@@ -500,10 +499,13 @@ export function AiChatSidebar({ className }: { className?: string }) {
           .map((m) => ({ role: m.sender, content: m.content }));
         const route = window.location.pathname;
         const reply = await sendAiChat({
-          message: text || 'Please analyze this attached document or image and identify relevant details.',
+          message:
+            text || 'Please analyze this attached document or image and identify relevant details.',
           history,
           currentRoute: route,
-          image: currentImage ? { dataUrl: currentImage.dataUrl, mimeType: currentImage.mimeType } : null,
+          image: currentImage
+            ? { dataUrl: currentImage.dataUrl, mimeType: currentImage.mimeType }
+            : null,
         });
 
         msgIdRef.current += 1;
@@ -606,7 +608,14 @@ export function AiChatSidebar({ className }: { className?: string }) {
         clearPendingImage();
       }
     }
-  }, [pendingPrompt, pendingImage, isAiChatOpen, handleSend, clearPendingPrompt, clearPendingImage]);
+  }, [
+    pendingPrompt,
+    pendingImage,
+    isAiChatOpen,
+    handleSend,
+    clearPendingPrompt,
+    clearPendingImage,
+  ]);
 
   // Auto scroll on messages or typing changes
   useEffect(() => {
@@ -657,7 +666,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
           type="button"
           tabIndex={-1}
           aria-label="Dismiss AI overlay"
-          className="md:hidden fixed inset-0 z-40 bg-[var(--fd-overlay)] backdrop-blur-xs transition-opacity animate-in fade-in duration-200 border-0 cursor-default"
+          className="animate-in fade-in fixed inset-0 z-40 cursor-default border-0 bg-[var(--fd-overlay)] backdrop-blur-xs transition-opacity duration-200 md:hidden"
           onClick={closeAiChat}
         />
       )}
@@ -669,8 +678,10 @@ export function AiChatSidebar({ className }: { className?: string }) {
         onPaste={handlePaste}
         style={{ width: `${chatWidth}px` }}
         className={cn(
-          'relative flex flex-col h-full shrink-0 border-l border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-xl z-20 drawer-right-in',
-          isDragging ? 'transition-none select-none' : 'transition-[width] duration-500 ease-in-out',
+          'relative z-20 flex h-full shrink-0 drawer-right-in flex-col border-l border-[var(--fd-border)] bg-[var(--fd-surface-1)] shadow-xl',
+          isDragging
+            ? 'transition-none select-none'
+            : 'transition-[width] duration-500 ease-in-out',
           // Mobile responsive: converts to fixed drawer on mobile so narrow screens are not crushed
           'max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-50 max-md:w-full max-md:sm:w-[480px]',
           className,
@@ -692,22 +703,22 @@ export function AiChatSidebar({ className }: { className?: string }) {
               }
             }}
             className={cn(
-              'hidden md:block absolute left-0 top-0 bottom-0 w-2 -translate-x-1 cursor-col-resize z-30 transition-colors group p-0 border-0 bg-transparent',
+              'group absolute top-0 bottom-0 left-0 z-30 hidden w-2 -translate-x-1 cursor-col-resize border-0 bg-transparent p-0 transition-colors md:block',
               isDragging ? 'bg-[var(--fd-accent)]/40' : 'hover:bg-[var(--fd-accent)]/20',
             )}
             title="Drag or use Left/Right arrow keys to resize workspace & sidebar"
           >
-            <span className="absolute top-1/2 left-0.5 -translate-y-1/2 w-1 h-8 rounded-full bg-[var(--fd-border-strong)] group-hover:bg-[var(--fd-accent)] transition-colors" />
+            <span className="absolute top-1/2 left-0.5 h-8 w-1 -translate-y-1/2 rounded-full bg-[var(--fd-border-strong)] transition-colors group-hover:bg-[var(--fd-accent)]" />
           </button>
         )}
 
         {/* Sidebar Header */}
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--fd-border-subtle)] bg-gradient-to-r from-[var(--fd-surface-2)] via-[var(--fd-surface-1)] to-[var(--fd-surface-2)] px-3.5 py-2.5 sm:px-4">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
             {/* Unified Logo + Text Pill Box: compresses from right to left till logo only when user enters something */}
             <div
               className={cn(
-                'flex items-center rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 p-1 shadow-2xs transition-all duration-500 ease-in-out overflow-hidden',
+                'flex items-center overflow-hidden rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 p-1 shadow-2xs transition-all duration-500 ease-in-out',
                 isTyping
                   ? 'max-w-[46px] border-[var(--fd-accent)]/40 bg-[var(--fd-accent)]/10 ring-2 ring-[#FF8A1F]/30'
                   : 'max-w-[220px]',
@@ -731,23 +742,23 @@ export function AiChatSidebar({ className }: { className?: string }) {
               {/* Text area that collapses right-to-left into the logo */}
               <div
                 className={cn(
-                  'flex items-center whitespace-nowrap overflow-hidden transition-all duration-500 ease-in-out',
+                  'flex items-center overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out',
                   isTyping
-                    ? 'max-w-0 opacity-0 -translate-x-3 pointer-events-none ml-0 mr-0'
-                    : 'max-w-[170px] opacity-100 translate-x-0 ml-2.5 mr-2',
+                    ? 'pointer-events-none mr-0 ml-0 max-w-0 -translate-x-3 opacity-0'
+                    : 'mr-2 ml-2.5 max-w-[170px] translate-x-0 opacity-100',
                 )}
               >
-                <div className="flex flex-col justify-center min-w-0">
-                  <span className="text-xs font-bold text-[var(--fd-text-primary)] tracking-tight">
+                <div className="flex min-w-0 flex-col justify-center">
+                  <span className="text-xs font-bold tracking-tight text-[var(--fd-text-primary)]">
                     AI Copilot
                   </span>
                   {hasUserInteracted ? (
-                    <span className="flex items-center gap-1.5 text-[10px] text-[var(--fd-text-secondary)] font-medium">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--fd-text-secondary)]">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
                       <span>Ready</span>
                     </span>
                   ) : (
-                    <span className="text-[10px] text-[var(--fd-text-tertiary)] font-medium">
+                    <span className="text-[10px] font-medium text-[var(--fd-text-tertiary)]">
                       Practice Copilot
                     </span>
                   )}
@@ -759,7 +770,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
             {isTyping && (
               <div
                 data-testid="ai-header-generating"
-                className="flex items-center gap-1.5 rounded-full bg-[var(--fd-accent)]/15 border border-[var(--fd-accent)]/30 px-2.5 py-1 text-[11px] font-semibold text-[var(--fd-accent)] animate-in fade-in zoom-in-95 duration-400 shadow-xs"
+                className="animate-in fade-in zoom-in-95 flex items-center gap-1.5 rounded-full border border-[var(--fd-accent)]/30 bg-[var(--fd-accent)]/15 px-2.5 py-1 text-[11px] font-semibold text-[var(--fd-accent)] shadow-xs duration-400"
               >
                 <Sparkles className="h-3 w-3 animate-spin text-[#FFB15C]" />
                 <span className="animate-pulse">Generating...</span>
@@ -767,7 +778,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
             )}
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => {
@@ -782,9 +793,9 @@ export function AiChatSidebar({ className }: { className?: string }) {
               title={showHistory ? 'Return to active chat' : 'Chat history'}
               aria-label="Chat history"
               className={cn(
-                'inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer',
+                'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors',
                 showHistory
-                  ? 'bg-[var(--fd-accent)]/15 text-[var(--fd-accent)] font-semibold'
+                  ? 'bg-[var(--fd-accent)]/15 font-semibold text-[var(--fd-accent)]'
                   : 'text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]',
               )}
             >
@@ -795,7 +806,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
               onClick={handleNewChat}
               title="New chat"
               aria-label="New chat"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -804,7 +815,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
               onClick={toggleExpanded}
               title={isExpanded ? 'Minimize' : 'Maximize'}
               aria-label={isExpanded ? 'Minimize' : 'Maximize'}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
             >
               {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
@@ -813,7 +824,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
               onClick={closeAiChat}
               title="Close AI Chat"
               aria-label="Close AI Chat"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
             >
               <X className="h-4 w-4" />
             </button>
@@ -821,11 +832,13 @@ export function AiChatSidebar({ className }: { className?: string }) {
         </div>
 
         {showHistory ? (
-          <div className="flex-1 flex flex-col min-h-0 bg-[var(--fd-surface-1)]">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/50">
+          <div className="flex min-h-0 flex-1 flex-col bg-[var(--fd-surface-1)]">
+            <div className="flex items-center justify-between border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <History className="h-4 w-4 text-[var(--fd-accent)]" />
-                <span className="text-xs font-semibold text-[var(--fd-text-primary)]">Chat History</span>
+                <span className="text-xs font-semibold text-[var(--fd-text-primary)]">
+                  Chat History
+                </span>
                 <span className="rounded-full bg-[var(--fd-surface-3)] px-2 py-0.5 text-[10px] font-medium text-[var(--fd-text-secondary)]">
                   {sessions.length} / {MAX_STORED_SESSIONS}
                 </span>
@@ -833,27 +846,29 @@ export function AiChatSidebar({ className }: { className?: string }) {
               <button
                 type="button"
                 onClick={handleNewChat}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fd-accent)] px-2.5 py-1 text-xs font-medium text-[var(--fd-accent-contrast)] hover:bg-[var(--fd-accent-hover)] transition-colors cursor-pointer"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[var(--fd-accent)] px-2.5 py-1 text-xs font-medium text-[var(--fd-accent-contrast)] transition-colors hover:bg-[var(--fd-accent-hover)]"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>New Chat</span>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-0">
+            <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-4">
               {sessions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-48 text-center px-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--fd-accent)]/10 text-[var(--fd-accent)] mb-3">
+                <div className="flex h-48 flex-col items-center justify-center px-4 text-center">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--fd-accent)]/10 text-[var(--fd-accent)]">
                     <History className="h-5 w-5" />
                   </div>
-                  <p className="text-xs font-medium text-[var(--fd-text-primary)]">No saved chats yet</p>
-                  <p className="text-[11px] text-[var(--fd-text-tertiary)] mt-1 max-w-[220px]">
+                  <p className="text-xs font-medium text-[var(--fd-text-primary)]">
+                    No saved chats yet
+                  </p>
+                  <p className="mt-1 max-w-[220px] text-[11px] text-[var(--fd-text-tertiary)]">
                     Your conversations with AI Copilot will appear here automatically.
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowHistory(false)}
-                    className="mt-4 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--fd-text-secondary)] hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)] transition-colors cursor-pointer"
+                    className="mt-4 cursor-pointer rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--fd-text-secondary)] transition-colors hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)]"
                   >
                     Return to active chat
                   </button>
@@ -880,14 +895,14 @@ export function AiChatSidebar({ className }: { className?: string }) {
                         }
                       }}
                       className={cn(
-                        'group relative flex flex-col gap-1 rounded-xl border p-3 transition-all cursor-pointer text-left',
+                        'group relative flex cursor-pointer flex-col gap-1 rounded-xl border p-3 text-left transition-all',
                         isCurrent
                           ? 'border-[var(--fd-accent)]/50 bg-[var(--fd-accent)]/10 ring-1 ring-[var(--fd-accent)]/20'
                           : 'border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] hover:border-[var(--fd-accent)]/60 hover:bg-[var(--fd-surface-3)]',
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-medium text-[var(--fd-text-primary)] line-clamp-1 group-hover:text-[var(--fd-accent-hover)]">
+                        <span className="line-clamp-1 text-xs font-medium text-[var(--fd-text-primary)] group-hover:text-[var(--fd-accent-hover)]">
                           {sess.title}
                         </span>
                         <button
@@ -895,7 +910,7 @@ export function AiChatSidebar({ className }: { className?: string }) {
                           onClick={(e) => handleDeleteSession(sess.id, e)}
                           title="Delete conversation"
                           aria-label="Delete conversation"
-                          className="opacity-0 group-hover:opacity-100 p-1 text-[var(--fd-text-tertiary)] hover:text-rose-600 rounded transition-opacity cursor-pointer shrink-0"
+                          className="shrink-0 cursor-pointer rounded p-1 text-[var(--fd-text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-rose-600"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -918,18 +933,18 @@ export function AiChatSidebar({ className }: { className?: string }) {
             </div>
 
             {sessions.length > 0 && (
-              <div className="p-3 border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/30 flex justify-between items-center">
+              <div className="flex items-center justify-between border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/30 p-3">
                 <button
                   type="button"
                   onClick={handleClearAllHistory}
-                  className="text-[11px] text-rose-500 hover:text-rose-600 font-medium transition-colors cursor-pointer"
+                  className="cursor-pointer text-[11px] font-medium text-rose-500 transition-colors hover:text-rose-600"
                 >
                   Clear all history
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowHistory(false)}
-                  className="text-[11px] text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)] font-medium transition-colors cursor-pointer"
+                  className="cursor-pointer text-[11px] font-medium text-[var(--fd-text-secondary)] transition-colors hover:text-[var(--fd-text-primary)]"
                 >
                   Back to chat
                 </button>
@@ -939,257 +954,259 @@ export function AiChatSidebar({ className }: { className?: string }) {
         ) : (
           <>
             {/* Quick Prompts Suggestions Bar */}
-        <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/50 px-3 py-2 sm:px-4 no-scrollbar">
-          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--fd-text-tertiary)] pl-1">
-            Suggestions:
-          </span>
-          {QUICK_PROMPTS.map((p, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSend(p.query)}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] px-2.5 py-1 text-[11px] font-medium text-[var(--fd-text-secondary)] shadow-2xs transition-colors hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)] cursor-pointer"
-            >
-              <span>{p.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Chat Messages Body */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-          {messages.map((msg) => {
-            const isUser = msg.sender === 'user';
-            return (
-              <div
-                key={msg.id}
-                className={cn(
-                  'flex gap-3 text-xs leading-relaxed',
-                  isUser ? 'justify-end' : 'justify-start',
-                )}
-              >
-                {!isUser && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] shadow-xs">
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </div>
-                )}
-
-                <div
-                  className={cn(
-                    'relative group max-w-[85%] rounded-2xl p-3.5 shadow-2xs transition-all',
-                    isUser
-                      ? 'rounded-tr-xs bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)]'
-                      : 'rounded-tl-xs border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] text-[var(--fd-text-primary)]',
-                  )}
+            <div className="no-scrollbar flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/50 px-3 py-2 sm:px-4">
+              <span className="shrink-0 pl-1 text-[10px] font-bold tracking-wider text-[var(--fd-text-tertiary)] uppercase">
+                Suggestions:
+              </span>
+              {QUICK_PROMPTS.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSend(p.query)}
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)] px-2.5 py-1 text-[11px] font-medium text-[var(--fd-text-secondary)] shadow-2xs transition-colors hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)]"
                 >
-                  {/* Tool Badges */}
-                  {msg.toolCalls && msg.toolCalls.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-1.5">
-                      {msg.toolCalls.map((tc, tIdx) => (
-                        <span
-                          key={tIdx}
-                          className="inline-flex items-center gap-1 rounded-full bg-[var(--fd-accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--fd-accent)] border border-[var(--fd-accent)]/20"
-                        >
-                          <Zap className="h-2.5 w-2.5" />
-                          <span>{tc.label}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <span>{p.label}</span>
+                </button>
+              ))}
+            </div>
 
-                  {/* Copy Button for Assistant message */}
-                  {!isUser && (
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(msg.content, msg.id)}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-[var(--fd-surface-3)] text-[var(--fd-text-tertiary)] hover:text-[var(--fd-text-primary)] cursor-pointer"
-                      title="Copy text"
-                      aria-label="Copy text"
-                    >
-                      {copiedId === msg.id ? (
-                        <Check className="h-3 w-3 text-emerald-500" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </button>
-                  )}
-
-                  {/* Attached Image for User Message */}
-                  {msg.image && (
-                    <div className="mb-2.5 overflow-hidden rounded-xl border border-white/25 bg-black/20 p-1">
-                      <img
-                        src={msg.image.dataUrl}
-                        alt={msg.image.name || 'Attached document'}
-                        className="max-h-48 w-full rounded-lg object-contain"
-                      />
-                      <div className="px-1.5 pt-1 text-[10px] text-[#FFB15C] flex items-center justify-between font-mono">
-                        <span className="truncate max-w-[200px]">{msg.image.name || 'Pasted image'}</span>
-                        <span className="text-[9px] opacity-80">📷 Visual</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Message Content - Markdown rendered */}
-                  {renderMarkdown(parseMarkdown(msg.content))}
-
-                  {/* Quick Action Navigation Chips */}
-                  {msg.actions && msg.actions.length > 0 && (
-                    <div className="mt-3 pt-2.5 border-t border-[var(--fd-border-subtle)] flex flex-wrap gap-1.5">
-                      {msg.actions.map((act, aIdx) => (
-                        <button
-                          key={aIdx}
-                          type="button"
-                          onClick={() => {
-                            void navigate(act.route);
-                          }}
-                           className="inline-flex items-center gap-1 rounded-lg bg-[var(--fd-surface-1)] border border-[var(--fd-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--fd-accent)] shadow-2xs hover:bg-[var(--fd-surface-3)] hover:border-[var(--fd-accent)]/50 cursor-pointer"
-                        >
-                          <span>{act.label}</span>
-                          <ArrowRight className="h-3 w-3" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Timestamp */}
+            {/* Chat Messages Body */}
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+              {messages.map((msg) => {
+                const isUser = msg.sender === 'user';
+                return (
                   <div
+                    key={msg.id}
                     className={cn(
-                      'mt-1.5 text-[9px] text-right font-mono',
-                      isUser ? 'text-[#FFB15C]' : 'text-[var(--fd-text-tertiary)]',
+                      'flex gap-3 text-xs leading-relaxed',
+                      isUser ? 'justify-end' : 'justify-start',
                     )}
                   >
-                    {msg.timestamp}
+                    {!isUser && (
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] shadow-xs">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                    )}
+
+                    <div
+                      className={cn(
+                        'group relative max-w-[85%] rounded-2xl p-3.5 shadow-2xs transition-all',
+                        isUser
+                          ? 'rounded-tr-xs bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)]'
+                          : 'rounded-tl-xs border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)] text-[var(--fd-text-primary)]',
+                      )}
+                    >
+                      {/* Tool Badges */}
+                      {msg.toolCalls && msg.toolCalls.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-1.5">
+                          {msg.toolCalls.map((tc, tIdx) => (
+                            <span
+                              key={tIdx}
+                              className="inline-flex items-center gap-1 rounded-full border border-[var(--fd-accent)]/20 bg-[var(--fd-accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--fd-accent)]"
+                            >
+                              <Zap className="h-2.5 w-2.5" />
+                              <span>{tc.label}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Copy Button for Assistant message */}
+                      {!isUser && (
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(msg.content, msg.id)}
+                          className="absolute top-2 right-2 cursor-pointer rounded p-1 text-[var(--fd-text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
+                          title="Copy text"
+                          aria-label="Copy text"
+                        >
+                          {copiedId === msg.id ? (
+                            <Check className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      )}
+
+                      {/* Attached Image for User Message */}
+                      {msg.image && (
+                        <div className="mb-2.5 overflow-hidden rounded-xl border border-white/25 bg-black/20 p-1">
+                          <img
+                            src={msg.image.dataUrl}
+                            alt={msg.image.name || 'Attached document'}
+                            className="max-h-48 w-full rounded-lg object-contain"
+                          />
+                          <div className="flex items-center justify-between px-1.5 pt-1 font-mono text-[10px] text-[#FFB15C]">
+                            <span className="max-w-[200px] truncate">
+                              {msg.image.name || 'Pasted image'}
+                            </span>
+                            <span className="text-[9px] opacity-80">📷 Visual</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Message Content - Markdown rendered */}
+                      {renderMarkdown(parseMarkdown(msg.content))}
+
+                      {/* Quick Action Navigation Chips */}
+                      {msg.actions && msg.actions.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[var(--fd-border-subtle)] pt-2.5">
+                          {msg.actions.map((act, aIdx) => (
+                            <button
+                              key={aIdx}
+                              type="button"
+                              onClick={() => {
+                                void navigate(act.route);
+                              }}
+                              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-2.5 py-1 text-[11px] font-semibold text-[var(--fd-accent)] shadow-2xs hover:border-[var(--fd-accent)]/50 hover:bg-[var(--fd-surface-3)]"
+                            >
+                              <span>{act.label}</span>
+                              <ArrowRight className="h-3 w-3" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Timestamp */}
+                      <div
+                        className={cn(
+                          'mt-1.5 text-right font-mono text-[9px]',
+                          isUser ? 'text-[#FFB15C]' : 'text-[var(--fd-text-tertiary)]',
+                        )}
+                      >
+                        {msg.timestamp}
+                      </div>
+                    </div>
+
+                    {isUser && (
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--fd-surface-3)] text-[var(--fd-text-secondary)] shadow-xs">
+                        <User className="h-3.5 w-3.5" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Typing Indicator / Processing Reply Box */}
+              {isTyping && (
+                <div className="animate-in fade-in-0 slide-in-from-bottom-2 flex items-center justify-start gap-3 text-xs duration-300">
+                  <div className="flex h-7 w-7 shrink-0 ai-logo-processing items-center justify-center rounded-lg bg-gradient-to-br from-[var(--fd-accent)] to-[#B84E00] text-[var(--fd-accent-contrast)] shadow-xs">
+                    <Sparkles className="h-3.5 w-3.5 animate-spin [animation-duration:3s]" />
+                  </div>
+                  <div className="flex ai-reply-processing items-center gap-2 rounded-2xl rounded-tl-xs border border-[var(--fd-accent)]/30 bg-[var(--fd-surface-2)] px-4 py-2.5 text-[var(--fd-text-secondary)] shadow-xs transition-all duration-300">
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#FFB15C]"
+                        style={{ animationDelay: '0ms' }}
+                      />
+                      <span
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#FF8A1F]"
+                        style={{ animationDelay: '150ms' }}
+                      />
+                      <span
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--fd-accent)]"
+                        style={{ animationDelay: '300ms' }}
+                      />
+                    </div>
+                    <span className="animate-pulse pl-1 text-[11px] font-medium text-[var(--fd-accent)]">
+                      FirmDesk Copilot is analyzing & drafting...
+                    </span>
                   </div>
                 </div>
-
-                {isUser && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--fd-surface-3)] text-[var(--fd-text-secondary)] shadow-xs">
-                    <User className="h-3.5 w-3.5" />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Typing Indicator / Processing Reply Box */}
-          {isTyping && (
-            <div className="flex gap-3 text-xs justify-start items-center animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--fd-accent)] to-[#B84E00] text-[var(--fd-accent-contrast)] shadow-xs ai-logo-processing">
-                <Sparkles className="h-3.5 w-3.5 animate-spin [animation-duration:3s]" />
-              </div>
-              <div className="rounded-2xl rounded-tl-xs border border-[var(--fd-accent)]/30 bg-[var(--fd-surface-2)] ai-reply-processing px-4 py-2.5 text-[var(--fd-text-secondary)] flex items-center gap-2 shadow-xs transition-all duration-300">
-                <div className="flex items-center gap-1">
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-[#FFB15C] animate-bounce"
-                    style={{ animationDelay: '0ms' }}
-                  />
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-[#FF8A1F] animate-bounce"
-                    style={{ animationDelay: '150ms' }}
-                  />
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-[var(--fd-accent)] animate-bounce"
-                    style={{ animationDelay: '300ms' }}
-                  />
-                </div>
-                <span className="text-[11px] pl-1 font-medium text-[var(--fd-accent)] animate-pulse">
-                  FirmDesk Copilot is analyzing & drafting...
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Footer Input Bar */}
-        <div className="shrink-0 border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 p-3 sm:p-4">
-          {/* Attached Image Preview Chip */}
-          {attachedImage && (
-            <div className="mb-2.5 flex items-center justify-between rounded-xl border border-[var(--fd-accent)]/30 bg-[var(--fd-accent)]/10 p-2 text-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <img
-                  src={attachedImage.dataUrl}
-                  alt={attachedImage.name || 'Attached image'}
-                  className="h-10 w-10 shrink-0 rounded-lg object-cover border border-[var(--fd-accent)]/30 shadow-xs"
-                />
-                <div className="min-w-0">
-                  <div className="truncate font-medium text-[var(--fd-text-primary)]">
-                    {attachedImage.name || 'Pasted Image'}
-                  </div>
-                  <div className="text-[10px] text-[var(--fd-accent)] font-medium">
-                    Ready to send to AI Copilot
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAttachedImage(null)}
-                title="Remove attached image"
-                aria-label="Remove image"
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)] cursor-pointer"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-
-          <form
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault();
-              void handleSend();
-            }}
-            className="flex items-center gap-2"
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  handleImageFile(file);
-                }
-                e.target.value = '';
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              title="Attach an image or paste (Ctrl+V)"
-              aria-label="Attach image"
-               className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] text-[var(--fd-text-tertiary)] shadow-2xs transition-colors hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)] cursor-pointer"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </button>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onPaste={handlePaste}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask to create tasks, update filings, search clients, or paste an image (Ctrl+V)..."
-              className="flex-1 rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-3.5 py-2.5 text-xs text-[var(--fd-text-primary)] placeholder-[var(--fd-text-tertiary)] shadow-2xs outline-none focus:border-[var(--fd-accent)] focus:ring-1 focus:ring-[var(--fd-accent)]/60"
-            />
-            <button
-              type="submit"
-              disabled={(!input.trim() && !attachedImage) || isTyping}
-              aria-label="Send message"
-              className={cn(
-                'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-semibold shadow-xs transition-all cursor-pointer',
-                (input.trim() || attachedImage) && !isTyping
-                  ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] hover:bg-[var(--fd-accent-hover)]'
-                  : 'bg-[var(--fd-surface-3)] text-[var(--fd-text-tertiary)] cursor-not-allowed opacity-60',
               )}
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </form>
-          <div className="flex items-center justify-between pt-1.5 px-1 text-[10px] text-[var(--fd-text-tertiary)]">
-            <span>Press Enter ↵ to send • Paste images anytime</span>
-            <span>FirmDesk Practice Copilot</span>
-          </div>
-        </div>
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Footer Input Bar */}
+            <div className="shrink-0 border-t border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/80 p-3 sm:p-4">
+              {/* Attached Image Preview Chip */}
+              {attachedImage && (
+                <div className="mb-2.5 flex items-center justify-between rounded-xl border border-[var(--fd-accent)]/30 bg-[var(--fd-accent)]/10 p-2 text-xs">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <img
+                      src={attachedImage.dataUrl}
+                      alt={attachedImage.name || 'Attached image'}
+                      className="h-10 w-10 shrink-0 rounded-lg border border-[var(--fd-accent)]/30 object-cover shadow-xs"
+                    />
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-[var(--fd-text-primary)]">
+                        {attachedImage.name || 'Pasted Image'}
+                      </div>
+                      <div className="text-[10px] font-medium text-[var(--fd-accent)]">
+                        Ready to send to AI Copilot
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedImage(null)}
+                    title="Remove attached image"
+                    aria-label="Remove image"
+                    className="inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-3)] hover:text-[var(--fd-text-primary)]"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+
+              <form
+                onSubmit={(e: FormEvent) => {
+                  e.preventDefault();
+                  void handleSend();
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleImageFile(file);
+                    }
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Attach an image or paste (Ctrl+V)"
+                  aria-label="Attach image"
+                  className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] text-[var(--fd-text-tertiary)] shadow-2xs transition-colors hover:border-[var(--fd-accent)] hover:text-[var(--fd-accent-hover)]"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                </button>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onPaste={handlePaste}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask to create tasks, update filings, search clients, or paste an image (Ctrl+V)..."
+                  className="flex-1 rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] px-3.5 py-2.5 text-xs text-[var(--fd-text-primary)] placeholder-[var(--fd-text-tertiary)] shadow-2xs outline-none focus:border-[var(--fd-accent)] focus:ring-1 focus:ring-[var(--fd-accent)]/60"
+                />
+                <button
+                  type="submit"
+                  disabled={(!input.trim() && !attachedImage) || isTyping}
+                  aria-label="Send message"
+                  className={cn(
+                    'inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl font-semibold shadow-xs transition-all',
+                    (input.trim() || attachedImage) && !isTyping
+                      ? 'bg-[var(--fd-accent)] text-[var(--fd-accent-contrast)] hover:bg-[var(--fd-accent-hover)]'
+                      : 'cursor-not-allowed bg-[var(--fd-surface-3)] text-[var(--fd-text-tertiary)] opacity-60',
+                  )}
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+              <div className="flex items-center justify-between px-1 pt-1.5 text-[10px] text-[var(--fd-text-tertiary)]">
+                <span>Press Enter ↵ to send • Paste images anytime</span>
+                <span>FirmDesk Practice Copilot</span>
+              </div>
+            </div>
           </>
         )}
       </aside>
