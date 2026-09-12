@@ -16,6 +16,7 @@ const ResetPassword = lazy(async () => ({
 const VerifyEmail = lazy(async () => ({
   default: (await import('@/routes/auth/VerifyEmail')).VerifyEmail,
 }));
+const Unlinked = lazy(async () => ({ default: (await import('@/routes/auth/Unlinked')).Unlinked }));
 const Forbidden = lazy(async () => ({
   default: (await import('@/routes/errors/Forbidden')).Forbidden,
 }));
@@ -211,6 +212,7 @@ export function DesktopRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/unlinked" element={<Unlinked />} />
         <Route path="/403" element={<Forbidden />} />
         <Route path="/404" element={<NotFound />} />
       </Route>

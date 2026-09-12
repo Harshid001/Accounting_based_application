@@ -1028,12 +1028,12 @@ export function AiAgentPage() {
 
       {/* Scrollable Conversation Stream - Constant Full Height */}
       {!isBlank && (
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 pt-4 space-y-5 scroll-smooth pr-2 w-full">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 pt-4 space-y-5 scroll-smooth w-full">
           {messages.map((msg) => (
             <div key={msg.id} className="space-y-2 message-enter">
               {/* User Message (Right Side of Page with Auto-Adjusting Size) */}
               {msg.sender === 'user' && (
-                <div className="flex flex-col items-end ml-auto w-fit max-w-[85%] sm:max-w-[70%] md:max-w-lg lg:max-w-xl py-1">
+                <div className="flex flex-col items-end ml-auto w-fit max-w-[85%] sm:max-w-[70%] md:max-w-lg lg:max-w-xl py-1 pr-5">
                   <div
                     className={cn(
                       'w-fit max-w-full rounded-2xl rounded-br-sm bg-[var(--fd-surface-2)] dark:bg-[#212121] border border-[var(--fd-border-subtle)] dark:border-[#303030] px-4 py-2.5 text-[var(--fd-text-primary)] dark:text-[#ececec] shadow-sm break-words [overflow-wrap:anywhere] [word-break:break-word] transition-all duration-200 hover:shadow-md hover:border-[var(--fd-border)] dark:hover:border-[#424242]',
@@ -1138,7 +1138,7 @@ export function AiAgentPage() {
 
               {/* Assistant Message */}
               {msg.sender === 'assistant' && (
-                <div className="pl-5 space-y-3 pt-1 text-[13px] max-w-full overflow-hidden break-words [overflow-wrap:anywhere]">
+                <div className="pl-5 pr-5 space-y-3 pt-1 text-[13px] max-w-full overflow-hidden break-words [overflow-wrap:anywhere]">
                   {/* Tool Execution Badges */}
                   {msg.toolCalls && msg.toolCalls.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-0.5">

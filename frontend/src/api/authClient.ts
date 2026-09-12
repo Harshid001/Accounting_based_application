@@ -109,6 +109,13 @@ const readSessionUser = (result: unknown): SessionUser | null => {
   };
 };
 
+const readSignInToken = (result: unknown): string | null => {
+  if (!isRecord(result)) return null;
+  const data: unknown = result.data;
+  if (!isRecord(data)) return null;
+  return readString(data, 'token');
+};
+
 export const readCurrentAuthUser = async (): Promise<SessionUser | null> => {
   try {
     const result: unknown = await authClient.getSession();
@@ -129,6 +136,8 @@ export const signInWithEmail = async (input: {
     rememberMe: input.rememberMe,
   });
   assertOk(result);
+  const token = readSignInToken(result);
+  if (token !== null) setStoredSessionToken(token);
 };
 
 export const signUpWithEmail = async (input: {
