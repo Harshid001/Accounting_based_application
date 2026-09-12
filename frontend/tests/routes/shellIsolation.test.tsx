@@ -103,18 +103,18 @@ describe(`shell isolation (${SHELL} build)`, () => {
       expect((await screen.findAllByText(/hello|overview|compliance|documents/i)).length).toBeGreaterThan(0);
     });
 
-    it('serves the staff dashboard for an admin session on web', async () => {
+    it('redirects an admin session to the desktop download screen on web', async () => {
       await renderAppAt('/dashboard', 'admin');
-      await waitFor(() => {
-        expect(screen.queryAllByText(/dashboard|workload|filings|due/i).length).toBeGreaterThan(0);
-      }, { timeout: 10000 });
+      expect(
+        await screen.findByRole('heading', { name: /staff access is desktop-only/i }, { timeout: 10000 }),
+      ).toBeTruthy();
     });
 
-    it('serves the clients view for a staff session on web', async () => {
+    it('redirects a staff session to the desktop download screen on web', async () => {
       await renderAppAt('/clients', 'staff');
-      await waitFor(() => {
-        expect(screen.queryAllByText(/clients|records|search/i).length).toBeGreaterThan(0);
-      }, { timeout: 10000 });
+      expect(
+        await screen.findByRole('heading', { name: /staff access is desktop-only/i }, { timeout: 10000 }),
+      ).toBeTruthy();
     });
 
     it('keeps client-only auth flows (sign-up) available', async () => {
@@ -134,6 +134,11 @@ describe(`shell isolation (${SHELL} build)`, () => {
     it('does not display Google sign-in button in web shell for staff & admin', async () => {
       await renderAppAt('/sign-in?portal=admin', null);
       expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
+    });
+
+    it('keeps staff and admin workspace chunks out of the website route table', () => {
+      expect(document.querySelector('a[href="/dashboard"]')).toBeNull();
+      expect(document.querySelector('a[href="/clients"]')).toBeNull();
     });
   }
 

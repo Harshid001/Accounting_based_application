@@ -40,9 +40,8 @@ in development.
 | Script | What it does |
 |---|---|
 | `npm run dev` | Vite dev server (web shell) with HMR on port 5173 |
-| `npm run desktop:dev` | Vite dev server in desktop-shell mode (Tauri attaches) |
-| `npm run build:web` | Web bundle to static `dist/` — clients only, PWA enabled |
-| `npm run build:desktop` | Desktop bundle — staff workspace only, no PWA |
+| `npm run build:web` | Website bundle in `dist-website/` — clients only, PWA enabled |
+| `npm run build:desktop` | Desktop bundle in `dist-desktop/` — admin/staff workspace only, no PWA |
 | `npm run preview` | Serves the built output on port 4173 |
 | `npm run typecheck` | `tsc --noEmit` over `src`, `tests` and the build configs |
 | `npm run lint` | ESLint, zero warnings tolerated |
@@ -51,8 +50,8 @@ in development.
 
 ## Two shells, one codebase (split-surface)
 
-The route tables live in `src/app/routes.web.tsx` (landing, auth client tab,
-`/portal/*`) and `src/app/routes.desktop.tsx` (the admin/staff workspace).
+The route tables live in `src/website/routes.tsx` (landing and client portal)
+and `src/desktop/routes.tsx` (the admin/staff workspace).
 `vite.config.ts` aliases `@/app/routes.shell` and `@/app/appshell` to the
 right module per `VITE_APP_SHELL` at config time, so the bundler never
 traces the other surface: the web bundle contains zero staff route code
@@ -71,7 +70,9 @@ that replaced the retired `desktop/agent.mjs` script. See
 ```
 src/app         router, providers, route guards, error boundary, boot failure
 src/layouts     the three shells: auth, staff workspace, client portal
-src/routes      one directory per screen from PRD.md §5
+src/website    client landing page, client portal, and website routes
+src/desktop    admin/staff workspace screens and desktop routes
+src/shared     auth, errors, shell interstitials, and components used by both surfaces
 src/components  ui/ design-system primitives, domain/ FirmDesk-aware shared parts
 src/api         the only fetch call site, the Better Auth client, one module per resource
 src/hooks       URL-backed list state, debounce, hotkeys, unread poll, upload handshake
@@ -109,7 +110,7 @@ through `Intl.DateTimeFormat` with `Asia/Kolkata` forced — never the ambiguous
 
 ## Deployment
 
-`npm run build` produces static assets in `dist/`. Serve them from any static host with SPA fallback
+`npm run build:web` produces static assets in `dist-website/`. Serve them from any static host with SPA fallback
 rewriting unknown paths to `index.html`.
 
 **The Content-Security-Policy must be set on the static host.** `helmet` runs on the API and cannot
@@ -133,7 +134,7 @@ per-request nonce for a cached document, so allow it by hash instead. Recompute 
 that script changes:
 
 ```bash
-node -e "const {createHash}=require('node:crypto');const fs=require('node:fs');const html=fs.readFileSync('dist/index.html','utf8');const m=html.match(/<script>([\s\S]*?)<\/script>/);console.log(\"'sha256-\"+createHash('sha256').update(m[1]).digest('base64')+\"'\")"
+node -e "const {createHash}=require('node:crypto');const fs=require('node:fs');const html=fs.readFileSync('dist-website/index.html','utf8');const m=html.match(/<script>([\s\S]*?)<\/script>/);console.log(\"'sha256-\"+createHash('sha256').update(m[1]).digest('base64')+\"'\")"
 ```
 
 `style-src 'unsafe-inline'` is required because Radix writes inline positioning styles onto floating

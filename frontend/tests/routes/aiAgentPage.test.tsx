@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchAiConfig, sendAiChat } from '@/api/ai.api';
 import { AiChatTrigger } from '@/components/domain/AiChatDropdown';
-import { AiAgentPage, getUserTextSize } from '@/routes/agent/AiAgentPage';
+import { AiAgentPage, getUserTextSize } from '@/desktop/agent/AiAgentPage';
 
 vi.mock('@/api/ai.api', () => ({
   sendAiChat: vi.fn(),

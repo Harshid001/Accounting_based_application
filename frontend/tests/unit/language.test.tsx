@@ -6,7 +6,7 @@ import {
   LanguageProvider,
   LANGUAGE_STORAGE_KEY,
 } from '@/context/LanguageContext';
-import { LanguagePreferencePanel } from '@/routes/profile/components/LanguagePreferencePanel';
+import { LanguagePreferencePanel } from '@/shared/LanguagePreferencePanel/LanguagePreferencePanel';
 import { ToastProvider } from '@/context/ToastContext';
 import { SessionContext } from '@/context/SessionContext';
 import type { Me } from '@/types/models';

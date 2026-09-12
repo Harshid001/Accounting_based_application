@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ClientForm } from '@/routes/clients/components/ClientForm';
+import { ClientForm } from '@/desktop/clients/components/ClientForm';
 import type { ClientFormValues } from '@/schemas/client.schema';
 import { renderWithProviders } from '../helpers/render';
 import { stubFetch } from '../helpers/server';

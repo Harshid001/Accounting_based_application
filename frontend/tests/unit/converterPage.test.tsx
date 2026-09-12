@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { ToastProvider } from '@/context/ToastContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ConverterPage } from '@/routes/converter/ConverterPage';
+import { ConverterPage } from '@/desktop/converter/ConverterPage';
 
 function renderConverter() {
   const queryClient = new QueryClient({

@@ -165,10 +165,16 @@ describe('workspace boundaries', () => {
       '/settings/users',
     );
 
-    expect(
-      await screen.findByRole('heading', { name: 'You do not have access to that' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Users' })).not.toBeInTheDocument();
+    if (SHELL === 'web') {
+      expect(
+        await screen.findByRole('heading', { name: 'Staff access is desktop-only' }),
+      ).toBeInTheDocument();
+    } else {
+      expect(
+        await screen.findByRole('heading', { name: 'You do not have access to that' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Users' })).not.toBeInTheDocument();
+    }
   });
 
   it('redirects a client account away from the staff dashboard', async () => {
@@ -205,8 +211,14 @@ describe('workspace boundaries', () => {
       '/portal',
     );
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Portal' })).not.toBeInTheDocument();
+    if (SHELL === 'web') {
+      expect(
+        await screen.findByRole('heading', { name: 'Staff access is desktop-only' }),
+      ).toBeInTheDocument();
+    } else {
+      expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Portal' })).not.toBeInTheDocument();
+    }
   });
 
   it('lets an admin through to an admin-only screen', async () => {
@@ -215,6 +227,12 @@ describe('workspace boundaries', () => {
       '/settings/users',
     );
 
-    expect(await screen.findByRole('heading', { name: 'Users' })).toBeInTheDocument();
+    if (SHELL === 'web') {
+      expect(
+        await screen.findByRole('heading', { name: 'Staff access is desktop-only' }),
+      ).toBeInTheDocument();
+    } else {
+      expect(await screen.findByRole('heading', { name: 'Users' })).toBeInTheDocument();
+    }
   });
 });

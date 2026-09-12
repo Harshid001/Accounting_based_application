@@ -11,6 +11,7 @@ import {
   isStaffSide,
   isKnownCapability,
 } from '@/lib/permissions';
+import { SHELL } from '@/lib/shell';
 import { makeMe, permissionsFor } from '../helpers/server';
 
 describe('capability list', () => {
@@ -85,9 +86,9 @@ describe('render-time predicates', () => {
 });
 
 describe('homePathFor', () => {
-  it('sends each role to its own workspace', () => {
-    expect(homePathFor('admin')).toBe('/dashboard');
-    expect(homePathFor('staff')).toBe('/dashboard');
+  it('sends each role to its shell-appropriate workspace', () => {
+    expect(homePathFor('admin')).toBe(SHELL === 'web' ? '/desktop-required' : '/dashboard');
+    expect(homePathFor('staff')).toBe(SHELL === 'web' ? '/desktop-required' : '/dashboard');
     expect(homePathFor('client')).toBe('/portal');
     expect(homePathFor(null)).toBe('/sign-in');
   });

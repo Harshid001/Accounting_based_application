@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-website/
+dist-desktop/
 dev-dist/
 coverage/
 .env

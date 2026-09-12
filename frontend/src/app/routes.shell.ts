@@ -6,4 +6,4 @@
  * table — desktop test runs stub VITE_APP_SHELL and still exercise the
  * desktop table through their own imports.
  */
-export { ShellRoutes } from './routes.web';
+export { ShellRoutes } from '../website/routes';

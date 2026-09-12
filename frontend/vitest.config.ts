@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
           find: /^@\/app\/routes\.shell$/,
           replacement: fileURLToPath(
             new URL(
-              `./src/app/routes.${appShell === 'desktop' ? 'desktop' : 'web'}.tsx`,
+              `./src/${appShell === 'desktop' ? 'desktop' : 'website'}/routes.tsx`,
               import.meta.url,
             ),
           ),

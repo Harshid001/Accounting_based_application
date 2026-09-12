@@ -9,9 +9,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:desktop": "vite build --mode desktop",
-    "build:web": "vite build",
+    "build": "vite build --outDir dist-website",
+    "build:desktop": "vite build --mode desktop --outDir dist-desktop",
+    "build:web": "vite build --outDir dist-website",
     "desktop:dev": "vite --mode desktop",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",

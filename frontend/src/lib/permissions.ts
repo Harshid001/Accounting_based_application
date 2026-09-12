@@ -1,4 +1,5 @@
 import type { Role } from '@/types/enums';
+import { isWeb } from '@/lib/shell';
 
 export const CAPABILITY_KEYS = [
   'profile:manage',
@@ -107,7 +108,7 @@ export const homePathFor = (role: Role | null | undefined): string => {
   switch (role) {
     case 'admin':
     case 'staff':
-      return '/dashboard';
+      return isWeb ? '/desktop-required' : '/dashboard';
     case 'client':
       return '/portal';
     default:
