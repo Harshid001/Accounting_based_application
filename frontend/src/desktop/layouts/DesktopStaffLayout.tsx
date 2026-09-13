@@ -1,4 +1,4 @@
-﻿import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
 import { CommandPalette } from '@/components/domain/CommandPalette';
@@ -6,7 +6,6 @@ import { RouteAnnouncer, SkipLink } from '@/components/domain/SkipLink';
 import { Spinner } from '@/components/ui/skeleton';
 import { Sidebar } from '@/layouts/components/Sidebar';
 import { Topbar } from '@/layouts/components/Topbar';
-import { DesktopShellGate } from '@/layouts/components/DesktopShellGate';
 import { SIDEBAR_STORAGE_KEY } from '@/lib/constants';
 import { useHotkey } from '@/hooks/useHotkey';
 import { useFeatureGuide } from '@/context/FeatureGuideContext';
@@ -101,7 +100,6 @@ export function DesktopStaffLayout() {
   return (
     <div className="flex h-dvh overflow-hidden bg-[var(--fd-bg)]">
       <SkipLink />
-      <DesktopShellGate />
 
       <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
 

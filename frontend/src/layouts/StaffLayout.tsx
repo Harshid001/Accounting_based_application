@@ -7,7 +7,6 @@ import { Spinner } from '@/components/ui/skeleton';
 import { MobileDrawer } from '@/layouts/components/MobileDrawer';
 import { Sidebar } from '@/layouts/components/Sidebar';
 import { Topbar } from '@/layouts/components/Topbar';
-import { DesktopShellGate } from '@/layouts/components/DesktopShellGate';
 import { SIDEBAR_STORAGE_KEY } from '@/lib/constants';
 import { useHotkey } from '@/hooks/useHotkey';
 import { useFeatureGuide } from '@/context/FeatureGuideContext';
@@ -103,7 +102,6 @@ export function StaffLayout() {
   return (
     <div className="flex h-dvh overflow-hidden bg-[var(--fd-bg)]">
       <SkipLink />
-      <DesktopShellGate />
 
       {/* Sidebar is accessed via the topbar hamburger drawer throughout the website, matching AI Copilot */}
       <div className="hidden">

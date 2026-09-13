@@ -56,11 +56,14 @@ function SignInHintLoader() {
   return null;
 }
 
+import { DesktopShellGate } from '@/layouts/components/DesktopShellGate';
+
 export function AppShell() {
   return (
     <>
       <SignInHintLoader />
       <SessionSnapshotWatcher />
+      <DesktopShellGate />
       <AppRoutes />
     </>
   );
