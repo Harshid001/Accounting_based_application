@@ -141,7 +141,7 @@ export function useWorkstationAgent(user: Me | null): void {
       let deviceId = '';
       let deviceName = 'FirmDesk Workstation';
       let platform = 'windows';
-      let appVersion = '0.1.1';
+      let appVersion = '0.1.2';
 
       try {
         const info = await appInfo();
