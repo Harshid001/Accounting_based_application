@@ -51,7 +51,7 @@ export function useShellSignIn(options: { restoreDesktopEmail?: boolean } = {}):
         clearSignInHint();
       }
       await refresh();
-      void navigate('/', { replace: true });
+      void navigate(isDesktop ? '/dashboard' : '/', { replace: true });
     } catch (error) {
       setFormError(normaliseError(error).message);
     }
