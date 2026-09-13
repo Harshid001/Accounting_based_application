@@ -41,7 +41,7 @@ export const createApp = (): Express => {
         ? { maxAge: 31_536_000, includeSubDomains: true, preload: false }
         : false,
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-      crossOriginResourcePolicy: { policy: 'same-site' },
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
 

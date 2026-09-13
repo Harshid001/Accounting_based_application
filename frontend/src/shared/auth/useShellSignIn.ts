@@ -1,4 +1,4 @@
-﻿import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, type UseFormReturn } from 'react-hook-form';
@@ -6,7 +6,7 @@ import { useForm, type UseFormReturn } from 'react-hook-form';
 import { signInWithEmail, signInWithGoogle } from '@/api/authClient';
 import { useSession } from '@/context/SessionContext';
 import { normaliseError } from '@/lib/errors';
-import { readSignInHint } from '@/lib/signInHint';
+import { clearSignInHint, readSignInHint, writeSignInHint } from '@/lib/signInHint';
 import { isDesktop } from '@/lib/shell';
 import { signInSchema } from '@/schemas/auth.schema';
 import type { SignInValues } from '@/schemas/auth.schema';
@@ -45,6 +45,11 @@ export function useShellSignIn(options: { restoreDesktopEmail?: boolean } = {}):
     setFormError(null);
     try {
       await signInWithEmail(values);
+      if (values.rememberMe) {
+        writeSignInHint(values.email);
+      } else {
+        clearSignInHint();
+      }
       await refresh();
       void navigate('/', { replace: true });
     } catch (error) {

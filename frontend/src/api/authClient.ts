@@ -113,7 +113,14 @@ const readSignInToken = (result: unknown): string | null => {
   if (!isRecord(result)) return null;
   const data: unknown = result.data;
   if (!isRecord(data)) return null;
-  return readString(data, 'token');
+  const directToken = readString(data, 'token');
+  if (directToken !== null) return directToken;
+  const session = data.session;
+  if (isRecord(session)) {
+    const sessionToken = readString(session, 'token');
+    if (sessionToken !== null) return sessionToken;
+  }
+  return null;
 };
 
 export const readCurrentAuthUser = async (): Promise<SessionUser | null> => {

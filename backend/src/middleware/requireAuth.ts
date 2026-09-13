@@ -1,3 +1,4 @@
+import { makeSignature } from 'better-auth/crypto';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { Types } from 'mongoose';
@@ -8,6 +9,7 @@ import {
   SESSION_REFRESH_AFTER_SECONDS,
   getAuth,
 } from '../config/auth.js';
+import { env } from '../config/env.js';
 import { emailUnverified, unauthenticated } from '../lib/errors.js';
 import { Session } from '../models/session.model.js';
 import { User } from '../models/user.model.js';
@@ -55,28 +57,80 @@ export const resolveSession: RequestHandler = (
   void (async () => {
     try {
       const headers = { ...req.headers };
-      if (!headers.cookie && typeof headers.authorization === 'string' && headers.authorization.startsWith('Bearer ')) {
-        const bearerToken = headers.authorization.slice(7).trim();
-        if (bearerToken.length > 0) {
-          headers.cookie = `better-auth.session_token=${bearerToken}`;
+      let bearerToken: string | null = null;
+      if (
+        typeof headers.authorization === 'string' &&
+        headers.authorization.startsWith('Bearer ')
+      ) {
+        bearerToken = headers.authorization.slice(7).trim();
+      }
+
+      if (bearerToken && bearerToken.length > 0) {
+        const rawToken = bearerToken.includes('.') ? (bearerToken.split('.')[0] ?? bearerToken) : bearerToken;
+        try {
+          const sig = bearerToken.includes('.')
+            ? (bearerToken.split('.')[1] ?? '')
+            : await makeSignature(rawToken, env.BETTER_AUTH_SECRET);
+          if (sig.length > 0) {
+            const signed = `${rawToken}.${sig}`;
+            const existing =
+              typeof headers.cookie === 'string' && headers.cookie.length > 0
+                ? `${headers.cookie}; `
+                : '';
+            headers.cookie = `${existing}__Secure-better-auth.session_token=${signed}; better-auth.session_token=${signed}`;
+          }
+        } catch {
+          // Signing error, fallback will handle DB resolution
         }
       }
-      const result = await getAuth().api.getSession({
-        headers: fromNodeHeaders(headers),
-      });
-      if (result?.user && Types.ObjectId.isValid(result.user.id)) {
-        const doc = await User.findById(result.user.id).exec();
+
+      let userId: string | null = null;
+      let sessionToken: string | null = null;
+      let sessionId: Types.ObjectId | null = null;
+
+      try {
+        const result = await getAuth().api.getSession({
+          headers: fromNodeHeaders(headers),
+        });
+        if (result?.user && Types.ObjectId.isValid(result.user.id)) {
+          userId = result.user.id;
+          sessionToken = result.session.token;
+          if (Types.ObjectId.isValid(result.session.id)) {
+            sessionId = new Types.ObjectId(result.session.id);
+          }
+        }
+      } catch {
+        // Better Auth getSession threw, fallback to direct DB lookup below
+      }
+
+      // Direct MongoDB fallback for Bearer tokens or if getSession returned null
+      if (!userId && bearerToken && bearerToken.length > 0) {
+        const rawToken = bearerToken.includes('.') ? bearerToken.split('.')[0] : bearerToken;
+        const sessionDoc = await Session.findOne({
+          token: rawToken,
+          expiresAt: { $gt: new Date() },
+        }).exec();
+
+        if (sessionDoc && Types.ObjectId.isValid(sessionDoc.userId)) {
+          userId = sessionDoc.userId.toString();
+          sessionToken = sessionDoc.token;
+          sessionId = sessionDoc._id;
+        }
+      }
+
+      if (userId && Types.ObjectId.isValid(userId)) {
+        const doc = await User.findById(userId).exec();
         if (doc && doc.status === 'active') {
           req.authUser = toAuthenticatedUser(doc);
-          req.sessionToken = result.session.token;
+          req.sessionToken = sessionToken ?? undefined;
           req.actor = actorFromUser(
             req.authUser,
             requestIp(req),
             requestUserAgent(req),
             req.requestId,
           );
-          if (Types.ObjectId.isValid(result.session.id)) {
-            await slideSession(new Types.ObjectId(result.session.id), doc.role);
+          if (sessionId) {
+            await slideSession(sessionId, doc.role);
           }
           const lastSeen = doc.lastSeenAt?.getTime() ?? 0;
           if (Date.now() - lastSeen > LAST_SEEN_INTERVAL_MS) {
@@ -84,6 +138,7 @@ export const resolveSession: RequestHandler = (
           }
         }
       }
+
       next();
     } catch (error) {
       next(error);
