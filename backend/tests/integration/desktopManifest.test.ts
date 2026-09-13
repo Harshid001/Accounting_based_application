@@ -34,20 +34,16 @@ describe('desktop manifest', () => {
     expect(updateUrl).toMatch(/^https:\/\//);
   });
 
-  it('redirects to the GitHub NSIS installer download for the latest shell version', async () => {
+  it('redirects to the local NSIS installer download', async () => {
     const response = await api().get('/api/v1/desktop/download');
     expect(response.status).toBe(302);
-    expect(response.headers.location).toBe(
-      `https://github.com/Harshid001/Accounting_based_website/releases/download/firmdesk-desktop-v${env.DESKTOP_LATEST_SHELL_VERSION}/FirmDesk_${env.DESKTOP_LATEST_SHELL_VERSION}_x64-setup.exe`,
-    );
+    expect(response.headers.location).toBe('/downloads/FirmDesk-Setup.exe');
   });
 
-  it('redirects to the portable executable download for the latest shell version', async () => {
+  it('redirects to the local portable executable download', async () => {
     const response = await api().get('/api/v1/desktop/download/portable');
     expect(response.status).toBe(302);
-    expect(response.headers.location).toBe(
-      `https://github.com/Harshid001/Accounting_based_website/releases/download/firmdesk-desktop-v${env.DESKTOP_LATEST_SHELL_VERSION}/FirmDesk-${env.DESKTOP_LATEST_SHELL_VERSION}-portable-x64.exe`,
-    );
+    expect(response.headers.location).toBe('/downloads/FirmDesk-Portable.exe');
   });
 });
 

@@ -3,7 +3,6 @@ import {
   Building2,
   CheckCircle2,
   Download,
-  ExternalLink,
   FolderDown,
   MonitorSmartphone,
   ShieldCheck,
@@ -12,7 +11,6 @@ import { Link } from 'react-router-dom';
 
 import { fetchDesktopManifest, type DesktopManifest } from '@/api/desktop.api';
 import { Button } from '@/components/ui/button';
-import { DESKTOP_DOWNLOAD_URL } from '@/lib/shell';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 const REQUIREMENTS = [
@@ -21,7 +19,6 @@ const REQUIREMENTS = [
   'In Tally, once: Gateway of Tally → F3 → Settings → Client/Server Configurations → "Tally acts as" = Both, port 9000',
 ] as const;
 
-const GITHUB_REPO_URL = 'https://github.com/Harshid001/Accounting_based_website';
 
 /**
  * The public download page the web interstitial sends staff to. Hosted on the
@@ -40,15 +37,9 @@ export function DesktopDownload() {
 
   const version = manifest?.latestShellVersion || '0.1.1';
 
-  // If a valid external download URL is configured, respect it;
-  // otherwise, direct users to the official release installer on GitHub.
-  const installerUrl =
-    DESKTOP_DOWNLOAD_URL && DESKTOP_DOWNLOAD_URL !== '/desktop-download'
-      ? DESKTOP_DOWNLOAD_URL
-      : `${GITHUB_REPO_URL}/releases/download/firmdesk-desktop-v${version}/FirmDesk_${version}_x64-setup.exe`;
-
-  const portableUrl = `${GITHUB_REPO_URL}/releases/download/firmdesk-desktop-v${version}/FirmDesk-${version}-portable-x64.exe`;
-  const releasesUrl = `${GITHUB_REPO_URL}/releases/latest`;
+  // Direct download hosted on this website (no external redirect to GitHub):
+  const installerUrl = '/downloads/FirmDesk-Setup.exe';
+  const portableUrl = '/downloads/FirmDesk-Portable.exe';
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[var(--fd-bg)] px-4 py-10">
@@ -71,33 +62,21 @@ export function DesktopDownload() {
 
         {/* Primary Download: Windows Installer */}
         <Button asChild className="mt-6 w-full" size="lg">
-          <a href={installerUrl} download>
+          <a href={installerUrl} download="FirmDesk-Setup.exe">
             <Download size={16} aria-hidden="true" />
             Download for Windows (Installer .exe)
           </a>
         </Button>
 
         {/* Secondary Download options */}
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-xs">
+        <div className="mt-3 flex items-center justify-center gap-3 text-xs">
           <a
             href={portableUrl}
-            download
+            download="FirmDesk-Portable.exe"
             className="flex items-center gap-1.5 font-medium text-[var(--fd-text-secondary)] transition-colors hover:text-[var(--fd-text-primary)]"
           >
             <FolderDown size={14} aria-hidden="true" />
-            Portable Edition (.exe)
-          </a>
-          <span className="text-[var(--fd-border)]" aria-hidden="true">
-            •
-          </span>
-          <a
-            href={releasesUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 font-medium text-[var(--fd-accent)] hover:underline"
-          >
-            <ExternalLink size={14} aria-hidden="true" />
-            Release Notes
+            Download Portable Edition (.exe)
           </a>
         </div>
 

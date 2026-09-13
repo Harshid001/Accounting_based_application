@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 dist/
 dist-website/
 dist-desktop/
@@ -18,3 +18,6 @@ playwright-report/
 # Tauri (Rust) build artifacts
 src-tauri/target/
 src-tauri/gen/schemas/
+
+# Large download binaries
+public/downloads/

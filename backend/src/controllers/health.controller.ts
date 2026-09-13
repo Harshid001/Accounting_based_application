@@ -30,29 +30,20 @@ export const desktopManifest = (_req: Request, res: Response): void => {
   );
 };
 
-const GITHUB_REPO_URL = 'https://github.com/Harshid001/Accounting_based_website';
-
 /**
- * Public redirect to the official latest Windows NSIS installer on GitHub.
+ * Public redirect to the official latest Windows NSIS installer hosted on this site.
  */
 export const desktopDownloadInstaller = (_req: Request, res: Response): void => {
-  const version = env.DESKTOP_LATEST_SHELL_VERSION;
-  res.redirect(
-    302,
-    `${GITHUB_REPO_URL}/releases/download/firmdesk-desktop-v${version}/FirmDesk_${version}_x64-setup.exe`,
-  );
+  res.redirect(302, '/downloads/FirmDesk-Setup.exe');
 };
 
 /**
- * Public redirect to the official latest Windows portable executable on GitHub.
+ * Public redirect to the official latest Windows portable executable hosted on this site.
  */
 export const desktopDownloadPortable = (_req: Request, res: Response): void => {
-  const version = env.DESKTOP_LATEST_SHELL_VERSION;
-  res.redirect(
-    302,
-    `${GITHUB_REPO_URL}/releases/download/firmdesk-desktop-v${version}/FirmDesk-${version}-portable-x64.exe`,
-  );
+  res.redirect(302, '/downloads/FirmDesk-Portable.exe');
 };
+
 
 
 const sanitizeLogLine = (val: string | undefined | null, maxLen: number): string => {
