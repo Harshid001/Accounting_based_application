@@ -33,6 +33,22 @@ describe('desktop manifest', () => {
     expect(latestShellVersion).toMatch(/^\d+\.\d+\.\d+$/);
     expect(updateUrl).toMatch(/^https:\/\//);
   });
+
+  it('redirects to the GitHub NSIS installer download for the latest shell version', async () => {
+    const response = await api().get('/api/v1/desktop/download');
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe(
+      `https://github.com/Harshid001/Accounting_based_website/releases/download/firmdesk-desktop-v${env.DESKTOP_LATEST_SHELL_VERSION}/FirmDesk_${env.DESKTOP_LATEST_SHELL_VERSION}_x64-setup.exe`,
+    );
+  });
+
+  it('redirects to the portable executable download for the latest shell version', async () => {
+    const response = await api().get('/api/v1/desktop/download/portable');
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe(
+      `https://github.com/Harshid001/Accounting_based_website/releases/download/firmdesk-desktop-v${env.DESKTOP_LATEST_SHELL_VERSION}/FirmDesk-${env.DESKTOP_LATEST_SHELL_VERSION}-portable-x64.exe`,
+    );
+  });
 });
 
 describe('desktop command queue isolation', () => {

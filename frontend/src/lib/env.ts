@@ -1,4 +1,4 @@
-﻿export interface AppEnv {
+export interface AppEnv {
   apiBaseUrl: string;
   authBaseUrl: string;
   appName: string;
@@ -51,7 +51,9 @@ const readEnv = (): AppEnv => {
     authBaseUrl: deriveAuthBaseUrl(apiBaseUrl),
     appName,
     appShell: appShell === 'desktop' ? 'desktop' : 'web',
-    desktopDownloadUrl: import.meta.env.VITE_DESKTOP_DOWNLOAD_URL?.trim() || '/desktop-download',
+    desktopDownloadUrl:
+      import.meta.env.VITE_DESKTOP_DOWNLOAD_URL?.trim() ||
+      'https://github.com/Harshid001/Accounting_based_website/releases/latest',
     desktopUpdateUrl: import.meta.env.VITE_DESKTOP_UPDATE_URL?.trim() || '',
   };
 };

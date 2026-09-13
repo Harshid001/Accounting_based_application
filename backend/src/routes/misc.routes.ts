@@ -251,8 +251,12 @@ export const publicRouter: Router = Router();
 
 publicRouter.get('/health', health.health);
 publicRouter.get('/desktop/manifest', health.desktopManifest);
+publicRouter.get('/desktop/download', health.desktopDownloadInstaller);
+publicRouter.get('/desktop/download/installer', health.desktopDownloadInstaller);
+publicRouter.get('/desktop/download/portable', health.desktopDownloadPortable);
 publicRouter.post(
   '/client-errors',
   publicReportLimiter,
   handlePublic({ body: clientErrorBody }, health.reportClientError),
 );
+
