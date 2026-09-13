@@ -1,10 +1,8 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+﻿import { Controller } from 'react-hook-form';
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, ShieldCheck } from 'lucide-react';
 
-import { signInWithEmail, signInWithGoogle } from '@/api/authClient';
 import { AuthCard, GoogleMark } from '@/shared/auth/components/AuthCard';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,33 +10,28 @@ import { FormField } from '@/components/ui/form-field';
 import { InlineError } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { useSession } from '@/context/SessionContext';
-import { normaliseError } from '@/lib/errors';
 import { homePathFor } from '@/lib/permissions';
-import { readSignInHint } from '@/lib/signInHint';
-import { isDesktop, isWeb, webStaffAccess } from '@/lib/shell';
+
+import { useShellSignIn } from '@/shared/auth/useShellSignIn';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { signInSchema } from '@/schemas/auth.schema';
-import type { SignInValues } from '@/schemas/auth.schema';
 
 const safeRedirect = (value: unknown): string | null => {
-  if (typeof value !== 'string') return null;
-  if (!value.startsWith('/') || value.startsWith('//')) return null;
-  return value;
+  if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) return value;
+  return null;
 };
 
-export function SignIn() {
+export function WebSignIn() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { status, user, refresh } = useSession();
+  const [, setFormError] = useState<string | null>(null);
+  const { status, user } = useSession();
+  const { form, formError, googleBusy, startGoogle, submit } = useShellSignIn();
 
   const requestedPortal = searchParams.get('portal')?.toLowerCase();
-  const shellDefaultPortal = isDesktop ? 'admin' : 'client';
-  const [selectedPortal, setSelectedPortal] = useState<'admin' | 'client'>(shellDefaultPortal);
+  const [selectedPortal, setSelectedPortal] = useState<'admin' | 'client'>('client');
   const activePortal =
-    requestedPortal === 'admin' || requestedPortal === 'client'
-      ? requestedPortal
-      : selectedPortal;
+    requestedPortal === 'admin' || requestedPortal === 'client' ? requestedPortal : selectedPortal;
 
   const switchPortal = (portal: 'admin' | 'client'): void => {
     setSelectedPortal(portal);
@@ -48,108 +41,18 @@ export function SignIn() {
 
   usePageTitle(activePortal === 'admin' ? 'Staff & Admin Sign In' : 'Client Portal Sign In');
 
-  const [formError, setFormError] = useState<string | null>(null);
-  const [googleBusy, setGoogleBusy] = useState(false);
-
-  const urlError = searchParams.get('error');
-  const urlErrorMessage =
-    urlError === 'state_mismatch'
-      ? 'Google sign-in session expired or was blocked by browser shields. Please try again or sign in with your email and password below.'
-      : urlError
-        ? `Authentication notice: ${urlError}. Please sign in with your email and password below.`
-        : null;
-  const displayError = formError ?? urlErrorMessage;
-
-  // Desktop boot-restore (spec §5.3): pre-fill the remembered account
-  // from the keychain-backed hint; web shells always start empty.
-  const rememberedEmail = isDesktop ? readSignInHint() : null;
-
-  const form = useForm<SignInValues>({
-    resolver: zodResolver(signInSchema),
-    defaultValues: { email: rememberedEmail ?? '', password: '', rememberMe: true },
-  });
-
   if (status === 'authenticated' && user !== null) {
-    if (isWeb && !webStaffAccess() && (user.role === 'admin' || user.role === 'staff')) {
+    if (user.role === 'admin' || user.role === 'staff') {
       return <Navigate to="/desktop-required" replace />;
-    }
-    if (isDesktop && user.role === 'client') {
-      return <Navigate to="/web-portal-required" replace />;
     }
     const intended = safeRedirect((location.state as { from?: unknown } | null)?.from);
     return <Navigate to={intended ?? homePathFor(user.role)} replace />;
   }
   if (status === 'unverified') return <Navigate to="/verify-email" replace />;
 
-  const submit = form.handleSubmit(async (values) => {
-    setFormError(null);
-    try {
-      await signInWithEmail(values);
-      await refresh();
-      const intended = safeRedirect((location.state as { from?: unknown } | null)?.from);
-      void navigate(intended ?? '/', { replace: true });
-    } catch (error) {
-      setFormError(normaliseError(error).message);
-    }
-  });
-
   const google = (): void => {
-    setFormError(null);
-    if (isDesktop || activePortal !== 'client') return;
-
-    // Web shell (client portal only): standard better-auth
-    // redirect flow in this browser.
-    setGoogleBusy(true);
-    void signInWithGoogle('/portal')
-      .catch((error: unknown) => {
-        setFormError(normaliseError(error).message);
-      })
-      .finally(() => {
-        setGoogleBusy(false);
-      });
+    if (activePortal === 'client') startGoogle();
   };
-
-  const adminOnlySwitcher = (
-    <div className="mb-5 grid grid-cols-1 gap-1.5 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1">
-      <button
-        type="button"
-        id="portal-tab-admin"
-        onClick={() => switchPortal('admin')}
-        className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
-          activePortal === 'admin'
-            ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
-            : 'text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)]'
-        }`}
-      >
-        <ShieldCheck
-          size={15}
-          className={`shrink-0 ${activePortal === 'admin' ? 'text-[var(--fd-accent)]' : ''}`}
-        />
-        <span className="truncate">Staff & Admin</span>
-      </button>
-    </div>
-  );
-
-  const clientOnlySwitcher = (
-    <div className="mb-5 grid grid-cols-1 gap-1.5 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1">
-      <button
-        type="button"
-        id="portal-tab-client"
-        onClick={() => switchPortal('client')}
-        className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-2xs font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-xs ${
-          activePortal === 'client'
-            ? 'bg-[var(--fd-surface-1)] text-[var(--fd-text-primary)] shadow-sm ring-1 ring-[var(--fd-border)]'
-            : 'text-[var(--fd-text-secondary)] hover:text-[var(--fd-text-primary)]'
-        }`}
-      >
-        <Building2
-          size={15}
-          className={`shrink-0 ${activePortal === 'client' ? 'text-[var(--fd-accent)]' : ''}`}
-        />
-        <span className="truncate">Client Portal</span>
-      </button>
-    </div>
-  );
 
   const dualSwitcher = (
     <div className="mb-5 grid grid-cols-2 gap-1.5 rounded-lg border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-1">
@@ -188,11 +91,7 @@ export function SignIn() {
     </div>
   );
 
-  const portalSwitcher = isDesktop
-    ? adminOnlySwitcher
-    : webStaffAccess()
-      ? dualSwitcher
-      : clientOnlySwitcher;
+  const portalSwitcher = dualSwitcher;
 
   const portalBadge =
     activePortal === 'admin' ? (
@@ -224,7 +123,8 @@ export function SignIn() {
   const adminFooter = (
     <div className="space-y-2 text-xs text-[var(--fd-text-secondary)]">
       <p className="text-2xs text-[var(--fd-text-tertiary)]">
-        Internal access is restricted to authorized practice personnel. Sign in with your practice credentials.
+        Internal access is restricted to authorized practice personnel. Sign in with your practice
+        credentials.
       </p>
     </div>
   );
@@ -263,7 +163,7 @@ export function SignIn() {
         className="space-y-4"
         noValidate
       >
-        {displayError === null ? null : <InlineError message={displayError} />}
+        {formError === null ? null : <InlineError message={formError} />}
 
         <FormField label={emailLabel} required error={form.formState.errors.email?.message}>
           {({ inputId, describedBy, invalid }) => (
@@ -284,7 +184,7 @@ export function SignIn() {
             <Input
               id={inputId}
               type="password"
-              placeholder="••••••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               autoComplete="current-password"
               invalid={invalid}
               aria-describedby={describedBy}
@@ -325,7 +225,7 @@ export function SignIn() {
         </Button>
       </form>
 
-      {!isDesktop && activePortal === 'client' && (
+      {activePortal === 'client' && (
         <>
           <div className="my-4 flex items-center gap-3">
             <span className="h-px flex-1 bg-[var(--fd-border-subtle)]" aria-hidden="true" />

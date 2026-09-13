@@ -63,6 +63,9 @@ jobs:
           if [ ! -d "dist-website/assets" ] || [ -z "$(ls -A dist-website/assets)" ]; then
             echo "::error::website build generated no assets"; exit 1
           fi
+      - name: desktop release metadata check
+        if: matrix.shell == 'desktop'
+        run: node scripts/check-desktop-release.mjs
       - name: bundle isolation check (desktop)
         if: matrix.shell == 'desktop'
         run: |
@@ -102,7 +105,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         shell: pwsh
         run: |
-          $env:VITE_API_BASE_URL = '${{ vars.DESKTOP_API_BASE_URL || 'https://api.jvaccounting.in/api/v1' }}'
+          $env:VITE_API_BASE_URL = '${{ vars.DESKTOP_API_BASE_URL || 'https://jvaccounting.in/api/v1' }}'
           $env:VITE_APP_NAME = 'FirmDesk'
           $env:VITE_APP_SHELL = 'desktop'
           npm run build:desktop
@@ -125,7 +128,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VITE_API_BASE_URL: ${{ vars.DESKTOP_API_BASE_URL || 'https://api.jvaccounting.in/api/v1' }}
+          VITE_API_BASE_URL: ${{ vars.DESKTOP_API_BASE_URL || 'https://jvaccounting.in/api/v1' }}
           VITE_APP_NAME: FirmDesk
           VITE_APP_SHELL: desktop
           # Updater signing keys live in GitHub encrypted secrets; the

@@ -1,12 +1,14 @@
-import { lazy } from 'react';
+﻿import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { RoleGate } from '@/app/RoleGate';
 import { ProtectedRoute } from '@/app/ProtectedRoute';
-import { AuthLayout } from '@/layouts/AuthLayout';
-import { StaffLayout } from '@/layouts/StaffLayout';
+import { DesktopAuthLayout } from '@/desktop/auth/DesktopAuthLayout';
+import { DesktopStaffLayout } from '@/desktop/layouts/DesktopStaffLayout';
 
-const SignIn = lazy(async () => ({ default: (await import('@/shared/auth/SignIn')).SignIn }));
+const DesktopSignIn = lazy(async () => ({
+  default: (await import('@/desktop/auth/DesktopSignIn')).DesktopSignIn,
+}));
 const ForgotPassword = lazy(async () => ({
   default: (await import('@/shared/auth/ForgotPassword')).ForgotPassword,
 }));
@@ -132,7 +134,9 @@ const RosterReport = lazy(async () => ({
 const NotificationsIndex = lazy(async () => ({
   default: (await import('@/desktop/notifications/NotificationsIndex')).NotificationsIndex,
 }));
-const Profile = lazy(async () => ({ default: (await import('@/desktop/profile/Profile')).Profile }));
+const Profile = lazy(async () => ({
+  default: (await import('@/desktop/profile/Profile')).Profile,
+}));
 
 const FirmSettings = lazy(async () => ({
   default: (await import('@/desktop/settings/FirmSettings')).FirmSettings,
@@ -165,9 +169,15 @@ const WorkstationsPage = lazy(async () => ({
 
 const staffSettings = (
   <>
-    <Route path="/settings/firm" element={<RoleGate roles={['admin']}>{<FirmSettings />}</RoleGate>} />
+    <Route
+      path="/settings/firm"
+      element={<RoleGate roles={['admin']}>{<FirmSettings />}</RoleGate>}
+    />
     <Route path="/settings/ai" element={<RoleGate roles={['admin']}>{<AiSettings />}</RoleGate>} />
-    <Route path="/settings/users" element={<RoleGate roles={['admin']}>{<UsersList />}</RoleGate>} />
+    <Route
+      path="/settings/users"
+      element={<RoleGate roles={['admin']}>{<UsersList />}</RoleGate>}
+    />
     <Route
       path="/settings/users/:userId"
       element={<RoleGate roles={['admin']}>{<UserDetail />}</RoleGate>}
@@ -205,8 +215,8 @@ const staffSettings = (
 export function DesktopRoutes() {
   return (
     <Routes>
-      <Route element={<AuthLayout />}>
-        <Route path="/sign-in" element={<SignIn />} />
+      <Route element={<DesktopAuthLayout />}>
+        <Route path="/sign-in" element={<DesktopSignIn />} />
         <Route path="/admin/sign-in" element={<Navigate to="/sign-in" replace />} />
         <Route path="/staff/sign-in" element={<Navigate to="/sign-in" replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -224,7 +234,7 @@ export function DesktopRoutes() {
         element={
           <ProtectedRoute>
             <RoleGate roles={['admin', 'staff']} fallback="home">
-              <StaffLayout />
+              <DesktopStaffLayout />
             </RoleGate>
           </ProtectedRoute>
         }

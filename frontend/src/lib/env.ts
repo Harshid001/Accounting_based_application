@@ -1,11 +1,10 @@
-export interface AppEnv {
+﻿export interface AppEnv {
   apiBaseUrl: string;
   authBaseUrl: string;
   appName: string;
   appShell: AppShell;
   desktopDownloadUrl: string;
   desktopUpdateUrl: string;
-  webStaffAccess: boolean;
 }
 
 export type AppShell = 'web' | 'desktop';
@@ -54,7 +53,6 @@ const readEnv = (): AppEnv => {
     appShell: appShell === 'desktop' ? 'desktop' : 'web',
     desktopDownloadUrl: import.meta.env.VITE_DESKTOP_DOWNLOAD_URL?.trim() || '/desktop-download',
     desktopUpdateUrl: import.meta.env.VITE_DESKTOP_UPDATE_URL?.trim() || '',
-    webStaffAccess: import.meta.env.VITE_WEB_STAFF_ACCESS?.trim().toLowerCase() === 'true',
   };
 };
 

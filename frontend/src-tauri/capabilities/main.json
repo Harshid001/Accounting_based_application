@@ -18,6 +18,9 @@
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:event:allow-emit",
-    "deep-link:default"
+    "deep-link:default",
+    "updater:default",
+    "process:allow-restart",
+    "process:allow-exit"
   ]
 }

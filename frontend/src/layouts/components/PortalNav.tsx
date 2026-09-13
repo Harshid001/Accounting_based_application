@@ -28,7 +28,7 @@ export const PORTAL_NAV: readonly PortalNavEntry[] = [
 
 export function PortalLinks({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <ul className="flex flex-col gap-1 md:flex-row md:items-center">
+    <ul className="flex flex-col gap-1 md:flex-row md:items-center md:gap-1 lg:gap-1.5">
       {PORTAL_NAV.map((entry) => (
         <li key={entry.to}>
           <NavLink
@@ -37,7 +37,7 @@ export function PortalLinks({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                'block rounded-md px-3 py-2 text-md transition-colors md:py-1.5 md:text-base',
+                'block rounded-md px-3 py-2 text-md transition-colors md:px-2.5 md:py-1 md:text-sm lg:px-3 lg:py-1.5',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fd-focus-ring)]',
                 isActive
                   ? 'bg-[var(--fd-accent-subtle-bg)] font-medium text-[var(--fd-accent)]'
@@ -60,18 +60,27 @@ export function PortalNav({ onOpenDrawer }: { onOpenDrawer: () => void }) {
       data-print="hide"
       className="border-b border-[var(--fd-border-subtle)] bg-[var(--fd-surface-1)]"
     >
-      <div className="mx-auto flex h-14 max-w-[1080px] items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <IconButton
-            label="Open navigation menu"
-            icon={<Menu size={18} aria-hidden="true" />}
-            onClick={onOpenDrawer}
-          />
-          <span className="flex items-center gap-2 shrink-0">
-            <JVLogo size="sm" />
-            <span className="hidden sm:block truncate text-sm font-semibold text-[var(--fd-text-primary)] tracking-tight">JV Tax Consultancy</span>
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-3 sm:px-4 lg:px-6">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <span className="md:hidden">
+            <IconButton
+              label="Open navigation menu"
+              icon={<Menu size={18} aria-hidden="true" />}
+              onClick={onOpenDrawer}
+            />
           </span>
-          <span className="hidden md:block">
+          <NavLink
+            to="/portal"
+            className="flex items-center gap-2.5 outline-none rounded-md transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--fd-focus-ring)]"
+            title="JV Tax Consultancy - Client Portal"
+          >
+            <JVLogo size="sm" />
+            <span className="font-semibold text-sm text-[var(--fd-text-primary)] tracking-tight whitespace-nowrap">
+              <span className="xl:hidden">JV Tax</span>
+              <span className="hidden xl:inline">JV Tax Consultancy</span>
+            </span>
+          </NavLink>
+          <span className="hidden lg:block">
             <EntitySwitcher />
           </span>
         </div>
@@ -80,7 +89,7 @@ export function PortalNav({ onOpenDrawer }: { onOpenDrawer: () => void }) {
           <PortalLinks />
         </nav>
 
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           <LanguageSwitcher compact />
           <ThemeToggle />
           <NotificationBell enabled to="/portal/messages" />
@@ -88,7 +97,7 @@ export function PortalNav({ onOpenDrawer }: { onOpenDrawer: () => void }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1080px] px-3 pb-2.5 sm:px-4 sm:pb-3 md:hidden">
+      <div className="mx-auto max-w-7xl px-3 pb-2.5 sm:px-4 sm:pb-3 lg:hidden">
         <EntitySwitcher className="w-full" selectClassName="flex-1 w-full" />
       </div>
     </header>

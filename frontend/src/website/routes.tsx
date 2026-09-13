@@ -1,12 +1,14 @@
-import { lazy } from 'react';
+﻿import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { ProtectedRoute } from '@/app/ProtectedRoute';
 import { RoleGate } from '@/app/RoleGate';
-import { AuthLayout } from '@/layouts/AuthLayout';
+import { WebAuthLayout } from '@/website/auth/WebAuthLayout';
 import { PortalLayout } from '@/layouts/PortalLayout';
 
-const SignIn = lazy(async () => ({ default: (await import('@/shared/auth/SignIn')).SignIn }));
+const WebSignIn = lazy(async () => ({
+  default: (await import('@/website/auth/WebSignIn')).WebSignIn,
+}));
 const SignUp = lazy(async () => ({ default: (await import('@/shared/auth/SignUp')).SignUp }));
 const ForgotPassword = lazy(async () => ({
   default: (await import('@/shared/auth/ForgotPassword')).ForgotPassword,
@@ -24,7 +26,9 @@ const Forbidden = lazy(async () => ({
 const NotFound = lazy(async () => ({
   default: (await import('@/shared/errors/NotFound')).NotFound,
 }));
-const Landing = lazy(async () => ({ default: (await import('@/website/landing/Landing')).Landing }));
+const Landing = lazy(async () => ({
+  default: (await import('@/website/landing/Landing')).Landing,
+}));
 const TeamPage = lazy(async () => ({
   default: (await import('@/website/landing/TeamPage')).TeamPage,
 }));
@@ -60,8 +64,8 @@ const PortalProfile = lazy(async () => ({
 export function WebRoutes() {
   return (
     <Routes>
-      <Route element={<AuthLayout />}>
-        <Route path="/sign-in" element={<SignIn />} />
+      <Route element={<WebAuthLayout />}>
+        <Route path="/sign-in" element={<WebSignIn />} />
         <Route path="/portal/sign-in" element={<Navigate to="/sign-in?portal=client" replace />} />
         <Route path="/client/sign-in" element={<Navigate to="/sign-in?portal=client" replace />} />
         <Route path="/admin/sign-in" element={<Navigate to="/desktop-required" replace />} />

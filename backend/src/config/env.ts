@@ -26,6 +26,8 @@ const originList = z
     'each origin must be a bare scheme + host, with no trailing path',
   );
 
+const DESKTOP_VERSION = '0.1.1';
+
 const base64Key = (bytes: number) =>
   z
     .string()
@@ -74,8 +76,8 @@ const schema = z.object({
   COMPLIANCE_HORIZON_DAYS: z.coerce.number().int().min(1).max(1095).default(120),
   AUTOMATION_HEADLESS: booleanish.default(true),
 
-  DESKTOP_MIN_SHELL_VERSION: z.string().min(1).default('0.1.0'),
-  DESKTOP_LATEST_SHELL_VERSION: z.string().min(1).default('0.1.0'),
+  DESKTOP_MIN_SHELL_VERSION: z.string().min(1).default(DESKTOP_VERSION),
+  DESKTOP_LATEST_SHELL_VERSION: z.string().min(1).default(DESKTOP_VERSION),
   DESKTOP_UPDATE_URL: z.string().min(1).default('https://jvaccounting.in/desktop-download'),
 
   BOOTSTRAP_ADMIN_EMAIL: z.union([z.email(), z.literal('')]).optional(),

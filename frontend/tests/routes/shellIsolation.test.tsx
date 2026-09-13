@@ -1,4 +1,4 @@
-import { QueryClientProvider } from '@tanstack/react-query';
+﻿import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Suspense } from 'react';
 import { MemoryRouter } from 'react-router-dom';
@@ -24,11 +24,38 @@ import type { StubRoute } from '../helpers/server';
 const EMPTY_LIST: StubRoute[] = [
   {
     match: '/reports/dashboard',
-    data: { clientCount: 0, tasksByStatus: {}, dueIn7: 0, dueIn14: 0, dueIn30: 0, overdueFilings: 0, awaitingClient: 0, openRequests: 0, workload: [] },
+    data: {
+      clientCount: 0,
+      tasksByStatus: {},
+      dueIn7: 0,
+      dueIn14: 0,
+      dueIn30: 0,
+      overdueFilings: 0,
+      awaitingClient: 0,
+      openRequests: 0,
+      workload: [],
+    },
   },
   { match: '/portal/clients', data: [{ id: 'client-1', displayName: 'Anil Kumar' }] },
-  { match: '/portal/overview', data: { dueSoon: 0, overdue: 0, awaitingYou: 0, openRequests: 0, unreadMessages: 0, upcoming: [] } },
-  { match: '/desktop/manifest', data: { minShellVersion: '0.1.0', latestShellVersion: '0.1.0', updateUrl: 'https://example.test/download' } },
+  {
+    match: '/portal/overview',
+    data: {
+      dueSoon: 0,
+      overdue: 0,
+      awaitingYou: 0,
+      openRequests: 0,
+      unreadMessages: 0,
+      upcoming: [],
+    },
+  },
+  {
+    match: '/desktop/manifest',
+    data: {
+      minShellVersion: '0.1.0',
+      latestShellVersion: '0.1.0',
+      updateUrl: 'https://example.test/download',
+    },
+  },
   { match: '/me/sessions', data: [] },
   { match: '/messages/threads', data: [] },
   { match: '/notifications/unread-count', data: { notifications: 0, messages: 0 } },
@@ -100,20 +127,30 @@ describe(`shell isolation (${SHELL} build)`, () => {
 
     it('serves the client portal for client sessions', async () => {
       await renderAppAt('/portal', 'client');
-      expect((await screen.findAllByText(/hello|overview|compliance|documents/i)).length).toBeGreaterThan(0);
+      expect(
+        (await screen.findAllByText(/hello|overview|compliance|documents/i)).length,
+      ).toBeGreaterThan(0);
     });
 
     it('redirects an admin session to the desktop download screen on web', async () => {
       await renderAppAt('/dashboard', 'admin');
       expect(
-        await screen.findByRole('heading', { name: /staff access is desktop-only/i }, { timeout: 10000 }),
+        await screen.findByRole(
+          'heading',
+          { name: /staff access is desktop-only/i },
+          { timeout: 10000 },
+        ),
       ).toBeTruthy();
     });
 
     it('redirects a staff session to the desktop download screen on web', async () => {
       await renderAppAt('/clients', 'staff');
       expect(
-        await screen.findByRole('heading', { name: /staff access is desktop-only/i }, { timeout: 10000 }),
+        await screen.findByRole(
+          'heading',
+          { name: /staff access is desktop-only/i },
+          { timeout: 10000 },
+        ),
       ).toBeTruthy();
     });
 
@@ -133,7 +170,9 @@ describe(`shell isolation (${SHELL} build)`, () => {
 
     it('does not display Google sign-in button in web shell for staff & admin', async () => {
       await renderAppAt('/sign-in?portal=admin', null);
-      expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /continue with google/i }),
+      ).not.toBeInTheDocument();
     });
 
     it('keeps staff and admin workspace chunks out of the website route table', () => {
@@ -145,26 +184,48 @@ describe(`shell isolation (${SHELL} build)`, () => {
   if (SHELL === 'desktop') {
     it('redirects / to sign-in with only the staff & admin tab', async () => {
       await renderAppAt('/', null);
-      expect(await screen.findByRole('button', { name: /staff & admin/i }, { timeout: 10000 })).toBeTruthy();
+      expect(
+        await screen.findByRole('button', { name: /staff & admin/i }, { timeout: 10000 }),
+      ).toBeTruthy();
       expect(screen.queryByRole('button', { name: /client portal/i })).not.toBeInTheDocument();
     });
 
     it('does not display Google sign-in in desktop shell', async () => {
       await renderAppAt('/sign-in', null);
-      expect(await screen.findByRole('button', { name: /staff & admin/i }, { timeout: 10000 })).toBeTruthy();
+      expect(
+        await screen.findByRole('button', { name: /staff & admin/i }, { timeout: 10000 }),
+      ).toBeTruthy();
       expect(screen.queryByRole('button', { name: /google/i })).not.toBeInTheDocument();
     });
 
     it('shows the web-portal-required screen for a client session', async () => {
       await renderAppAt('/dashboard', 'client');
-      expect(await screen.findByText(/clients use the web portal/i, {}, { timeout: 10000 })).toBeTruthy();
+      expect(
+        await screen.findByText(/clients use the web portal/i, {}, { timeout: 10000 }),
+      ).toBeTruthy();
     });
 
     it('serves the staff dashboard for an admin session', async () => {
       await renderAppAt('/dashboard', 'admin');
-      await waitFor(() => {
-        expect((screen.queryAllByText(/dashboard|workload|filings|due/i)).length).toBeGreaterThan(0);
-      }, { timeout: 10000 });
+      await waitFor(
+        () => {
+          expect(screen.queryAllByText(/dashboard|workload|filings|due/i).length).toBeGreaterThan(
+            0,
+          );
+        },
+        { timeout: 10000 },
+      );
+    });
+
+    it('keeps persistent desktop navigation visible without a web drawer toggle', async () => {
+      await renderAppAt('/dashboard', 'admin');
+
+      const sidebar = await screen.findByRole('navigation', { name: 'Main' }, { timeout: 10000 });
+      expect(sidebar).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /collapse the sidebar/i })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /open navigation menu/i }),
+      ).not.toBeInTheDocument();
     });
   }
 });

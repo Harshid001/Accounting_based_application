@@ -312,7 +312,7 @@ export const ALLOWED_UPLOAD_TYPES: ReadonlyArray<{
   extensions: readonly string[];
   maxSizeBytes?: number; // overrides MAX_UPLOAD_BYTES when set
 }> = [
-  { mimeType: 'application/pdf', extensions: ['pdf'], maxSizeBytes: 5_242_880 }, // 5 MB
+  { mimeType: 'application/pdf', extensions: ['pdf'], maxSizeBytes: 3_145_728 }, // 3 MB
   { mimeType: 'image/jpeg', extensions: ['jpg', 'jpeg'] },
   { mimeType: 'image/png', extensions: ['png'] },
   {

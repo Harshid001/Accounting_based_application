@@ -1,4 +1,4 @@
-import { Camera, Menu, Search } from 'lucide-react';
+﻿import { Camera, Menu, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { AccountMenu } from '@/layouts/components/AccountMenu';
@@ -10,8 +10,18 @@ import { AiChatTrigger } from '@/components/domain/AiChatDropdown';
 import type { AttachedImageData } from '@/context/AiChatContext';
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -33,35 +43,38 @@ function DigitalClock() {
   const year = now.getFullYear();
 
   return (
-    <div className="hidden md:flex flex-col items-center select-none" aria-label="Current date and time">
+    <div
+      className="hidden flex-col items-center select-none md:flex"
+      aria-label="Current date and time"
+    >
       {/* Time row */}
       <div className="flex items-baseline gap-0.5 leading-none">
         <span
-          className="font-bold tabular-nums tracking-widest text-[var(--fd-text-primary)]"
+          className="font-bold tracking-widest text-[var(--fd-text-primary)] tabular-nums"
           style={{ fontSize: '18px', fontFamily: 'var(--font-sans)', letterSpacing: '0.12em' }}
         >
           {hh}
         </span>
         <span
-          className="font-bold text-[var(--fd-accent)] animate-pulse"
+          className="animate-pulse font-bold text-[var(--fd-accent)]"
           style={{ fontSize: '16px' }}
         >
           :
         </span>
         <span
-          className="font-bold tabular-nums tracking-widest text-[var(--fd-text-primary)]"
+          className="font-bold tracking-widest text-[var(--fd-text-primary)] tabular-nums"
           style={{ fontSize: '18px', fontFamily: 'var(--font-sans)', letterSpacing: '0.12em' }}
         >
           {mm}
         </span>
         <span
-          className="font-bold text-[var(--fd-accent)] animate-pulse"
+          className="animate-pulse font-bold text-[var(--fd-accent)]"
           style={{ fontSize: '16px' }}
         >
           :
         </span>
         <span
-          className="font-bold tabular-nums tracking-widest text-[var(--fd-text-secondary)]"
+          className="font-bold tracking-widest text-[var(--fd-text-secondary)] tabular-nums"
           style={{ fontSize: '14px', fontFamily: 'var(--font-sans)', letterSpacing: '0.1em' }}
         >
           {ss}
@@ -70,8 +83,13 @@ function DigitalClock() {
 
       {/* Date row */}
       <div
-        className="flex items-center gap-1 text-[var(--fd-text-tertiary)] font-bold tracking-wider"
-        style={{ fontSize: '10px', fontFamily: 'var(--font-sans)', letterSpacing: '0.08em', marginTop: '2px' }}
+        className="flex items-center gap-1 font-bold tracking-wider text-[var(--fd-text-tertiary)]"
+        style={{
+          fontSize: '10px',
+          fontFamily: 'var(--font-sans)',
+          letterSpacing: '0.08em',
+          marginTop: '2px',
+        }}
       >
         <span>{day.slice(0, 3).toUpperCase()}</span>
         <span className="text-[var(--fd-accent)]">·</span>
@@ -86,11 +104,12 @@ function DigitalClock() {
 }
 
 export interface TopbarProps {
-  onOpenDrawer: () => void;
+  onOpenDrawer?: () => void;
   onOpenPalette: (image?: AttachedImageData | null) => void;
+  showNavigationToggle?: boolean;
 }
 
-export function Topbar({ onOpenDrawer, onOpenPalette }: TopbarProps) {
+export function Topbar({ onOpenDrawer, onOpenPalette, showNavigationToggle = true }: TopbarProps) {
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -124,24 +143,30 @@ export function Topbar({ onOpenDrawer, onOpenPalette }: TopbarProps) {
     >
       {/* Left: Hamburger + Search */}
       <div className="flex items-center gap-2">
-        <IconButton
-          label="Open navigation menu"
-          onClick={onOpenDrawer}
-          icon={<Menu size={18} aria-hidden="true" />}
-        />
+        {showNavigationToggle && onOpenDrawer !== undefined ? (
+          <IconButton
+            label="Open navigation menu"
+            onClick={onOpenDrawer}
+            icon={<Menu size={18} aria-hidden="true" />}
+          />
+        ) : null}
         <button
           type="button"
           onClick={() => onOpenPalette()}
           onPaste={handlePaste}
           title="Search FirmDesk or paste image (Ctrl+V)"
-          className="group flex h-9 w-9 sm:w-72 min-w-0 items-center justify-center sm:justify-start gap-2 rounded-md border border-[var(--fd-border)] bg-[var(--fd-surface-2)] px-2 sm:px-3 text-left text-[var(--fd-text-tertiary)] transition-all duration-200 hover:border-[var(--fd-accent)]/50 hover:bg-[var(--fd-surface-3)] hover:shadow-xs active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fd-focus-ring)] cursor-pointer"
+          className="group flex h-9 w-9 min-w-0 cursor-pointer items-center justify-center gap-2 rounded-md border border-[var(--fd-border)] bg-[var(--fd-surface-2)] px-2 text-left text-[var(--fd-text-tertiary)] transition-all duration-200 hover:border-[var(--fd-accent)]/50 hover:bg-[var(--fd-surface-3)] hover:shadow-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fd-focus-ring)] active:scale-[0.99] sm:w-72 sm:justify-start sm:px-3"
         >
-          <Search size={14} aria-hidden="true" className="shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-[var(--fd-accent)]" />
+          <Search
+            size={14}
+            aria-hidden="true"
+            className="shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-[var(--fd-accent)]"
+          />
           <span className="hidden truncate text-base sm:block">Search FirmDesk</span>
           <span className="ml-auto hidden items-center gap-1.5 sm:flex">
             <span
               title="You can paste images (Ctrl+V) or screenshots directly into search"
-              className="inline-flex items-center text-[11px] text-[var(--fd-text-tertiary)] group-hover:text-[var(--fd-accent-hover)] transition-all group-hover:scale-110"
+              className="inline-flex items-center text-[11px] text-[var(--fd-text-tertiary)] transition-all group-hover:scale-110 group-hover:text-[var(--fd-accent-hover)]"
             >
               <Camera size={13} aria-hidden="true" />
             </span>

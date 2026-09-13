@@ -59,7 +59,7 @@ export interface UploadKind {
 }
 
 export const ALLOWED_UPLOADS: readonly UploadKind[] = [
-  { extension: 'pdf', mimeType: 'application/pdf', maxSizeBytes: 5_242_880 }, // 5 MB
+  { extension: 'pdf', mimeType: 'application/pdf', maxSizeBytes: 3_145_728 }, // 3 MB
   { extension: 'jpg', mimeType: 'image/jpeg' },
   { extension: 'jpeg', mimeType: 'image/jpeg' },
   { extension: 'png', mimeType: 'image/png' },

@@ -22,7 +22,13 @@
     "test:desktop": "cross-env VITE_APP_SHELL=desktop vitest run",
     "test:web": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run typecheck && npm run lint && npm run test:web && npm run test:desktop && npm run build:web && npm run build:desktop"
+    "verify": "npm run typecheck && npm run lint && npm run test:web && npm run test:desktop && npm run build:web && npm run build:desktop",
+    "preview:web": "vite preview --outDir dist-website --host 127.0.0.1 --port 4173 --strictPort",
+    "preview:desktop": "vite preview --outDir dist-desktop --host 127.0.0.1 --port 4174 --strictPort",
+    "e2e": "playwright test",
+    "e2e:web": "playwright test --project=web",
+    "e2e:desktop": "playwright test --project=desktop",
+    "verify:e2e": "npm run build:web && npm run build:desktop && npm run e2e"
   },
   "dependencies": {
     "@hookform/resolvers": "5.5.7",
@@ -45,6 +51,8 @@
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-deep-link": "^2.4.10",
     "@tauri-apps/plugin-opener": "^2.5.5",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.11.0",
     "better-auth": "1.6.25",
     "clsx": "2.1.1",
     "date-fns": "4.4.0",
@@ -64,6 +72,7 @@
     "@emnapi/core": "^1.11.3",
     "@emnapi/runtime": "^1.11.3",
     "@eslint/js": "10.0.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "4.3.3",
     "@tauri-apps/cli": "^2.11.4",
     "@testing-library/dom": "10.4.1",

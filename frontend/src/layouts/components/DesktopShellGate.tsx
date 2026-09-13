@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { check, type Update } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, CheckCircle2, Download, Sparkles, X } from 'lucide-react';
 
@@ -45,6 +47,42 @@ export function DesktopShellGate() {
   const [minVersion, setMinVersion] = useState<string>('0.1.0');
   const [updateUrl, setUpdateUrl] = useState<string>(DESKTOP_UPDATE_URL);
   const [dismissed, setDismissed] = useState<boolean>(false);
+  const [update, setUpdate] = useState<Update | null>(null);
+  const [updating, setUpdating] = useState<boolean>(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
+  const installUpdate = async (): Promise<void> => {
+    if (update === null) return;
+    setUpdating(true);
+    setUpdateError(null);
+    try {
+      await update.downloadAndInstall();
+      await relaunch();
+    } catch (error) {
+      setUpdateError(
+        error instanceof Error
+          ? error.message
+          : 'Update failed. Please download the installer manually.',
+      );
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isDesktop) return;
+    let cancelled = false;
+    void check()
+      .then((available) => {
+        if (!cancelled) setUpdate(available);
+      })
+      .catch(() => {
+        if (!cancelled) setUpdate(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // The workstation agent loop: no-op outside the desktop shell.
   useWorkstationAgent(user);
@@ -106,9 +144,9 @@ export function DesktopShellGate() {
     return (
       <div
         role="alert"
-        className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
+        className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 px-4 backdrop-blur-md"
       >
-        <div className="w-full max-w-lg rounded-2xl border border-[var(--fd-status-danger)]/50 bg-[var(--fd-surface-1)] p-7 text-left shadow-2xl space-y-5">
+        <div className="w-full max-w-lg space-y-5 rounded-2xl border border-[var(--fd-status-danger)]/50 bg-[var(--fd-surface-1)] p-7 text-left shadow-2xl">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--fd-status-danger)]/10 text-[var(--fd-status-danger)] ring-1 ring-[var(--fd-status-danger)]/20">
               <Download size={22} />
@@ -123,9 +161,9 @@ export function DesktopShellGate() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-3.5 flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-3.5 text-xs">
             <div className="space-y-0.5">
-              <span className="text-2xs uppercase tracking-wider text-[var(--fd-text-tertiary)] font-semibold">
+              <span className="text-2xs font-semibold tracking-wider text-[var(--fd-text-tertiary)] uppercase">
                 Installed
               </span>
               <div className="font-mono font-medium text-[var(--fd-text-primary)]">
@@ -134,7 +172,7 @@ export function DesktopShellGate() {
             </div>
             <ArrowRight size={16} className="text-[var(--fd-text-tertiary)]" />
             <div className="space-y-0.5 text-right">
-              <span className="text-2xs uppercase tracking-wider text-[var(--fd-accent)] font-semibold">
+              <span className="text-2xs font-semibold tracking-wider text-[var(--fd-accent)] uppercase">
                 Required Minimum
               </span>
               <div className="font-mono font-bold text-[var(--fd-accent)]">v{minVersion}</div>
@@ -142,9 +180,9 @@ export function DesktopShellGate() {
           </div>
 
           <p className="text-xs leading-relaxed text-[var(--fd-text-secondary)]">
-            To ensure the security of your practice books, client tax filings, and GST returns,
-            this older version cannot communicate with the server. Please install the update to
-            regain access.
+            To ensure the security of your practice books, client tax filings, and GST returns, this
+            older version cannot communicate with the server. Please install the update to regain
+            access.
           </p>
 
           <Button
@@ -171,9 +209,9 @@ export function DesktopShellGate() {
         <button
           type="button"
           onClick={() => setDismissed(false)}
-          className="fixed bottom-5 right-5 z-[65] flex items-center gap-2 rounded-full border border-[var(--fd-accent)]/40 bg-[var(--fd-surface-1)]/95 px-3.5 py-2 text-xs font-semibold text-[var(--fd-text-primary)] shadow-lg backdrop-blur-md transition-all hover:scale-105 hover:border-[var(--fd-accent)] hover:shadow-[0_0_20px_rgba(255,106,0,0.3)] cursor-pointer"
+          className="fixed right-5 bottom-5 z-[65] flex cursor-pointer items-center gap-2 rounded-full border border-[var(--fd-accent)]/40 bg-[var(--fd-surface-1)]/95 px-3.5 py-2 text-xs font-semibold text-[var(--fd-text-primary)] shadow-lg backdrop-blur-md transition-all hover:scale-105 hover:border-[var(--fd-accent)] hover:shadow-[0_0_20px_rgba(255,106,0,0.3)]"
         >
-          <Sparkles size={14} className="text-[var(--fd-accent)] animate-pulse" />
+          <Sparkles size={14} className="animate-pulse text-[var(--fd-accent)]" />
           <span>Update v{latestVersion} Available</span>
         </button>
       );
@@ -184,14 +222,14 @@ export function DesktopShellGate() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="update-modal-title"
-        className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+        className="animate-in fade-in fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs duration-200"
       >
-        <div className="relative w-full max-w-md rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] p-6 shadow-2xl space-y-5 text-left">
+        <div className="relative w-full max-w-md space-y-5 rounded-2xl border border-[var(--fd-border)] bg-[var(--fd-surface-1)] p-6 text-left shadow-2xl">
           {/* Close button */}
           <button
             type="button"
             onClick={() => setDismissed(true)}
-            className="absolute top-4 right-4 rounded-lg p-1.5 text-[var(--fd-text-tertiary)] hover:bg-[var(--fd-surface-2)] hover:text-[var(--fd-text-primary)] transition-colors cursor-pointer"
+            className="absolute top-4 right-4 cursor-pointer rounded-lg p-1.5 text-[var(--fd-text-tertiary)] transition-colors hover:bg-[var(--fd-surface-2)] hover:text-[var(--fd-text-primary)]"
             aria-label="Dismiss update"
           >
             <X size={18} />
@@ -209,52 +247,61 @@ export function DesktopShellGate() {
               >
                 FirmDesk Update Available
               </h2>
-              <p className="text-xs text-[var(--fd-text-secondary)] mt-0.5">
+              <p className="mt-0.5 text-xs text-[var(--fd-text-secondary)]">
                 A new version is ready with practice updates and fixes.
               </p>
             </div>
           </div>
 
           {/* Version comparison row */}
-          <div className="rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-3 flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between rounded-xl border border-[var(--fd-border)] bg-[var(--fd-surface-2)] p-3 text-xs">
             <div className="space-y-0.5">
-              <span className="text-2xs uppercase tracking-wider text-[var(--fd-text-tertiary)] font-medium">
+              <span className="text-2xs font-medium tracking-wider text-[var(--fd-text-tertiary)] uppercase">
                 Your Version
               </span>
               <div className="font-mono text-[var(--fd-text-secondary)]">v{currentVersion}</div>
             </div>
             <ArrowRight size={14} className="text-[var(--fd-text-tertiary)]" />
             <div className="space-y-0.5">
-              <span className="text-2xs uppercase tracking-wider text-[var(--fd-accent)] font-semibold">
+              <span className="text-2xs font-semibold tracking-wider text-[var(--fd-accent)] uppercase">
                 New Version
               </span>
               <div className="font-mono font-bold text-[var(--fd-accent)]">v{latestVersion}</div>
             </div>
-            <span className="text-2xs font-bold uppercase tracking-wider text-[var(--fd-accent)] bg-[var(--fd-accent)]/10 border border-[var(--fd-accent)]/20 px-2 py-0.5 rounded-full">
+            <span className="rounded-full border border-[var(--fd-accent)]/20 bg-[var(--fd-accent)]/10 px-2 py-0.5 text-2xs font-bold tracking-wider text-[var(--fd-accent)] uppercase">
               Recommended
             </span>
           </div>
 
           {/* Highlights */}
-          <div className="space-y-2 rounded-xl bg-[var(--fd-surface-2)]/60 border border-[var(--fd-border-subtle)] p-3 text-xs text-[var(--fd-text-secondary)]">
-            <div className="font-semibold text-[var(--fd-text-primary)] text-2xs uppercase tracking-wider">
+          <div className="space-y-2 rounded-xl border border-[var(--fd-border-subtle)] bg-[var(--fd-surface-2)]/60 p-3 text-xs text-[var(--fd-text-secondary)]">
+            <div className="text-2xs font-semibold tracking-wider text-[var(--fd-text-primary)] uppercase">
               What&apos;s New in this Release:
             </div>
             <ul className="space-y-1.5 text-2xs text-[var(--fd-text-secondary)]">
               <li className="flex items-center gap-2">
-                <CheckCircle2 size={13} className="text-[var(--fd-accent)] shrink-0" />
+                <CheckCircle2 size={13} className="shrink-0 text-[var(--fd-accent)]" />
                 <span>Secure Google sign-in handoff for FirmDesk desktop</span>
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 size={13} className="text-[var(--fd-accent)] shrink-0" />
+                <CheckCircle2 size={13} className="shrink-0 text-[var(--fd-accent)]" />
                 <span>Enhanced GST, TDS, and ITR compliance calendar accuracy</span>
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 size={13} className="text-[var(--fd-accent)] shrink-0" />
+                <CheckCircle2 size={13} className="shrink-0 text-[var(--fd-accent)]" />
                 <span>Performance optimizations and workstation bridge stability</span>
               </li>
             </ul>
           </div>
+
+          {updateError === null ? null : (
+            <p
+              role="alert"
+              className="rounded-lg border border-[var(--fd-status-blocking)]/40 bg-[var(--fd-status-blocking-bg)] px-3 py-2 text-2xs text-[var(--fd-status-blocking)]"
+            >
+              {updateError}
+            </p>
+          )}
 
           {/* Actions */}
           <div className="flex items-center gap-2.5 pt-1">
@@ -266,17 +313,28 @@ export function DesktopShellGate() {
             >
               Remind Me Later
             </Button>
-            <Button
-              variant="primary"
-              size="md"
-              className="flex-1 gap-1.5 text-xs font-semibold"
-              asChild
-            >
-              <a href={downloadTarget} target="_blank" rel="noreferrer">
+            {update === null ? (
+              <Button variant="primary" size="md" className="flex-1 text-xs font-semibold" asChild>
+                <a href={downloadTarget} target="_blank" rel="noreferrer">
+                  <Download size={14} />
+                  Update Now
+                </a>
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1 gap-1.5 text-xs font-semibold"
+                loading={updating}
+                loadingLabel="Installing update..."
+                onClick={() => {
+                  void installUpdate();
+                }}
+              >
                 <Download size={14} />
                 Update Now
-              </a>
-            </Button>
+              </Button>
+            )}
           </div>
         </div>
       </div>

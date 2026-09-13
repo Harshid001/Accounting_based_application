@@ -5,3 +5,5 @@ coverage/
 .DS_Store
 .vitest-mongodb/
 .env
+.env.*
+!.env.example
