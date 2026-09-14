@@ -19,12 +19,23 @@ import { createAuthClient } from 'better-auth/react';
 import { env } from '@/lib/env';
 import { ApiError, networkError } from '@/lib/errors';
 import type { NormalisedError } from '@/lib/errors';
-import { setStoredSessionToken } from '@/api/client';
+import { getStoredSessionToken, setStoredSessionToken } from '@/api/client';
 
 export const authClient = createAuthClient({
   baseURL: env.authBaseUrl,
   basePath: '/api/auth',
-  fetchOptions: { credentials: 'include' },
+  fetchOptions: {
+    credentials: 'include',
+    onRequest(ctx) {
+      const token = getStoredSessionToken();
+      if (token && ctx.headers instanceof Headers) {
+        ctx.headers.set('Authorization', `Bearer ${token}`);
+      }
+      if (ctx.headers instanceof Headers) {
+        ctx.headers.set('X-FirmDesk-Shell', env.appShell);
+      }
+    },
+  },
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -111,6 +122,13 @@ const readSessionUser = (result: unknown): SessionUser | null => {
 
 const readSignInToken = (result: unknown): string | null => {
   if (!isRecord(result)) return null;
+  const directTokenAtRoot = readString(result, 'token');
+  if (directTokenAtRoot !== null) return directTokenAtRoot;
+  const rootSession = result.session;
+  if (isRecord(rootSession)) {
+    const sessionToken = readString(rootSession, 'token');
+    if (sessionToken !== null) return sessionToken;
+  }
   const data: unknown = result.data;
   if (!isRecord(data)) return null;
   const directToken = readString(data, 'token');

@@ -1,4 +1,4 @@
-﻿import { Controller } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 
@@ -21,9 +21,12 @@ const safeRedirect = (value: unknown): string | null => {
 export function DesktopSignIn() {
   const location = useLocation();
   const { status, user } = useSession();
-  const { form, formError, submit } = useShellSignIn({ restoreDesktopEmail: true });
-
   const intendedPath = safeRedirect((location.state as { from?: unknown } | null)?.from);
+  const { form, formError, submit } = useShellSignIn({
+    restoreDesktopEmail: true,
+    defaultRedirect: intendedPath ?? '/dashboard',
+  });
+
   if (status === 'authenticated' && user !== null) {
     if (user.role === 'client') return <Navigate to="/web-portal-required" replace />;
     return <Navigate to={intendedPath ?? homePathFor(user.role)} replace />;

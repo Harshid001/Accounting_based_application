@@ -1,4 +1,4 @@
-﻿import { lazy } from 'react';
+import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { RoleGate } from '@/app/RoleGate';
@@ -239,6 +239,7 @@ export function DesktopRoutes() {
           </ProtectedRoute>
         }
       >
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/my-work" element={<MyWork />} />
         <Route path="/clients" element={<ClientList />} />
@@ -284,7 +285,6 @@ export function DesktopRoutes() {
         {staffSettings}
       </Route>
 
-      <Route path="/" element={<Navigate to="/sign-in" replace />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );

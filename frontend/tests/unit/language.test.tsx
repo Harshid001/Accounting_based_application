@@ -37,7 +37,7 @@ function renderPanel() {
       value={{
         status: 'authenticated',
         user: mockUser,
-        refresh: () => Promise.resolve(undefined),
+        refresh: () => Promise.resolve({ kind: 'authenticated', user: mockUser }),
         clear: () => undefined,
         pendingVerification: null,
         error: null,

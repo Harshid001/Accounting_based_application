@@ -6,6 +6,7 @@ import { useForm, type UseFormReturn } from 'react-hook-form';
 import { signInWithEmail, signInWithGoogle } from '@/api/authClient';
 import { useSession } from '@/context/SessionContext';
 import { normaliseError } from '@/lib/errors';
+import { homePathFor } from '@/lib/permissions';
 import { clearSignInHint, readSignInHint, writeSignInHint } from '@/lib/signInHint';
 import { isDesktop } from '@/lib/shell';
 import { signInSchema } from '@/schemas/auth.schema';
@@ -27,7 +28,9 @@ export interface ShellSignIn {
   submit: (event?: React.BaseSyntheticEvent) => Promise<void>;
 }
 
-export function useShellSignIn(options: { restoreDesktopEmail?: boolean } = {}): ShellSignIn {
+export function useShellSignIn(
+  options: { restoreDesktopEmail?: boolean; defaultRedirect?: string } = {},
+): ShellSignIn {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { refresh } = useSession();
@@ -50,8 +53,15 @@ export function useShellSignIn(options: { restoreDesktopEmail?: boolean } = {}):
       } else {
         clearSignInHint();
       }
-      await refresh();
-      void navigate(isDesktop ? '/dashboard' : '/', { replace: true });
+      const sessionResult = await refresh();
+      if (sessionResult.kind === 'authenticated') {
+        const destination = options.defaultRedirect ?? homePathFor(sessionResult.user.role);
+        void navigate(destination, { replace: true });
+      } else if (sessionResult.kind === 'unverified') {
+        void navigate('/verify-email', { replace: true });
+      } else {
+        void navigate(options.defaultRedirect ?? (isDesktop ? '/dashboard' : '/'), { replace: true });
+      }
     } catch (error) {
       setFormError(normaliseError(error).message);
     }

@@ -17,7 +17,7 @@ interface SessionContextValue {
   user: Me | null;
   pendingVerification: { email: string; name: string } | null;
   error: unknown;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<SessionResult>;
   clear: () => void;
   allows: (capability: Capability) => boolean;
 }
@@ -35,8 +35,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
   });
 
-  const refresh = useCallback(async () => {
-    await queryClient.refetchQueries({ queryKey: queryKeys.me });
+  const refresh = useCallback(async (): Promise<SessionResult> => {
+    return await queryClient.fetchQuery({
+      queryKey: queryKeys.me,
+      queryFn: fetchSession,
+      staleTime: 0,
+    });
   }, [queryClient]);
 
   const clear = useCallback(() => {
