@@ -125,6 +125,31 @@ export const setTrayStatus = (
   company: string,
 ): Promise<void> => call<void>('set_tray_status', { online, tally, company });
 
+export interface ShellCommandResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+}
+export interface ProcessInfo {
+  pid: number;
+  name: string;
+  memoryBytes: number | null;
+}
+export interface LocalFileResult {
+  content: string;
+  bytes: number;
+}
+
+export const runShellCommand = (input: { command: string; arguments?: string[]; timeoutMs?: number }): Promise<ShellCommandResult> =>
+  call<ShellCommandResult>('run_shell_command', input);
+export const launchInteractiveApp = (input: { application: string; url?: string }): Promise<void> =>
+  call<void>('launch_interactive_app', input);
+export const listProcesses = (): Promise<ProcessInfo[]> => call<ProcessInfo[]>('list_processes');
+export const readLocalFile = (path: string): Promise<LocalFileResult> =>
+  call<LocalFileResult>('read_local_file', { path });
+export const writeLocalFile = (path: string, content: string): Promise<void> =>
+  call<void>('write_local_file', { path, content, createOnly: true });
+
 /** Subscribe to OS-level lock/unlock events (auto-logout on OS lock). */
 export const onOsLock = (handler: (locked: boolean) => void): (() => void) => {
   if (!isDesktop || !isTauri()) return () => undefined;

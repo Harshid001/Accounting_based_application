@@ -14,6 +14,10 @@ import { apiList, apiPost } from '@/api/client';
 import {
   appInfo,
   isDesktopBridgeAvailable,
+  launchInteractiveApp,
+  listProcesses,
+  readLocalFile,
+  runShellCommand,
   keychainGet,
   keychainSet,
   setTrayStatus,
@@ -35,14 +39,31 @@ export interface WorkstationAgentState {
   tally: { reachable: boolean; companyName: string | null; educationMode: boolean };
 }
 
-type CommandType = 'tally_post' | 'tally_import' | 'tally_health';
+type CommandType =
+  | 'tally_post'
+  | 'tally_import'
+  | 'tally_health'
+  | 'shell_command'
+  | 'launch_app'
+  | 'process_action'
+  | 'fs_operation';
 
 interface QueuedCommand {
   id: string;
   type: CommandType;
   client: string | null;
   voucherIds: string[];
-  payload: { requestXml: string };
+  payload: {
+    requestXml?: string;
+    operation?: string;
+    command?: string;
+    arguments?: string[];
+    timeoutMs?: number;
+    application?: string;
+    url?: string;
+    action?: string;
+    path?: string;
+  };
 }
 
 /** Front-end mirror of the Tally reply interpretation (backend lib/tally.ts).
@@ -141,7 +162,7 @@ export function useWorkstationAgent(user: Me | null): void {
       let deviceId = '';
       let deviceName = 'FirmDesk Workstation';
       let platform = 'windows';
-      let appVersion = '0.1.4';
+      let appVersion = '0.1.5';
 
       try {
         const info = await appInfo();
@@ -222,14 +243,28 @@ export function useWorkstationAgent(user: Me | null): void {
         for (const command of commands) {
           let outcome: { ok: boolean; detail: Record<string, unknown>; error?: string };
           try {
-            const result = await tallyPost(command.payload.requestXml);
-            outcome = result.ok
-              ? interpretReply(command.type, result.reply)
-              : {
-                  ok: false,
-                  error: result.lineError ?? 'Tally rejected the import.',
-                  detail: {},
-                };
+            if (command.type === 'shell_command') {
+              const result = await runShellCommand({
+                command: command.payload.command ?? '',
+                arguments: command.payload.arguments,
+                timeoutMs: command.payload.timeoutMs,
+              });
+              outcome = { ok: result.exitCode === 0, detail: { ...result } };
+            } else if (command.type === 'launch_app') {
+              await launchInteractiveApp({ application: command.payload.application ?? '', url: command.payload.url });
+              outcome = { ok: true, detail: {} };
+            } else if (command.type === 'process_action') {
+              const processes = await listProcesses();
+              outcome = { ok: true, detail: { processes } };
+            } else if (command.type === 'fs_operation' && command.payload.operation === 'read') {
+              const file = await readLocalFile(command.payload.path ?? '');
+              outcome = { ok: true, detail: { ...file } };
+            } else {
+              const result = await tallyPost(command.payload.requestXml ?? '');
+              outcome = result.ok
+                ? interpretReply(command.type, result.reply)
+                : { ok: false, error: result.lineError ?? 'Tally rejected the import.', detail: {} };
+            }
           } catch (error) {
             outcome = {
               ok: false,

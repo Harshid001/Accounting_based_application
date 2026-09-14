@@ -236,7 +236,15 @@ export type TallySyncStatus = (typeof TALLY_SYNC_STATUSES)[number];
 // Desktop coordination (workstation registry + command queue)
 // ---------------------------------------------------------------------------
 
-export const DESKTOP_COMMAND_TYPES = ['tally_post', 'tally_import', 'tally_health'] as const;
+export const DESKTOP_COMMAND_TYPES = [
+  'tally_post',
+  'tally_import',
+  'tally_health',
+  'shell_command',
+  'launch_app',
+  'process_action',
+  'fs_operation',
+] as const;
 export type DesktopCommandType = (typeof DESKTOP_COMMAND_TYPES)[number];
 
 export const DESKTOP_COMMAND_STATUSES = [

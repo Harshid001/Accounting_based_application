@@ -15,6 +15,7 @@
 use keyring::Entry;
 use serde::Serialize;
 use std::sync::Mutex;
+mod workstation_controls;
 use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager,
@@ -423,7 +424,12 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
-            tally_post,
+           tally_post,
+           workstation_controls::run_shell_command,
+           workstation_controls::launch_interactive_app,
+            workstation_controls::list_processes,
+            workstation_controls::read_local_file,
+            workstation_controls::write_local_file,
             tally_probe,
             keychain_set,
             keychain_get,

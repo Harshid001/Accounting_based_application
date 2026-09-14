@@ -35,7 +35,7 @@ export function DesktopDownload() {
     retry: 1,
   });
 
-  const version = manifest?.latestShellVersion || '0.1.4';
+  const version = manifest?.latestShellVersion || '0.1.5';
 
   // Direct download hosted on this website (no external redirect to GitHub):
   const installerUrl = '/downloads/FirmDesk-Setup.exe';

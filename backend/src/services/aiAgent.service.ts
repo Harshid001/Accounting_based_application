@@ -95,6 +95,7 @@ import { listDocuments } from './document.service.js';
 import { postMessage, listMessages } from './message.service.js';
 import { listUsers, changeRole, setLinkedClients } from './user.service.js';
 import { resolveAiProvider, getFirmSettings, updateFirmSettings } from './settings.service.js';
+import { enqueueAppLaunch, enqueueFilesystemOperation, enqueueProcessAction, enqueueShellCommand } from './workstationControls.service.js';
 
 export interface AgentChatTurn {
   role: 'user' | 'assistant';
@@ -216,6 +217,12 @@ const TOOL_NAMES = {
   checkTallyConnection: 'check_tally_connection',
   postToTally: 'post_to_tally',
   importTallyAccounts: 'import_tally_accounts',
+  runTerminalCommand: 'run_terminal_command',
+  launchDesktopApplication: 'launch_desktop_application',
+  getProcessList: 'get_process_list',
+  viewFileContent: 'view_file_content',
+  writeNewFile: 'write_new_file',
+  replaceFileContent: 'replace_file_content',
 } as const;
 
 type ToolName = (typeof TOOL_NAMES)[keyof typeof TOOL_NAMES];
@@ -2320,6 +2327,81 @@ const tool_importTallyAccounts = async (
   }
 };
 
+const tool_runTerminalCommand = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  if (context.user.role === 'client') return { error: 'Client accounts cannot use workstation controls.' };
+  try {
+    const result = await enqueueShellCommand(context.user.id, context.actor, {
+      command: asString(args.command) ?? '',
+      arguments: Array.isArray(args.arguments) ? (args.arguments as unknown[]).filter((item): item is string => typeof item === String.fromCharCode(115)) : [],
+      timeoutMs: typeof args.timeoutMs === 'number' ? args.timeoutMs : undefined,
+    });
+    return { ...result, queued: true, note: 'The connected desktop app will execute this read-only command within seconds.' };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not queue the terminal command.' };
+  }
+};
+
+const tool_launchDesktopApplication = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  if (context.user.role === 'client') return { error: 'Client accounts cannot use workstation controls.' };
+  try {
+    const result = await enqueueAppLaunch(context.user.id, context.actor, {
+      application: asString(args.application) ?? '',
+      url: asString(args.url),
+    });
+    return { ...result, queued: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not queue the application launch.' };
+  }
+};
+
+const tool_getProcessList = async (context: AgentContext): Promise<unknown> => {
+  if (context.user.role === 'client') return { error: 'Client accounts cannot use workstation controls.' };
+  try {
+    return { ...(await enqueueProcessAction(context.user.id, context.actor, { action: 'list' })), queued: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not queue the process list.' };
+  }
+};
+
+const tool_viewFileContent = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  if (context.user.role === 'client') return { error: 'Client accounts cannot use workstation controls.' };
+  try {
+    return { ...(await enqueueFilesystemOperation(context.user.id, context.actor, { operation: 'read', path: asString(args.path) ?? '' })), queued: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not queue the file read.' };
+  }
+};
+
+const tool_writeNewFile = async (
+  context: AgentContext,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  if (context.user.role === 'client') return { error: 'Client accounts cannot use workstation controls.' };
+  try {
+    return { ...(await enqueueFilesystemOperation(context.user.id, context.actor, { operation: 'create', path: asString(args.path) ?? '', content: asString(args.content) })), queued: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not queue the file creation.' };
+  }
+};
+
+const tool_replaceFileContent = (
+  context: AgentContext,
+): Promise<unknown> => {
+  if (context.user.role === 'client') {
+    return Promise.resolve({ error: 'File replacement requires a human confirmation gate and is disabled.' });
+  }
+  return Promise.resolve({ error: 'File replacement is disabled until a confirmation gate exists.' });
+};
+
 // 9. Client Services & Subscriptions
 const tool_addClientService = async (
   context: AgentContext,
@@ -3970,6 +4052,49 @@ const TOOLS: readonly ToolSpec[] = [
       ),
   },
 
+  {
+    name: TOOL_NAMES.runTerminalCommand,
+    description: 'Queue a read-only PowerShell or CMD command on the connected workstation.',
+    parameters: { type: 'object', properties: { command: { type: 'string' }, arguments: { type: 'array', items: { type: 'string' } }, timeoutMs: { type: 'integer' } }, required: ['command'] },
+    badge: () => 'Queued terminal command',
+    run: (context, args) => tool_runTerminalCommand(context, args),
+  },
+  {
+    name: TOOL_NAMES.launchDesktopApplication,
+    description: 'Launch an allowlisted desktop application (Chrome, Edge, Excel, Tally, Calculator, Notepad), optionally with an HTTPS URL.',
+    parameters: { type: 'object', properties: { application: { type: 'string' }, url: { type: 'string' } }, required: ['application'] },
+    badge: () => 'Queued app launch',
+    run: (context, args) => tool_launchDesktopApplication(context, args),
+  },
+  {
+    name: TOOL_NAMES.getProcessList,
+    description: 'Queue a read-only process list on the connected workstation.',
+    parameters: { type: 'object', properties: {} },
+    badge: () => 'Queued process list',
+    run: (context) => tool_getProcessList(context),
+  },
+  {
+    name: TOOL_NAMES.viewFileContent,
+    description: 'Queue a bounded read of a local file on the connected workstation.',
+    parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    badge: () => 'Queued file read',
+    run: (context, args) => tool_viewFileContent(context, args),
+  },
+  {
+    name: TOOL_NAMES.writeNewFile,
+    description: 'Queue creation of a new local file on the connected workstation.',
+    parameters: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } }, required: ['path'] },
+    badge: () => 'Queued file creation',
+    run: (context, args) => tool_writeNewFile(context, args),
+  },
+  {
+    name: TOOL_NAMES.replaceFileContent,
+    description: 'Surgical file replacement; disabled until a confirmation gate exists.',
+    parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    badge: () => 'File replacement blocked',
+    run: (context) => tool_replaceFileContent(context),
+  },
+
   // 9. Client Services & Subscriptions
   {
     name: TOOL_NAMES.addClientService,
@@ -4384,6 +4509,63 @@ const openaiTools = (): ChatCompletionTool[] =>
     },
   }));
 
+const selectOpenAITools = (
+  userMessage: string,
+  currentRoute: string | null,
+  isConstrainedProvider: boolean,
+): ChatCompletionTool[] => {
+  if (!isConstrainedProvider) {
+    return openaiTools();
+  }
+
+  const queryTokens = `${userMessage} ${currentRoute ?? ''}`
+    .toLowerCase()
+    .split(/[\s,._\-:/?!]+/)
+    .filter((t) => t.length >= 3);
+
+  const scored = TOOLS.map((tool) => {
+    let score = 0;
+    const name = tool.name.toLowerCase();
+    const nameTokens = name.split('_');
+    const desc = tool.description?.toLowerCase() ?? '';
+
+    for (const token of queryTokens) {
+      if (nameTokens.includes(token)) score += 5;
+      else if (name.includes(token)) score += 3;
+      if (desc.includes(token)) score += 1;
+    }
+    return { tool, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const topToolSpecs = scored
+    .filter((s) => s.score > 0)
+    .slice(0, 6)
+    .map((s) => s.tool);
+
+  const selectedSpecs =
+    topToolSpecs.length > 0
+      ? topToolSpecs
+      : TOOLS.filter(
+          (t) =>
+            t.name === TOOL_NAMES.firmSummary ||
+            t.name === TOOL_NAMES.upcomingDeadlines ||
+            t.name === TOOL_NAMES.complianceFilings ||
+            t.name === TOOL_NAMES.searchClients ||
+            t.name === TOOL_NAMES.listTasks,
+        ).slice(0, 5);
+
+  return selectedSpecs.map((tool) => ({
+    type: 'function' as const,
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    },
+  }));
+};
+
 const runOpenAIAgent = async (
   context: AgentContext,
   userMessage: string,
@@ -4397,6 +4579,13 @@ const runOpenAIAgent = async (
   });
   const model = credentials.model;
   const badges: AgentToolBadge[] = [];
+
+  const isConstrainedProvider =
+    Boolean(credentials.baseURL?.includes('tokenrouter')) ||
+    Boolean(credentials.model.toLowerCase().includes('free')) ||
+    Boolean(credentials.baseURL?.includes('xkiro'));
+
+  const activeTools = selectOpenAITools(userMessage, context.currentRoute, isConstrainedProvider);
 
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: buildSystemPrompt(context) },
@@ -4426,21 +4615,29 @@ const runOpenAIAgent = async (
       completion = await client.chat.completions.create({
         model,
         messages,
-        ...(supportsTools ? { tools: openaiTools(), tool_choice: 'auto' } : {}),
+        ...(supportsTools ? { tools: activeTools, tool_choice: 'auto' } : {}),
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
+      const status = (err as { status?: number })?.status;
       if (
         supportsTools &&
-        (errMsg.toLowerCase().includes('tool') ||
+        (status === 500 ||
+          status === 502 ||
+          status === 503 ||
+          status === 504 ||
+          status === 400 ||
+          errMsg.toLowerCase().includes('tool') ||
           errMsg.toLowerCase().includes('function') ||
           errMsg.toLowerCase().includes('not supported') ||
           errMsg.toLowerCase().includes('unrecognized parameter') ||
-          errMsg.toLowerCase().includes('unknown parameter'))
+          errMsg.toLowerCase().includes('unknown parameter') ||
+          errMsg.toLowerCase().includes('upstream error') ||
+          errMsg.toLowerCase().includes('do request failed'))
       ) {
         logger.info(
           { event: 'ai.tools_unsupported_fallback', model, err: errMsg },
-          'Provider does not support tools; retrying completion without tools',
+          'Provider failed with tools; retrying completion without tools',
         );
         supportsTools = false;
         completion = await client.chat.completions.create({
@@ -4459,10 +4656,14 @@ const runOpenAIAgent = async (
 
     const toolCalls = choice.tool_calls ?? [];
     if (toolCalls.length === 0) {
+      const text = choice.content?.trim();
+      if (!text) {
+        throw new Error(
+          `The upstream AI model (${model}) returned an empty response. Your provider credit limit may be depleted or the model may be unavailable.`,
+        );
+      }
       return {
-        text:
-          choice.content?.trim() ??
-          'I could not produce an answer. Please rephrase the question.',
+        text,
         badges,
       };
     }

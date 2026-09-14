@@ -6,8 +6,8 @@ import type { DesktopCommandStatus, DesktopCommandType } from '../lib/enums.js';
 
 /**
  * One instruction for a desktop app, drained via the authenticated poll.
- * The full XML payload is built server-side so the desktop bridge stays a
- * dumb relayer: it POSTs the envelope to localhost:9000 and reports back.
+ * The full payload is built server-side so the desktop bridge stays a dumb
+ * relayer: it executes only validated, user-scoped operations and reports back.
  */
 export interface DesktopCommandAttributes {
   /** Owning user — commands are per-accountant, not global. */
@@ -18,9 +18,19 @@ export interface DesktopCommandAttributes {
   /** FirmDesk voucher ids this tally_post covers (idempotency key). */
   voucherIds?: Types.ObjectId[];
   payload: {
-    /** Ready-to-send XML envelope for tally_post / tally_import / tally_health. */
-    requestXml: string;
-    companyName: string;
+    requestXml?: string;
+    companyName?: string;
+    operation?: 'run' | 'launch' | 'list' | 'read' | 'write' | 'create';
+    command?: string;
+    arguments?: string[];
+    timeoutMs?: number;
+    application?: string;
+    url?: string;
+    action?: 'list' | 'terminate';
+    target?: string;
+    path?: string;
+    content?: string;
+    encoding?: string;
   };
   result?: {
     ok: boolean;
@@ -48,8 +58,19 @@ const desktopCommandSchema = new Schema<DesktopCommandAttributes>(
     payload: {
       type: new Schema(
         {
-          requestXml: { type: String, required: true },
-          companyName: { type: String, required: true },
+          requestXml: { type: String },
+          companyName: { type: String },
+          operation: { type: String, enum: ['run', 'launch', 'list', 'read', 'write', 'create'] },
+          command: { type: String },
+          arguments: { type: [String] },
+          timeoutMs: { type: Number, min: 1, max: 30000 },
+          application: { type: String },
+          url: { type: String },
+          action: { type: String, enum: ['list', 'terminate'] },
+          target: { type: String },
+          path: { type: String },
+          content: { type: String },
+          encoding: { type: String },
         },
         { _id: false },
       ),
