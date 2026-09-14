@@ -98,6 +98,7 @@ const makeDraftPreparation = async (): Promise<string> => {
 };
 
 beforeEach(async () => {
+  await AutomationRun.deleteMany({}).exec();
   admin = await createAccount({ role: 'admin' });
   assignedStaff = await createAccount({ role: 'staff', name: 'Assigned' });
   outsiderStaff = await createAccount({ role: 'staff', name: 'Outsider' });

@@ -8,19 +8,17 @@ import { describe, expect, it } from 'vitest';
 describe('AI agent decision policy regressions', () => {
   it('exposes the filing-decision tools required by the safety ladder', async () => {
     const module = await import('../../src/services/aiAgent.service.js');
-    const source = Object.values(module).join('\n');
-    expect(source).toContain('check_automation_support');
-    expect(source).toContain('get_automation_run_status');
-    expect(source).toContain('create_document_request');
-    expect(source).toContain('run_portal_automation');
+    expect(module.agentToolNames).toContain('check_automation_support');
+    expect(module.agentToolNames).toContain('get_automation_run_status');
+    expect(module.agentToolNames).toContain('create_document_request');
+    expect(module.agentToolNames).toContain('run_portal_automation');
   });
 
   it('exposes monitoring and recovery controls', async () => {
     const module = await import('../../src/services/aiAgent.service.js');
-    const source = Object.values(module).join('\n');
-    expect(source).toContain('list_automation_runs');
-    expect(source).toContain('retry_automation_run');
-    expect(source).toContain('abort_automation_run');
+    expect(module.agentToolNames).toContain('list_automation_runs');
+    expect(module.agentToolNames).toContain('retry_automation_run');
+    expect(module.agentToolNames).toContain('abort_automation_run');
   });
 
   it('keeps human-only portal credentials outside agent tools', async () => {
