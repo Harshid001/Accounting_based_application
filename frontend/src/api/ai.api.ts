@@ -41,7 +41,7 @@ export interface AiChatRequest {
 export const sendAiChat = (body: AiChatRequest): Promise<AiChatReply> =>
   apiPost<AiChatReply>('/ai/chat', body);
 
-export type AiProviderName = 'gemini' | 'openai' | 'custom';
+export type AiProviderName = 'gemini' | 'openai' | 'tokenrouter' | 'custom';
 
 export interface AiConfig {
   provider: AiProviderName | null;
@@ -49,6 +49,7 @@ export interface AiConfig {
   activeModel: string | null;
   gemini: { keySet: boolean; model: string };
   openai: { keySet: boolean; model: string };
+  tokenrouter: { keySet: boolean; model: string; baseUrl: string };
   custom: { keySet: boolean; model: string; baseUrl: string };
   hasKey: boolean;
   source: 'db' | 'env' | 'none';
@@ -62,6 +63,9 @@ export interface AiConfigUpdate {
   geminiModel?: string;
   openaiApiKey?: string | null;
   openaiModel?: string;
+  tokenrouterApiKey?: string | null;
+  tokenrouterBaseUrl?: string;
+  tokenrouterModel?: string;
   customApiKey?: string | null;
   customBaseUrl?: string;
   customModel?: string;

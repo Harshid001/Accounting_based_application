@@ -3,7 +3,7 @@ import { OpenAI } from 'openai';
 
 import { logger } from '../config/logger.js';
 import type { AiProviderName } from '../models/firmSettings.model.js';
-import { getCustomBaseUrl, getProviderApiKey } from './settings.service.js';
+import { getCustomBaseUrl, getTokenrouterBaseUrl, getProviderApiKey } from './settings.service.js';
 
 export interface DetectedAiModel {
   id: string;
@@ -74,6 +74,11 @@ export const CURATED_MODELS: Record<AiProviderName, DetectedAiModel[]> = {
       recommended: true,
     },
     {
+      id: 'z-ai/glm-5.3-free',
+      name: 'GLM 5.3 Free (TokenRouter)',
+      description: 'High-speed reasoning, free tier via TokenRouter',
+    },
+    {
       id: 'deepseek/deepseek-chat',
       name: 'DeepSeek Chat (V3)',
       description: 'High-speed general reasoning and conversational copilot',
@@ -82,6 +87,34 @@ export const CURATED_MODELS: Record<AiProviderName, DetectedAiModel[]> = {
       id: 'deepseek/deepseek-reasoner',
       name: 'DeepSeek Reasoner (R1)',
       description: 'Deep mathematical and statutory reasoning with reasoning trace',
+    },
+    {
+      id: 'meta-llama/llama-3.3-70b-instruct',
+      name: 'Llama 3.3 70B Instruct',
+      description: 'Open-weight high performance foundation model',
+    },
+    {
+      id: 'qwen/qwen-2.5-72b-instruct',
+      name: 'Qwen 2.5 72B Instruct',
+      description: 'Powerful multilingual reasoning and structured extraction',
+    },
+  ],
+  tokenrouter: [
+    {
+      id: 'z-ai/glm-5.3-free',
+      name: 'GLM 5.3 Free (Recommended)',
+      description: 'High-speed reasoning, free tier on TokenRouter',
+      recommended: true,
+    },
+    {
+      id: 'deepseek/deepseek-chat',
+      name: 'DeepSeek Chat (V3)',
+      description: 'High-speed general reasoning and conversational copilot',
+    },
+    {
+      id: 'deepseek/deepseek-r1',
+      name: 'DeepSeek R1',
+      description: 'Deep mathematical & statutory reasoning with reasoning trace',
     },
     {
       id: 'meta-llama/llama-3.3-70b-instruct',
@@ -203,6 +236,42 @@ export const detectModels = async (
           models: CURATED_MODELS.custom,
         };
       }
+
+      return {
+        provider,
+        detected: true,
+        models: discovered,
+      };
+    }
+
+    if (provider === 'tokenrouter') {
+      const baseUrl = explicitBaseUrl?.trim() || (await getTokenrouterBaseUrl());
+      const client = new OpenAI({ apiKey, baseURL: baseUrl });
+      const res = await client.models.list();
+      const discovered: DetectedAiModel[] = [];
+
+      for (const m of res.data) {
+        const id = m.id;
+        discovered.push({
+          id,
+          name: id,
+          recommended: id === 'z-ai/glm-5.3-free',
+        });
+      }
+
+      if (discovered.length === 0) {
+        return {
+          provider,
+          detected: false,
+          models: CURATED_MODELS.tokenrouter,
+        };
+      }
+
+      discovered.sort((a, b) => {
+        if (a.id === 'z-ai/glm-5.3-free') return -1;
+        if (b.id === 'z-ai/glm-5.3-free') return 1;
+        return a.id.localeCompare(b.id);
+      });
 
       return {
         provider,

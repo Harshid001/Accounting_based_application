@@ -12,14 +12,18 @@ import type {
 import {
   DEFAULT_AI_MODELS,
   DEFAULT_CUSTOM_AI_BASE_URL,
+  DEFAULT_TOKENROUTER_AI_BASE_URL,
   FIRM_SETTINGS_ID,
   FirmSettings,
 } from '../models/firmSettings.model.js';
 import type { RequestActor } from '../types/context.js';
 import { buildDiff, recordAudit } from './audit.service.js';
 
-export const cleanBaseUrl = (raw?: string | null): string => {
-  if (!raw || raw.trim().length === 0) return DEFAULT_CUSTOM_AI_BASE_URL;
+export const cleanBaseUrl = (
+  raw?: string | null,
+  defaultUrl: string = DEFAULT_CUSTOM_AI_BASE_URL,
+): string => {
+  if (!raw || raw.trim().length === 0) return defaultUrl;
   let url = raw.trim();
   url = url.replace(/\/chat\/completions\/?$/i, '');
   url = url.replace(/\/+$/, '');
@@ -36,6 +40,9 @@ export const DEFAULT_AI_CONFIG: AiConfigAttributes = {
   customApiKey: null,
   customBaseUrl: DEFAULT_CUSTOM_AI_BASE_URL,
   customModel: DEFAULT_AI_MODELS.custom,
+  tokenrouterApiKey: null,
+  tokenrouterBaseUrl: DEFAULT_TOKENROUTER_AI_BASE_URL,
+  tokenrouterModel: DEFAULT_AI_MODELS.tokenrouter,
   configuredBy: null,
   configuredAt: null,
 };
@@ -46,7 +53,10 @@ export const normaliseAiConfig = (
   if (!raw) return { ...DEFAULT_AI_CONFIG };
   return {
     provider:
-      raw.provider === 'gemini' || raw.provider === 'openai' || raw.provider === 'custom'
+      raw.provider === 'gemini' ||
+      raw.provider === 'openai' ||
+      raw.provider === 'custom' ||
+      raw.provider === 'tokenrouter'
         ? raw.provider
         : null,
     enabled: Boolean(raw.enabled),
@@ -63,12 +73,21 @@ export const normaliseAiConfig = (
     customApiKey: raw.customApiKey ?? null,
     customBaseUrl:
       typeof raw.customBaseUrl === 'string' && raw.customBaseUrl.trim().length > 0
-        ? cleanBaseUrl(raw.customBaseUrl)
+        ? cleanBaseUrl(raw.customBaseUrl, DEFAULT_CUSTOM_AI_BASE_URL)
         : DEFAULT_CUSTOM_AI_BASE_URL,
     customModel:
       typeof raw.customModel === 'string' && raw.customModel.trim().length > 0
         ? raw.customModel.trim()
         : DEFAULT_AI_MODELS.custom,
+    tokenrouterApiKey: raw.tokenrouterApiKey ?? null,
+    tokenrouterBaseUrl:
+      typeof raw.tokenrouterBaseUrl === 'string' && raw.tokenrouterBaseUrl.trim().length > 0
+        ? cleanBaseUrl(raw.tokenrouterBaseUrl, DEFAULT_TOKENROUTER_AI_BASE_URL)
+        : DEFAULT_TOKENROUTER_AI_BASE_URL,
+    tokenrouterModel:
+      typeof raw.tokenrouterModel === 'string' && raw.tokenrouterModel.trim().length > 0
+        ? raw.tokenrouterModel.trim()
+        : DEFAULT_AI_MODELS.tokenrouter,
     configuredBy: raw.configuredBy ?? null,
     configuredAt: raw.configuredAt ? new Date(raw.configuredAt) : null,
   };
@@ -208,6 +227,9 @@ export interface AiConfigUpdate {
   customApiKey?: string | null;
   customBaseUrl?: string;
   customModel?: string;
+  tokenrouterApiKey?: string | null;
+  tokenrouterBaseUrl?: string;
+  tokenrouterModel?: string;
 }
 
 export interface AiConfigView {
@@ -217,6 +239,7 @@ export interface AiConfigView {
   gemini: { keySet: boolean; model: string };
   openai: { keySet: boolean; model: string };
   custom: { keySet: boolean; model: string; baseUrl: string };
+  tokenrouter: { keySet: boolean; model: string; baseUrl: string };
   hasKey: boolean;
   source: 'db' | 'env' | 'none';
   configuredAt: string | null;
@@ -253,7 +276,9 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
         ? ai.geminiApiKey
         : ai.provider === 'openai'
           ? ai.openaiApiKey
-          : ai.customApiKey;
+          : ai.provider === 'tokenrouter'
+            ? ai.tokenrouterApiKey
+            : ai.customApiKey;
     const key = decryptSecret(secret);
     if (key !== null) {
       return {
@@ -264,8 +289,15 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
             ? ai.geminiModel
             : ai.provider === 'openai'
               ? ai.openaiModel
-              : ai.customModel,
-        baseURL: ai.provider === 'custom' ? cleanBaseUrl(ai.customBaseUrl) : undefined,
+              : ai.provider === 'tokenrouter'
+                ? ai.tokenrouterModel
+                : ai.customModel,
+        baseURL:
+          ai.provider === 'tokenrouter'
+            ? cleanBaseUrl(ai.tokenrouterBaseUrl, DEFAULT_TOKENROUTER_AI_BASE_URL)
+            : ai.provider === 'custom'
+              ? cleanBaseUrl(ai.customBaseUrl, DEFAULT_CUSTOM_AI_BASE_URL)
+              : undefined,
         source: 'db',
       };
     }
@@ -296,6 +328,15 @@ export const resolveAiProvider = async (): Promise<ResolvedAiProvider | null> =>
       source: 'env',
     };
   }
+  if (env.TOKENROUTER_API_KEY && env.TOKENROUTER_API_KEY.length >= 10) {
+    return {
+      provider: 'tokenrouter',
+      apiKey: env.TOKENROUTER_API_KEY,
+      model: env.TOKENROUTER_MODEL ?? DEFAULT_AI_MODELS.tokenrouter,
+      baseURL: cleanBaseUrl(env.TOKENROUTER_BASE_URL, DEFAULT_TOKENROUTER_AI_BASE_URL),
+      source: 'env',
+    };
+  }
   const customEnvKey = env.XTROUTER_API_KEY ?? env.CUSTOM_AI_API_KEY;
   if (customEnvKey && customEnvKey.length >= 10) {
     return {
@@ -317,7 +358,9 @@ export const getProviderApiKey = async (provider: AiProviderName): Promise<strin
       ? ai.geminiApiKey
       : provider === 'openai'
         ? ai.openaiApiKey
-        : ai.customApiKey;
+        : provider === 'tokenrouter'
+          ? ai.tokenrouterApiKey
+          : ai.customApiKey;
   const key = decryptSecret(secret);
   if (key !== null) return key;
 
@@ -337,6 +380,11 @@ export const getProviderApiKey = async (provider: AiProviderName): Promise<strin
   ) {
     return env.OPENAI_API_KEY;
   }
+  if (provider === 'tokenrouter') {
+    if (env.TOKENROUTER_API_KEY && env.TOKENROUTER_API_KEY.length >= 10) {
+      return env.TOKENROUTER_API_KEY;
+    }
+  }
   if (provider === 'custom') {
     const customKey = env.XTROUTER_API_KEY ?? env.CUSTOM_AI_API_KEY;
     if (customKey && customKey.length >= 10) {
@@ -350,7 +398,16 @@ export const getProviderApiKey = async (provider: AiProviderName): Promise<strin
 export const getCustomBaseUrl = async (): Promise<string> => {
   const settings = await getFirmSettings();
   const ai = normaliseAiConfig(settings.aiConfig);
-  return cleanBaseUrl(ai.customBaseUrl ?? env.CUSTOM_AI_BASE_URL);
+  return cleanBaseUrl(ai.customBaseUrl ?? env.CUSTOM_AI_BASE_URL, DEFAULT_CUSTOM_AI_BASE_URL);
+};
+
+export const getTokenrouterBaseUrl = async (): Promise<string> => {
+  const settings = await getFirmSettings();
+  const ai = normaliseAiConfig(settings.aiConfig);
+  return cleanBaseUrl(
+    ai.tokenrouterBaseUrl ?? env.TOKENROUTER_BASE_URL,
+    DEFAULT_TOKENROUTER_AI_BASE_URL,
+  );
 };
 
 export const getAiConfigView = async (): Promise<AiConfigView> => {
@@ -361,16 +418,20 @@ export const getAiConfigView = async (): Promise<AiConfigView> => {
       ? secretSet(ai.geminiApiKey)
       : provider === 'openai'
         ? secretSet(ai.openaiApiKey)
-        : secretSet(ai.customApiKey);
+        : provider === 'tokenrouter'
+          ? secretSet(ai.tokenrouterApiKey)
+          : secretSet(ai.customApiKey);
 
   const resolved = await resolveAiProvider();
   const customEnvKey = env.XTROUTER_API_KEY ?? env.CUSTOM_AI_API_KEY;
   const hasKey =
     dbKeyFor('gemini') ||
     dbKeyFor('openai') ||
+    dbKeyFor('tokenrouter') ||
     dbKeyFor('custom') ||
     env.GEMINI_API_KEY !== undefined ||
     env.OPENAI_API_KEY !== undefined ||
+    env.TOKENROUTER_API_KEY !== undefined ||
     customEnvKey !== undefined;
 
   let configuredAtIso: string | null = null;
@@ -394,7 +455,12 @@ export const getAiConfigView = async (): Promise<AiConfigView> => {
     custom: {
       keySet: dbKeyFor('custom'),
       model: ai.customModel,
-      baseUrl: cleanBaseUrl(ai.customBaseUrl),
+      baseUrl: cleanBaseUrl(ai.customBaseUrl, DEFAULT_CUSTOM_AI_BASE_URL),
+    },
+    tokenrouter: {
+      keySet: dbKeyFor('tokenrouter'),
+      model: ai.tokenrouterModel,
+      baseUrl: cleanBaseUrl(ai.tokenrouterBaseUrl, DEFAULT_TOKENROUTER_AI_BASE_URL),
     },
     hasKey,
     source: resolved === null ? 'none' : resolved.source,
@@ -446,11 +512,27 @@ export const updateAiConfig = async (
     touched = true;
   }
   if (update.customBaseUrl !== undefined && update.customBaseUrl.trim().length > 0) {
-    ai.customBaseUrl = cleanBaseUrl(update.customBaseUrl);
+    ai.customBaseUrl = cleanBaseUrl(update.customBaseUrl, DEFAULT_CUSTOM_AI_BASE_URL);
     touched = true;
   }
   if (update.customModel !== undefined && update.customModel.trim().length > 0) {
     ai.customModel = update.customModel.trim();
+    touched = true;
+  }
+  if (update.tokenrouterApiKey !== undefined) {
+    ai.tokenrouterApiKey =
+      update.tokenrouterApiKey === null ? null : encryptSecret(update.tokenrouterApiKey);
+    touched = true;
+  }
+  if (update.tokenrouterBaseUrl !== undefined && update.tokenrouterBaseUrl.trim().length > 0) {
+    ai.tokenrouterBaseUrl = cleanBaseUrl(
+      update.tokenrouterBaseUrl,
+      DEFAULT_TOKENROUTER_AI_BASE_URL,
+    );
+    touched = true;
+  }
+  if (update.tokenrouterModel !== undefined && update.tokenrouterModel.trim().length > 0) {
+    ai.tokenrouterModel = update.tokenrouterModel.trim();
     touched = true;
   }
 
@@ -458,7 +540,7 @@ export const updateAiConfig = async (
   if (ai.enabled) {
     if (ai.provider === null) {
       throw conflict(
-        'Choose Gemini, OpenAI, or Custom as the provider before enabling the copilot.',
+        'Choose Gemini, OpenAI, TokenRouter, or Custom as the provider before enabling the copilot.',
       );
     }
     const hasDbKey =
@@ -466,14 +548,18 @@ export const updateAiConfig = async (
         ? secretSet(ai.geminiApiKey)
         : ai.provider === 'openai'
           ? secretSet(ai.openaiApiKey)
-          : secretSet(ai.customApiKey);
+          : ai.provider === 'tokenrouter'
+            ? secretSet(ai.tokenrouterApiKey)
+            : secretSet(ai.customApiKey);
     const customEnvKey = env.XTROUTER_API_KEY ?? env.CUSTOM_AI_API_KEY;
     const hasEnvKey =
       ai.provider === 'gemini'
         ? env.GEMINI_API_KEY !== undefined
         : ai.provider === 'openai'
           ? env.OPENAI_API_KEY !== undefined
-          : customEnvKey !== undefined;
+          : ai.provider === 'tokenrouter'
+            ? env.TOKENROUTER_API_KEY !== undefined
+            : customEnvKey !== undefined;
     if (!hasDbKey && !hasEnvKey) {
       if (update.enabled === true) {
         throw conflict(

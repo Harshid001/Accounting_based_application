@@ -58,7 +58,7 @@ export type AiChatBody = z.infer<typeof aiChatBody>;
 
 export const aiConfigBody = z
   .object({
-    provider: z.enum(['gemini', 'openai', 'custom']).nullable().optional(),
+    provider: z.enum(['gemini', 'openai', 'custom', 'tokenrouter']).nullable().optional(),
     enabled: z.boolean().optional(),
     geminiApiKey: trimmedString(20, 400).nullable().optional(),
     geminiModel: trimmedString(1, 100).optional(),
@@ -67,6 +67,9 @@ export const aiConfigBody = z
     customApiKey: trimmedString(10, 400).nullable().optional(),
     customBaseUrl: z.string().trim().max(500).optional(),
     customModel: trimmedString(1, 100).optional(),
+    tokenrouterApiKey: trimmedString(10, 400).nullable().optional(),
+    tokenrouterBaseUrl: z.string().trim().max(500).optional(),
+    tokenrouterModel: trimmedString(1, 100).optional(),
   })
   .refine(
     (body) =>
@@ -78,14 +81,17 @@ export const aiConfigBody = z
       body.openaiModel !== undefined ||
       body.customApiKey !== undefined ||
       body.customBaseUrl !== undefined ||
-      body.customModel !== undefined,
+      body.customModel !== undefined ||
+      body.tokenrouterApiKey !== undefined ||
+      body.tokenrouterBaseUrl !== undefined ||
+      body.tokenrouterModel !== undefined,
     { message: 'Provide at least one AI configuration field to update.' },
   );
 
 export type AiConfigBody = z.infer<typeof aiConfigBody>;
 
 export const aiModelsBody = z.object({
-  provider: z.enum(['gemini', 'openai', 'custom']),
+  provider: z.enum(['gemini', 'openai', 'custom', 'tokenrouter']),
   apiKey: trimmedString(10, 400).optional(),
   baseUrl: z.string().trim().max(500).optional(),
 });

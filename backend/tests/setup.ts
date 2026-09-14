@@ -36,6 +36,9 @@ process.env.GOOGLE_CLIENT_SECRET = 'test-google-client-secret';
 delete process.env.BOOTSTRAP_ADMIN_EMAIL;
 delete process.env.GEMINI_API_KEY;
 delete process.env.OPENAI_API_KEY;
+delete process.env.TOKENROUTER_API_KEY;
+delete process.env.TOKENROUTER_BASE_URL;
+delete process.env.TOKENROUTER_MODEL;
 delete process.env.XTROUTER_API_KEY;
 delete process.env.CUSTOM_AI_API_KEY;
 delete process.env.CUSTOM_AI_BASE_URL;
@@ -54,8 +57,15 @@ beforeAll(async () => {
   initAuth();
 });
 
+const { automationWorker } = await import('../src/services/portalAutomation/worker.js');
+
 afterEach(async () => {
   await resetRateLimits();
+  try {
+    (automationWorker as unknown as { activeRuns: Map<string, unknown> }).activeRuns?.clear?.();
+  } catch {
+    // Ignore if not present
+  }
   const db = mongoose.connection.db;
   if (!db) return;
   const collections = await db.collections();

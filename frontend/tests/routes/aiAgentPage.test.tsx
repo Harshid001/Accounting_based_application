@@ -38,6 +38,7 @@ const mockConfig = {
   activeModel: 'gemini-2.5-flash',
   gemini: { keySet: true, model: 'gemini-2.5-flash' },
   openai: { keySet: false, model: '' },
+  tokenrouter: { keySet: false, model: '', baseUrl: '' },
   custom: { keySet: false, model: '', baseUrl: '' },
   hasKey: true,
   source: 'env' as const,

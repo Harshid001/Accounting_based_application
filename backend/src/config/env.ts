@@ -84,7 +84,7 @@ const schema = z.object({
   BOOTSTRAP_ADMIN_NAME: z.string().optional(),
   BOOTSTRAP_ADMIN_PASSWORD: z.string().optional(),
 
-  AI_PROVIDER: z.enum(['gemini', 'openai', 'custom']).optional(),
+  AI_PROVIDER: z.enum(['gemini', 'openai', 'custom', 'tokenrouter']).optional(),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
@@ -93,6 +93,9 @@ const schema = z.object({
   CUSTOM_AI_API_KEY: z.string().optional(),
   CUSTOM_AI_BASE_URL: z.string().optional(),
   CUSTOM_AI_MODEL: z.string().optional(),
+  TOKENROUTER_API_KEY: z.string().optional(),
+  TOKENROUTER_BASE_URL: z.string().optional(),
+  TOKENROUTER_MODEL: z.string().optional(),
 
   GSP_BASE_URL: z.string().optional(),
   GSP_CLIENT_ID: z.string().optional(),
@@ -169,18 +172,22 @@ export const isTest = env.NODE_ENV === 'test';
 export const googleOAuthConfigured =
   env.GOOGLE_CLIENT_ID !== undefined && env.GOOGLE_CLIENT_SECRET !== undefined;
 
-export const aiProvider: 'gemini' | 'openai' | 'custom' | null =
+export const aiProvider: 'gemini' | 'openai' | 'custom' | 'tokenrouter' | null =
   env.AI_PROVIDER ??
   (env.GEMINI_API_KEY !== undefined
     ? 'gemini'
     : env.OPENAI_API_KEY !== undefined
       ? 'openai'
-      : env.XTROUTER_API_KEY !== undefined || env.CUSTOM_AI_API_KEY !== undefined
-        ? 'custom'
-        : null);
+      : env.TOKENROUTER_API_KEY !== undefined
+        ? 'tokenrouter'
+        : env.XTROUTER_API_KEY !== undefined || env.CUSTOM_AI_API_KEY !== undefined
+          ? 'custom'
+          : null);
 export const aiConfigured = aiProvider !== null;
 export const geminiConfigured = aiProvider === 'gemini' && env.GEMINI_API_KEY !== undefined;
 export const openaiConfigured = aiProvider === 'openai' && env.OPENAI_API_KEY !== undefined;
+export const tokenrouterConfigured =
+  aiProvider === 'tokenrouter' && env.TOKENROUTER_API_KEY !== undefined;
 export const customAiConfigured =
   aiProvider === 'custom' &&
   (env.XTROUTER_API_KEY !== undefined || env.CUSTOM_AI_API_KEY !== undefined);

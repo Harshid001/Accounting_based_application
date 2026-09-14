@@ -1,4 +1,4 @@
-﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bot, CheckCircle2, KeyRound, Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -25,7 +25,36 @@ import { useToast } from '@/context/ToastContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { normaliseError } from '@/lib/errors';
 
-type ProviderChoice = 'gemini' | 'openai' | 'custom' | 'none';
+type ProviderChoice = 'gemini' | 'openai' | 'tokenrouter' | 'custom' | 'none';
+
+const FALLBACK_TOKENROUTER_MODELS: DetectedAiModel[] = [
+  {
+    id: 'z-ai/glm-5.3-free',
+    name: 'GLM 5.3 Free (Recommended)',
+    description: 'Free high-performance chat and reasoning model via TokenRouter',
+    recommended: true,
+  },
+  {
+    id: 'deepseek/deepseek-chat',
+    name: 'DeepSeek Chat (V3)',
+    description: 'High-speed general reasoning and conversational copilot',
+  },
+  {
+    id: 'deepseek/deepseek-r1',
+    name: 'DeepSeek R1',
+    description: 'Deep mathematical & statutory reasoning with reasoning trace',
+  },
+  {
+    id: 'meta-llama/llama-3.3-70b-instruct',
+    name: 'Llama 3.3 70B Instruct',
+    description: 'Open-weight high performance foundation model',
+  },
+  {
+    id: 'qwen/qwen-2.5-72b-instruct',
+    name: 'Qwen 2.5 72B Instruct',
+    description: 'Powerful multilingual reasoning and structured extraction',
+  },
+];
 
 const FALLBACK_GEMINI_MODELS: DetectedAiModel[] = [
   {
@@ -118,13 +147,17 @@ export function AiSettings() {
   const [providerDraft, setProviderDraft] = useState<ProviderChoice | null>(null);
   const [geminiModelDraft, setGeminiModelDraft] = useState<string | null>(null);
   const [openaiModelDraft, setOpenaiModelDraft] = useState<string | null>(null);
+  const [tokenrouterModelDraft, setTokenrouterModelDraft] = useState<string | null>(null);
+  const [tokenrouterBaseUrlDraft, setTokenrouterBaseUrlDraft] = useState<string | null>(null);
   const [customModelDraft, setCustomModelDraft] = useState<string | null>(null);
   const [customBaseUrlDraft, setCustomBaseUrlDraft] = useState<string | null>(null);
   const [geminiCustomMode, setGeminiCustomMode] = useState(false);
   const [openaiCustomMode, setOpenaiCustomMode] = useState(false);
+  const [tokenrouterCustomMode, setTokenrouterCustomMode] = useState(false);
   const [customCustomMode, setCustomCustomMode] = useState(false);
   const [geminiKey, setGeminiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
+  const [tokenrouterKey, setTokenrouterKey] = useState('');
   const [customKey, setCustomKey] = useState('');
 
   // Drafts override server values until the user edits them; server data stays
@@ -132,6 +165,10 @@ export function AiSettings() {
   const provider: ProviderChoice = providerDraft ?? config?.provider ?? 'none';
   const geminiModel: string = geminiModelDraft ?? config?.gemini?.model ?? 'gemini-2.5-flash';
   const openaiModel: string = openaiModelDraft ?? config?.openai?.model ?? 'gpt-4o-mini';
+  const tokenrouterModel: string =
+    tokenrouterModelDraft ?? config?.tokenrouter?.model ?? 'z-ai/glm-5.3-free';
+  const tokenrouterBaseUrl: string =
+    tokenrouterBaseUrlDraft ?? config?.tokenrouter?.baseUrl ?? 'https://api.tokenrouter.com/v1';
   const customModel: string =
     customModelDraft ?? config?.custom?.model ?? 'deepseek/deepseek-v4-pro';
   const customBaseUrl: string =
@@ -155,6 +192,20 @@ export function AiSettings() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const tokenrouterModelsQuery = useQuery({
+    queryKey: [
+      'ai',
+      'models',
+      'tokenrouter',
+      config?.tokenrouter?.keySet ? 'saved' : 'none',
+      tokenrouterBaseUrl,
+    ],
+    queryFn: () =>
+      detectAiModels({ provider: 'tokenrouter', baseUrl: tokenrouterBaseUrl }),
+    enabled: provider === 'tokenrouter',
+    staleTime: 5 * 60 * 1000,
+  });
+
   const customModelsQuery = useQuery({
     queryKey: ['ai', 'models', 'custom', config?.custom?.keySet ? 'saved' : 'none', customBaseUrl],
     queryFn: () => detectAiModels({ provider: 'custom', baseUrl: customBaseUrl }),
@@ -164,7 +215,7 @@ export function AiSettings() {
 
   const detectMutation = useMutation({
     mutationFn: (args: {
-      provider: 'gemini' | 'openai' | 'custom';
+      provider: 'gemini' | 'openai' | 'tokenrouter' | 'custom';
       apiKey?: string;
       baseUrl?: string;
     }) => detectAiModels(args),
@@ -176,7 +227,9 @@ export function AiSettings() {
               ? 'Google Gemini'
               : data.provider === 'openai'
                 ? 'OpenAI'
-                : 'Custom Provider'
+                : data.provider === 'tokenrouter'
+                  ? 'TokenRouter'
+                  : 'Custom Provider'
           }`,
         );
         const currentModel =
@@ -184,7 +237,9 @@ export function AiSettings() {
             ? geminiModel
             : data.provider === 'openai'
               ? openaiModel
-              : customModel;
+              : data.provider === 'tokenrouter'
+                ? tokenrouterModel
+                : customModel;
         const exists = data.models.some((m) => m.id === currentModel);
         if (!exists && data.models.length > 0) {
           const rec = data.models.find((m) => m.recommended) ?? data.models[0];
@@ -195,6 +250,9 @@ export function AiSettings() {
             } else if (data.provider === 'openai') {
               setOpenaiModelDraft(rec.id);
               setOpenaiCustomMode(false);
+            } else if (data.provider === 'tokenrouter') {
+              setTokenrouterModelDraft(rec.id);
+              setTokenrouterCustomMode(false);
             } else {
               setCustomModelDraft(rec.id);
               setCustomCustomMode(false);
@@ -217,6 +275,12 @@ export function AiSettings() {
   const openaiDetection =
     detectMutation.data?.provider === 'openai' ? detectMutation.data : openaiModelsQuery.data;
   const openaiModelList = openaiDetection?.models ?? FALLBACK_OPENAI_MODELS;
+
+  const tokenrouterDetection =
+    detectMutation.data?.provider === 'tokenrouter'
+      ? detectMutation.data
+      : tokenrouterModelsQuery.data;
+  const tokenrouterModelList = tokenrouterDetection?.models ?? FALLBACK_TOKENROUTER_MODELS;
 
   const customDetection =
     detectMutation.data?.provider === 'custom' ? detectMutation.data : customModelsQuery.data;
@@ -244,6 +308,17 @@ export function AiSettings() {
     { value: '__custom__', label: 'Custom model...' },
   ];
 
+  const tokenrouterSelectOptions = [
+    ...tokenrouterModelList.map((m) => ({
+      value: m.id,
+      label: m.name,
+    })),
+    ...(tokenrouterModelList.some((m) => m.id === tokenrouterModel) || tokenrouterCustomMode
+      ? []
+      : [{ value: tokenrouterModel, label: `${tokenrouterModel} (custom)` }]),
+    { value: '__custom__', label: 'Custom model...' },
+  ];
+
   const customSelectOptions = [
     ...customModelList.map((m) => ({
       value: m.id,
@@ -261,6 +336,8 @@ export function AiSettings() {
       setProviderDraft(null);
       setGeminiModelDraft(null);
       setOpenaiModelDraft(null);
+      setTokenrouterModelDraft(null);
+      setTokenrouterBaseUrlDraft(null);
       setCustomModelDraft(null);
       setCustomBaseUrlDraft(null);
       invalidate();
@@ -283,13 +360,15 @@ export function AiSettings() {
   });
 
   const clearKeyMutation = useMutation({
-    mutationFn: (which: 'gemini' | 'openai' | 'custom') =>
+    mutationFn: (which: 'gemini' | 'openai' | 'tokenrouter' | 'custom') =>
       updateAiConfig(
         which === 'gemini'
           ? { geminiApiKey: null }
           : which === 'openai'
             ? { openaiApiKey: null }
-            : { customApiKey: null },
+            : which === 'tokenrouter'
+              ? { tokenrouterApiKey: null }
+              : { customApiKey: null },
       ),
     onSuccess: () => {
       invalidate();
@@ -316,6 +395,13 @@ export function AiSettings() {
       }
       body.openaiModel = openaiModel.trim() || 'gpt-4o-mini';
     }
+    if (provider === 'tokenrouter') {
+      if (tokenrouterKey.trim().length > 0) {
+        body.tokenrouterApiKey = tokenrouterKey.trim();
+      }
+      body.tokenrouterBaseUrl = tokenrouterBaseUrl.trim() || 'https://api.tokenrouter.com/v1';
+      body.tokenrouterModel = tokenrouterModel.trim() || 'z-ai/glm-5.3-free';
+    }
     if (provider === 'custom') {
       if (customKey.trim().length > 0) {
         body.customApiKey = customKey.trim();
@@ -326,6 +412,7 @@ export function AiSettings() {
     saveMutation.mutate(body);
     setGeminiKey('');
     setOpenaiKey('');
+    setTokenrouterKey('');
     setCustomKey('');
   };
 
@@ -336,6 +423,18 @@ export function AiSettings() {
     }
     if (openaiModel.trim().length > 0 && openaiModel.trim() !== config?.openai.model) {
       body.openaiModel = openaiModel.trim();
+    }
+    if (
+      tokenrouterModel.trim().length > 0 &&
+      tokenrouterModel.trim() !== config?.tokenrouter?.model
+    ) {
+      body.tokenrouterModel = tokenrouterModel.trim();
+    }
+    if (
+      tokenrouterBaseUrl.trim().length > 0 &&
+      tokenrouterBaseUrl.trim() !== config?.tokenrouter?.baseUrl
+    ) {
+      body.tokenrouterBaseUrl = tokenrouterBaseUrl.trim();
     }
     if (customModel.trim().length > 0 && customModel.trim() !== config?.custom.model) {
       body.customModel = customModel.trim();
@@ -359,9 +458,11 @@ export function AiSettings() {
         ? (config.gemini?.keySet ?? false)
         : provider === 'openai'
           ? (config.openai?.keySet ?? false)
-          : provider === 'custom'
-            ? (config.custom?.keySet ?? false)
-            : false;
+          : provider === 'tokenrouter'
+            ? (config.tokenrouter?.keySet ?? false)
+            : provider === 'custom'
+              ? (config.custom?.keySet ?? false)
+              : false;
   const canEnable =
     config !== undefined && provider !== 'none' && (providerKeySet || config.source !== 'none');
 
@@ -401,7 +502,7 @@ export function AiSettings() {
           <Card>
             <CardHeader
               title="AI Copilot status"
-              description="Connect Gemini, OpenAI, or Custom (Xkiro / DeepSeek) to power the FirmDesk assistant with live firm data."
+              description="Connect Gemini, OpenAI, TokenRouter, or Custom to power the FirmDesk assistant with live firm data."
             />
             <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
               <span
@@ -411,14 +512,16 @@ export function AiSettings() {
               />
               <span className="text-sm text-[var(--fd-text-secondary)]">
                 {config?.enabled && config.hasKey
-                  ? `Active â€” ${
+                  ? `Active — ${
                       config.provider === 'gemini'
                         ? 'Gemini'
                         : config.provider === 'openai'
                           ? 'OpenAI'
-                          : 'Custom / Xkiro'
+                          : config.provider === 'tokenrouter'
+                            ? 'TokenRouter'
+                            : 'Custom / Xkiro'
                     } (${config.activeModel ?? 'default model'})`
-                  : 'Inactive â€” reference mode only'}
+                  : 'Inactive — reference mode only'}
               </span>
               <Badge tone={config?.source === 'db' ? 'accent' : 'neutral'}>
                 {config?.source === 'db'
@@ -462,6 +565,7 @@ export function AiSettings() {
                     options={[
                       { value: 'none', label: 'Not configured' },
                       { value: 'gemini', label: 'Google Gemini (recommended)' },
+                      { value: 'tokenrouter', label: 'TokenRouter (z-ai/glm-5.3-free)' },
                       { value: 'openai', label: 'OpenAI' },
                       { value: 'custom', label: 'Custom / Xkiro / OpenAI-compatible' },
                     ]}
@@ -690,6 +794,139 @@ export function AiSettings() {
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                       Remove saved OpenAI key
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {provider === 'tokenrouter' && (
+                <div className="space-y-4 pt-2">
+                  <FieldRow>
+                    <FormField
+                      label="Endpoint Base URL"
+                      helper="TokenRouter OpenAI-compatible endpoint (defaults to https://api.tokenrouter.com/v1)."
+                    >
+                      {({ inputId, describedBy }) => (
+                        <Input
+                          id={inputId}
+                          placeholder="https://api.tokenrouter.com/v1"
+                          value={tokenrouterBaseUrl}
+                          aria-describedby={describedBy}
+                          onChange={(event) => {
+                            setTokenrouterBaseUrlDraft(event.target.value);
+                          }}
+                        />
+                      )}
+                    </FormField>
+
+                    <FormField
+                      label="TokenRouter API key"
+                      helper={
+                        config?.tokenrouter?.keySet
+                          ? 'A key is already saved. Enter a new one to replace it.'
+                          : 'Enter your TokenRouter API key (Bearer token).'
+                      }
+                    >
+                      {({ inputId, describedBy, invalid }) => (
+                        <Input
+                          id={inputId}
+                          type="password"
+                          placeholder="Enter TokenRouter key…"
+                          value={tokenrouterKey}
+                          invalid={invalid}
+                          aria-describedby={describedBy}
+                          onChange={(event) => {
+                            setTokenrouterKey(event.target.value);
+                          }}
+                        />
+                      )}
+                    </FormField>
+                  </FieldRow>
+
+                  <FieldRow>
+                    <FormField
+                      label="Model"
+                      helper={
+                        tokenrouterDetection?.detected
+                          ? `Auto-detected ${tokenrouterModelList.length} models for TokenRouter.`
+                          : 'Pick a model (z-ai/glm-5.3-free recommended) or click Auto-detect to query live models.'
+                      }
+                    >
+                      {({ inputId, describedBy }) => (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1">
+                              <Select
+                                id={inputId}
+                                ariaDescribedBy={describedBy}
+                                value={tokenrouterCustomMode ? '__custom__' : tokenrouterModel}
+                                onValueChange={(val) => {
+                                  if (val === '__custom__') {
+                                    setTokenrouterCustomMode(true);
+                                  } else {
+                                    setTokenrouterCustomMode(false);
+                                    setTokenrouterModelDraft(val);
+                                  }
+                                }}
+                                options={tokenrouterSelectOptions}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              loading={
+                                detectMutation.isPending &&
+                                detectMutation.variables?.provider === 'tokenrouter'
+                              }
+                              onClick={() => {
+                                detectMutation.mutate({
+                                  provider: 'tokenrouter',
+                                  apiKey: tokenrouterKey.trim() || undefined,
+                                  baseUrl: tokenrouterBaseUrl.trim() || undefined,
+                                });
+                              }}
+                              title="Auto-detect accessible models using the API key and Base URL"
+                            >
+                              <Sparkles
+                                className="h-3.5 w-3.5 text-[var(--fd-accent)]"
+                                aria-hidden="true"
+                              />
+                              Auto-detect
+                            </Button>
+                          </div>
+
+                          {tokenrouterCustomMode && (
+                            <Input
+                              placeholder="Enter custom model (e.g. z-ai/glm-5.3-free)"
+                              value={tokenrouterModel}
+                              onChange={(e) => setTokenrouterModelDraft(e.target.value)}
+                              aria-label="Custom TokenRouter model"
+                            />
+                          )}
+
+                          {tokenrouterDetection?.detected && (
+                            <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              <span>Live models synced with TokenRouter</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </FormField>
+                  </FieldRow>
+
+                  {config?.tokenrouter?.keySet && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      loading={clearKeyMutation.isPending}
+                      onClick={() => {
+                        clearKeyMutation.mutate('tokenrouter');
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      Remove saved TokenRouter key
                     </Button>
                   )}
                 </div>

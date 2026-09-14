@@ -13,7 +13,7 @@ export interface EncryptedSecretAttributes {
   keyVersion: number;
 }
 
-export type AiProviderName = 'gemini' | 'openai' | 'custom';
+export type AiProviderName = 'gemini' | 'openai' | 'custom' | 'tokenrouter';
 
 export interface AiConfigAttributes {
   provider: AiProviderName | null;
@@ -25,6 +25,9 @@ export interface AiConfigAttributes {
   customApiKey?: EncryptedSecretAttributes | null;
   customBaseUrl?: string;
   customModel: string;
+  tokenrouterApiKey?: EncryptedSecretAttributes | null;
+  tokenrouterBaseUrl?: string;
+  tokenrouterModel: string;
   configuredBy?: Types.ObjectId | null;
   configuredAt?: Date | null;
 }
@@ -77,16 +80,22 @@ const encryptedSecretSchema = new Schema<EncryptedSecretAttributes>(
 );
 
 export const DEFAULT_CUSTOM_AI_BASE_URL = 'https://api.xkiro.com/v1';
+export const DEFAULT_TOKENROUTER_AI_BASE_URL = 'https://api.tokenrouter.com/v1';
 
 export const DEFAULT_AI_MODELS: Record<AiProviderName, string> = {
   gemini: 'gemini-2.5-flash',
   openai: 'gpt-4o-mini',
   custom: 'deepseek/deepseek-v4-pro',
+  tokenrouter: 'z-ai/glm-5.3-free',
 };
 
 const aiConfigSchema = new Schema<AiConfigAttributes>(
   {
-    provider: { type: String, default: null, enum: [null, 'gemini', 'openai', 'custom'] },
+    provider: {
+      type: String,
+      default: null,
+      enum: [null, 'gemini', 'openai', 'custom', 'tokenrouter'],
+    },
     enabled: { type: Boolean, default: false },
     geminiApiKey: { type: encryptedSecretSchema, default: null },
     geminiModel: {
@@ -112,6 +121,19 @@ const aiConfigSchema = new Schema<AiConfigAttributes>(
     customModel: {
       type: String,
       default: DEFAULT_AI_MODELS.custom,
+      trim: true,
+      maxlength: 100,
+    },
+    tokenrouterApiKey: { type: encryptedSecretSchema, default: null },
+    tokenrouterBaseUrl: {
+      type: String,
+      default: DEFAULT_TOKENROUTER_AI_BASE_URL,
+      trim: true,
+      maxlength: 500,
+    },
+    tokenrouterModel: {
+      type: String,
+      default: DEFAULT_AI_MODELS.tokenrouter,
       trim: true,
       maxlength: 100,
     },

@@ -4521,31 +4521,6 @@ const staticFallbackReply = async (
     };
   }
 
-  if (providerFailure) {
-    const providerLabel =
-      providerFailure.provider === 'gemini'
-        ? 'Google Gemini'
-        : providerFailure.provider === 'openai'
-          ? 'OpenAI'
-          : 'Custom Provider (Xkiro / DeepSeek)';
-    const errorDetails =
-      providerFailure.error instanceof Error ? providerFailure.error.message : '';
-    return {
-      content:
-        `Hello ${name}! I'm temporarily running in **reference mode** because the configured **${providerLabel}** provider call failed${errorDetails ? ` (${errorDetails})` : ''}.\n\n` +
-        `I can still read live firm data — try:\n` +
-        `• *"What deadlines are coming up?"*\n` +
-        `• *"Show pending GST filings"*\n\n` +
-        `An admin can verify or change the model and key under Settings → AI Copilot.`,
-      toolCalls: [],
-      actions: [
-        { label: 'AI Settings', route: '/settings' },
-        { label: 'Dashboard', route: '/dashboard' },
-        { label: 'Statutory Filings', route: '/compliance' },
-      ],
-    };
-  }
-
   const isPracticeAutomation =
     query.includes('option one') ||
     query.includes('option 1') ||
@@ -4842,6 +4817,33 @@ const staticFallbackReply = async (
     };
   }
 
+  if (providerFailure) {
+    const providerLabel =
+      providerFailure.provider === 'gemini'
+        ? 'Google Gemini'
+        : providerFailure.provider === 'openai'
+          ? 'OpenAI'
+          : providerFailure.provider === 'tokenrouter'
+            ? 'TokenRouter'
+            : 'Custom Provider (Xkiro / DeepSeek)';
+    const errorDetails =
+      providerFailure.error instanceof Error ? providerFailure.error.message : '';
+    return {
+      content:
+        `Hello ${name}! I'm temporarily running in **reference mode** because the configured **${providerLabel}** provider call failed${errorDetails ? ` (${errorDetails})` : ''}.\n\n` +
+        `I can still read live firm data — try:\n` +
+        `• *"What deadlines are coming up?"*\n` +
+        `• *"Show pending GST filings"*\n\n` +
+        `An admin can verify or change the model and key under Settings → AI Copilot.`,
+      toolCalls: [],
+      actions: [
+        { label: 'AI Settings', route: '/settings' },
+        { label: 'Dashboard', route: '/dashboard' },
+        { label: 'Statutory Filings', route: '/compliance' },
+      ],
+    };
+  }
+
   return {
     content:
       `Hello ${name}! I'm running in **reference mode** because no AI provider key is configured yet.\n\n` +
@@ -4850,7 +4852,7 @@ const staticFallbackReply = async (
       `• *"Show pending GST filings"*\n` +
       `• *"How many tasks do I have?"*\n` +
       `• *"What can you automate?"*\n\n` +
-      `To unlock full conversational powers and automate the whole website (creating/updating clients, filings, tasks, messages, and settings), an admin can add a **Gemini** or **OpenAI API key** under Settings → AI Copilot.`,
+      `To unlock full conversational powers and automate the whole website (creating/updating clients, filings, tasks, messages, and settings), an admin can add an API key under Settings → AI Copilot.`,
     toolCalls: [],
     actions: [
       { label: 'Dashboard', route: '/dashboard' },
