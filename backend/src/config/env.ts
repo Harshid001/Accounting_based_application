@@ -26,7 +26,7 @@ const originList = z
     'each origin must be a bare scheme + host, with no trailing path',
   );
 
-const DESKTOP_VERSION = '0.1.2';
+const DESKTOP_VERSION = '0.1.3';
 
 const base64Key = (bytes: number) =>
   z
