@@ -4163,6 +4163,28 @@ const TOOLS: readonly ToolSpec[] = [
   },
 ] as const;
 
+export interface AgentToolDeclaration {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+export const agentToolNames: readonly string[] = Object.freeze(TOOLS.map((tool) => tool.name));
+export const AGENT_TOOL_NAMES: readonly string[] = agentToolNames;
+
+const toolDeclarations: AgentToolDeclaration[] = TOOLS.map((tool) => ({
+  name: tool.name,
+  description: tool.description,
+  parameters: tool.parameters,
+}));
+
+export const agentTools = Object.assign(toolDeclarations, {
+  toString(): string {
+    return toolDeclarations.map((t) => t.name).join('\n');
+  },
+});
+export const AGENT_TOOLS = agentTools;
+
 const toolByName = (name: string): ToolSpec | undefined =>
   TOOLS.find((tool) => tool.name === name);
 
